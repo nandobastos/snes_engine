@@ -26,10 +26,11 @@
 3. Física (andar, pulo, gravidade), custos de super/EX, IA, regras de round e HUD.
 4. Número de lutadores (hoje 3 fixos: `CH_RYU/CH_SAGAT/CH_BOXER`, `SAGAT_OFF`, `BOXER_OFF`).
 
-## Pendencia conhecida (equivalencia)
-Na luta aleatoria DonLee x DonLee (tests/equiv.py, semente 7) 1 dos 11 prints (quadro 89, os dois no ar) mostra a pose do lutador de cima
-1 quadro adiantada/atrasada; no quadro 99 ja volta a ser identico e os registros finais sao iguais. Ryu e Sagat: 0 diferencas.
-Suspeita: pequena variacao de tempo do quadro (CPU) pelos novos tracos; investigar com PROFILING=1 antes de fechar a etapa 1.
+## Diferenca do DonLee x DonLee: RESOLVIDA (era bug do jogo original)
+O print diferente (quadro 89, DonLee no ar) vinha do src/drawobj.asm do jogo original: o desenho no ar usava belt_ref[fchar] (o DonLee tem
+fchar 0 = Ryu, entao pegava a altura do Ryu: 7 px de diferenca entre o desenho e as caixas). A engine usa belt_ref do proprio jogador.
+Prova: o jogo original com esse unico ajuste (belt_ref[fgfx]) fica identico a engine nos 3 lutadores (0 de 33 prints diferentes).
+Na comparacao com o original sem ajuste, o DonLee continua mostrando essa 1 diferenca (esperado).
 Tracos 18-21 (retrato, retrato alt., paleta do game over, 1o oponente do arcade) sao copiados para a RAM no boot (ftc[]).
 
 ## Criar / clonar lutador (editor/lutadores.html e tools/lutadores.py)

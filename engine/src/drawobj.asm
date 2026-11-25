@@ -68,7 +68,7 @@ draw_obj:
     clc
     adc.l do_f
     sta.l do_rf
-    ; no ar (lutadores): alt += belt_ref[fchar[o]] + belt - h
+    ; no ar (lutadores): alt += belt_ref[o] + belt - h
     lda.l do_o
     cmp #2
     bcs _do_nobelt
@@ -89,10 +89,7 @@ draw_obj:
     sta.l do_tmp2
     lda.l do_o
     tax
-    lda.l fchar,x
-    and #$00FF
-    tax
-    lda.l belt_ref,x
+    lda.l belt_ref,x        ; belt_ref por jogador (o); o jogo original usava belt_ref[fchar]: o DonLee no ar saia 7 px fora das caixas
     and #$00FF
     clc
     adc.l do_tmp
