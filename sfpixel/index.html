@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SF Pixel</title>
+<link rel="stylesheet" href="pixel.css">
+</head>
+<body>
+<div id="app">
+  <header id="menubar">
+    <b class="logo">SF<span>PIXEL</span></b>
+    <div class="menu" data-menu="file">Arquivo</div>
+    <div class="menu" data-menu="edit">Editar</div>
+    <div class="menu" data-menu="sprite">Sprite</div>
+    <div class="menu" data-menu="frame">Quadro</div>
+    <div class="menu" data-menu="layer">Camada</div>
+    <div class="menu" data-menu="view">Exibir</div>
+    <div class="menu" data-menu="help">Ajuda</div>
+    <span id="docname"></span>
+  </header>
+  <nav id="tabs"></nav>
+
+  <div id="main">
+    <aside id="colorbar">
+      <div class="fgbg">
+        <div id="sw-bg" class="swbig" title="Cor de fundo (X troca)"></div>
+        <div id="sw-fg" class="swbig" title="Cor de frente"></div>
+      </div>
+      <div class="ptitle">Paleta <small>(16 cores, 0 = transparente)</small></div>
+      <div id="palsel" class="palsel hidden"></div>
+      <div id="spal" class="spal"></div>
+      <div class="hint">Clique = cor de frente · Ctrl+clique = mostra na arte onde a cor está · Delete (com o mouse aqui) = excluir o slot da cor de frente · Botão direito = fundo · Duplo clique = trocar a cor do slot. O slot 0 é transparente.</div>
+      <div class="ptitle">Cores do Super Nintendo <small>(32768)</small></div>
+      <div id="snes-rgb" class="snesrgb"></div>
+      <div id="mdpal" class="mdpal"></div>
+      <div id="mdinfo" class="hint"></div>
+    </aside>
+    <div class="gut" data-gut="cw" title="Arraste para mudar a largura"></div>
+
+    <section id="stage">
+      <div id="toolopts"></div>
+      <div id="viewport"><canvas id="cv"></canvas></div>
+    </section>
+
+    <aside id="toolbar"></aside>
+
+    <div class="gut" data-gut="mw" title="Arraste para mudar a largura"></div>
+    <aside id="mdpanel">
+      <div class="ptitle">Super Nintendo · custo</div>
+      <div id="mdreport"></div>
+    </aside>
+  </div>
+
+  <div id="timeline">
+    <div class="gut-h" title="Arraste para mudar a altura da linha do tempo"></div>
+    <div class="tl-bar">
+      <button data-cmd="play" title="Tocar (Enter)">▶</button>
+      <button data-cmd="first" title="Primeiro quadro (Home)">⏮</button>
+      <button data-cmd="prev" title="Quadro anterior (,)">◀</button>
+      <button data-cmd="next" title="Próximo quadro (.)">▶</button>
+      <button data-cmd="last" title="Último quadro (End)">⏭</button>
+      <span class="sep"></span>
+      <button data-cmd="onion" title="Papel de cebola (F3)" class="ic"><svg viewBox="0 0 24 24"><circle cx="9" cy="12" r="6" fill="none" stroke="currentColor" stroke-width="2" opacity=".5"/><circle cx="15" cy="12" r="6" fill="none" stroke="currentColor" stroke-width="2"/></svg></button>
+      <select id="loopmode" title="Repetição dos quadros sem tag"><option value="loop">Loop</option><option value="pingpong">Ping-pong</option><option value="once">Uma vez</option></select>
+      <span class="sep"></span>
+      <button data-cmd="newframe" title="Novo quadro (Alt+N)" class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="12" height="14" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19 8v8M15 12h8" stroke="currentColor" stroke-width="2.4"/></svg></button>
+      <button data-cmd="newempty" title="Novo quadro vazio (Alt+B)" class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="12" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="3 2"/><path d="M19 8v8M15 12h8" stroke="currentColor" stroke-width="2.4"/></svg></button>
+      <button data-cmd="delframe" title="Apagar quadro (Alt+Delete)" class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="12" height="14" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15 12h8" stroke="currentColor" stroke-width="2.4"/></svg></button>
+      <span class="sep"></span>
+      <button data-cmd="newlayer" title="Nova camada (Shift+N)" class="ic"><svg viewBox="0 0 24 24"><path d="M2 9l7-4 7 4-7 4z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M2 13l7 4 7-4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M19 8v8M15 12h8" stroke="currentColor" stroke-width="2.4"/></svg></button>
+      <button data-cmd="dellayer" title="Apagar camada" class="ic"><svg viewBox="0 0 24 24"><path d="M2 9l7-4 7 4-7 4z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M2 13l7 4 7-4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M15 12h8" stroke="currentColor" stroke-width="2.4"/></svg></button>
+      <span class="sep"></span>
+      <button data-cmd="newtag" class="ic" title="Nova tag nos quadros marcados (Shift+clique nos números marca vários) · Alt+T"><svg viewBox="0 0 24 24"><path d="M3 4h9l8 8-8 8-9-9z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="9" r="1.6" fill="currentColor"/></svg></button>
+      <span id="tl-info"></span>
+    </div>
+    <div id="tl-grid"></div>
+  </div>
+  <footer id="status"><span id="st-pos"></span><span id="st-msg"></span><span id="st-zoom"></span></footer>
+</div>
+
+<div id="preview" class="float">
+  <div class="float-head">Prévia <span id="pv-z" class="pv-z"></span><button id="pv-close">×</button></div>
+  <div id="pv-body"><canvas id="pv"></canvas></div>
+</div>
+
+<div id="dropmenu" class="dropmenu hidden"></div>
+<div id="modal" class="modal hidden"><div class="modal-box" id="modal-box"></div></div>
+<input type="file" id="file-open" accept=".sgpx,.json,.aseprite,.ase" class="hidden">
+<input type="file" id="file-img" accept="image/*" class="hidden">
+
+<script src="js/png.js"></script>
+<script src="js/ase.js"></script>
+<script src="js/map.js"></script>
+<script src="js/pixel.js"></script>
+</body>
+</html>
