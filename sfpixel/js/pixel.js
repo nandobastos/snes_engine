@@ -1150,8 +1150,13 @@ async function exportSF() {
       }
     }
   }
-  download(new Blob([JSON.stringify(out)], { type: "application/json" }), fileBase() + ".sffighter.json");
-  msg(`Exportado: ${out.tags.length} animações (${fileBase()}.sffighter.json).`);
+  const nome = fileBase() + ".sffighter.json", txt = JSON.stringify(out);
+  try {   // aberto pelo "Abrir SF Engine.bat": grava direto em project/
+    const r = await fetch("/api/salvar?f=" + encodeURIComponent(nome), { method: "POST", body: txt });
+    if (r.ok) { msg(`Exportado para project/${nome} (${out.tags.length} animações). No editor de Lutadores, escolha essa arte no lutador.`); return; }
+  } catch (e) { /* sem servidor: baixa o arquivo */ }
+  download(new Blob([txt], { type: "application/json" }), nome);
+  msg(`Exportado: ${out.tags.length} animações (${nome}).`);
 }
 
 /* ---------------------------------------------------- abrir um lutador do jogo (Ryu, Sagat, DonLee) direto da ROM-motor

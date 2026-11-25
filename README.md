@@ -1,3 +1,15 @@
+# SF Engine (Super Nintendo)
+
+## Como abrir (Windows)
+1. Clone este repositório pelo **GitHub Desktop** (ou baixe a pasta).
+2. Dê dois cliques em **`Abrir SF Engine.bat`**. Abre uma janela preta (o servidor) e o navegador na SF Engine.
+   - Precisa do Python (o mesmo do SG Engine). Se a pasta veio pelo GitHub, o .bat já procura atualização sozinho.
+3. Para atualizar: no GitHub Desktop, **Fetch origin** e depois **Pull**. Feche e abra o .bat de novo.
+4. Para fechar: feche a janela preta.
+
+Com o .bat, o editor abre o `project/game.json` sozinho e **Salvar** grava direto na pasta `project/`;
+o SF Pixel exporta a arte direto para `project/` e os estágios criados também vão para lá.
+
 # SF Engine (SNES Fight Engine)
 
 Engine e editor para jogos de luta de Super Nintendo, sem escrever código: você desenha os lutadores no **SG Pixel**, configura golpes, inputs, fases e telas no **editor**, joga no **testador** e exporta o `.sfc`.

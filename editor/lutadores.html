@@ -25,7 +25,7 @@ label{display:flex;justify-content:space-between;gap:6px;align-items:center}#msg
 <button id="abrir">Abrir game.json</button>
 <button id="clonar" disabled>Clonar</button><button id="novo" disabled>Novo (a partir de um modelo)</button>
 <button id="rem" disabled>Excluir</button><button id="regras" disabled>Regras e HUD</button><button id="telas" disabled>Telas (fluxo)</button><button class="p" id="salvar" disabled>Salvar game.json</button>
-<input type="file" id="arqArte" accept=".json" multiple hidden><button id="arte" disabled>Carregar arte (SF Pixel)</button>
+<input type="file" id="arqArte" accept=".json" multiple hidden><button id="arte" disabled title="Com o Abrir SF Engine.bat: relê a pasta project/">Carregar arte (SF Pixel)</button>
 <button id="rom" disabled>Gerar ROM (.sfc)</button><button class="p" id="jogar" disabled>Jogar</button>
 <input type="file" id="arqBase" accept=".sfc" hidden><input type="file" id="arqImg" accept="image/*" hidden><input type="file" id="arqStg" accept=".json" multiple hidden>
 <span id="msg">Abra o arquivo project/game.json do seu projeto.</span></header>
@@ -39,7 +39,9 @@ const TOK=[['↓',14,2],['↘',14,10],['→',14,8],['↗',15,9],['↑',15,1],['�
 const tok=([m,v])=>{const t=TOK.find(x=>x[1]===m&&x[2]===v);return t?t[0]:m+'/'+v};
 const DEFCMD=[[[14,2],[14,10],[14,8]],[[14,2],[14,6],[14,4]],[[14,8],[14,10]],[[14,8],[14,10],[12,8]],[[14,2],[14,10],[14,8],[14,2],[14,10],[14,8]]];
 const CMDN=['Magia + soco (Hadouken; Sagat: Tiger Shot, chute = rasteiro)','Giro + chute (Tatsumaki)','Golpe para cima + soco (Shoryuken; Sagat: Tiger Uppercut, chute = Tiger Knee)','Atalho do golpe para cima','Super + soco forte (3 bolinhas)'];
-const MAX=8, ORIG=3; let G=null, sel=0; const ARTS={}, STAGES={}; let BASE=null, BASEJ=null;
+const MAX=8, ORIG=3; let G=null, sel=0;
+let SERVIDOR=false;   // aberto pelo "Abrir SF Engine.bat": le e salva direto na pasta project/
+async function salvarNaPasta(nome,txt){if(!SERVIDOR)return false;try{const r=await fetch('/api/salvar?f='+encodeURIComponent(nome),{method:'POST',body:txt});return r.ok}catch(e){return false}} const ARTS={}, STAGES={}; let BASE=null, BASEJ=null;
 const $=id=>document.getElementById(id);
 const TR=[["jump_vy","Força do pulo"],["walk_ticks","Passo do andar (quadros)"],["walk_adj","Ajuste de velocidade"],["fb_alt_hi","Altura da magia (alta)"],["fb_alt_lo","Altura da magia (baixa)"],["fb_sfx","Som da magia"],["hp_close_hk","HP de perto = HK de perto (0/1)"],["walk_pingpong","Andar vai e volta (0/1)"],["moveset","Especiais (0 = estilo Ryu, 1 = Sagat)"],["walk_fwd","Velocidade andando para frente"],["walk_back","Velocidade andando para trás"],["jump_vx","Velocidade do pulo para o lado"],["grav_up","Gravidade subindo (menor = pula mais alto)"],["grav_dn","Gravidade descendo"],["fb_spd","Magia fraca: velocidade"],["fb_dmg","Magia fraca: dano"],["fb_spd_s","Magia média: velocidade"],["fb_dmg_s","Magia média: dano"],["fb_spd_ex","Magia reforçada (EX): velocidade"],["fb_dmg_ex","Magia reforçada (EX): dano"],["fb_spd_sup","Super: velocidade"],["fb_dmg_sup","Super: dano"]];
 const MV=[["dmg","Dano"],["stun","Stun"],["hgt","Altura"],["flags","Flags"],["hitstop","Hitstop"],["snd_swing","Som do golpe"],["snd_hit","Som do impacto"]];
@@ -103,7 +105,8 @@ $('arqImg').onchange=async e=>{const fl=e.target.files[0];e.target.value='';if(!
   const bm=await createImageBitmap(fl),c=document.createElement('canvas');c.width=bm.width;c.height=bm.height;const g=c.getContext('2d');g.drawImage(bm,0,0);
   const st=SFStage.convert(g.getImageData(0,0,c.width,c.height)),f=G.fighters[sel],nm=f.name.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'')+'.sfstage.json';
   STAGES[nm]=st;f.traits.stage=nm;refresh();
-  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(st)],{type:'application/json'}));a.download=nm;a.click();
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(st)],{type:'application/json'}));if(await salvarNaPasta(nm,JSON.stringify(st))){msg('Estágio criado ('+st.tiles+' tiles) e salvo em project/'+nm+'. Salve o game.json.');return}
+  a.download=nm;a.click();
   msg('Estágio criado ('+st.tiles+' tiles). Baixei '+nm+': guarde na pasta project/ junto com o game.json.')};
 $('arqStg').onchange=async e=>{for(const f of e.target.files){try{const o=JSON.parse(await f.text());if(o.format!=='sf-stage')throw 0;STAGES[f.name]=o}catch(x){msg(f.name+' não é um estágio.');return}}e.target.value='';refresh();msg('Estágio(s) carregado(s).')};
 const HUDC=[[2,'Barra de vida'],[1,'Borda da barra de vida'],[3,'Fundo da barra de vida'],[10,'Barra de super'],[9,'Borda da barra de super'],[11,'Fundo da barra de super']];
@@ -123,7 +126,7 @@ $('regras').onclick=()=>{
 };
 $('telas').onclick=()=>{if(!G.flow||!G.flow.nodes||!G.flow.nodes.length)G.flow=JSON.parse(JSON.stringify(SFBuild.DEFAULT_FLOW));
   document.querySelectorAll('#lista .it').forEach(b=>b.classList.remove('on'));SFTelas.open(G,$('ed'),()=>msg('Fluxo alterado: salve o game.json e clique em Jogar para testar.'))};
-$('arte').onclick=()=>$('arqArte').click();
+$('arte').onclick=async()=>{if(SERVIDOR){await lerPasta();refresh();msg('Arte e estágios relidos da pasta project/ ('+Object.keys(ARTS).length+' arte(s), '+Object.keys(STAGES).length+' estágio(s)).');return}$('arqArte').click()};
 $('arqArte').onchange=async e=>{for(const f of e.target.files){try{const o=JSON.parse(await f.text());if(o.format!=='sf-fighter')throw 0;ARTS[f.name]=o;}catch(x){msg(f.name+' não é um arquivo exportado do SF Pixel.');return}}msg(Object.keys(ARTS).length+' arquivo(s) de arte carregado(s). Escolha a arte no lutador.');refresh()};
 async function motor(){
   if(BASE&&BASEJ)return true;
@@ -137,5 +140,17 @@ async function gerar(){
 $('rom').onclick=async()=>{const r=await gerar();if(!r)return;const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([r],{type:'application/octet-stream'}));a.download='jogo.sfc';a.click()};
 $('jogar').onclick=async()=>{const r=await gerar();if(!r)return;const w=window.open('../tester/jogar.html','sfjogo');
   const h=e=>{if(e.data&&e.data.type==='sf-player-ready'&&e.source===w){w.postMessage({type:'sf-rom',rom:r.buffer},'*');window.removeEventListener('message',h)}};window.addEventListener('message',h)};
-$('salvar').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(G,null,2)],{type:'application/json'}));a.download='game.json';a.click();msg('game.json baixado: coloque na pasta project/ e gere a ROM.')};
+$('salvar').onclick=async()=>{const txt=JSON.stringify(G,null,2);
+  if(await salvarNaPasta('game.json',txt)){msg('Salvo em project/game.json.');return}
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'application/json'}));a.download='game.json';a.click();msg('game.json baixado: coloque na pasta project/ e gere a ROM.')};
+
+// aberto pelo servidor da SF Engine: abre o project/game.json e os arquivos de arte/estagio que ele usa
+(async()=>{try{const p=await fetch('/api/ping');if(!p.ok)return;SERVIDOR=true;
+  const r=await fetch('../project/game.json');if(!r.ok)return;G=await r.json();
+  await lerPasta();
+  sel=0;refresh();msg('Projeto aberto da pasta (project/game.json). Salvar grava direto na pasta.')}catch(e){}})();
+async function lerPasta(){   // le toda a arte (.sffighter.json) e os estagios (.sfstage.json) da pasta project/
+  const files=await (await fetch('/api/arquivos')).json();
+  for(const fn of files){if(!/\.(sffighter|sfstage)\.json$/.test(fn))continue;try{const o=await (await fetch('../project/'+encodeURIComponent(fn))).json();if(o.format==='sf-fighter')ARTS[fn]=o;else if(o.format==='sf-stage')STAGES[fn]=o}catch(e){}}
+}
 </script></body></html>
