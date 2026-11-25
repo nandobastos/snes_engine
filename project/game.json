@@ -413,7 +413,15 @@
         "walk_back": 10,
         "jump_vx": 15,
         "grav_up": 10,
-        "grav_dn": 11
+        "grav_dn": 11,
+        "fb_spd": 4,
+        "fb_dmg": 11,
+        "fb_spd_s": 5,
+        "fb_dmg_s": 14,
+        "fb_spd_ex": 5,
+        "fb_dmg_ex": 20,
+        "fb_spd_sup": 4,
+        "fb_dmg_sup": 38
       }
     },
     {
@@ -808,7 +816,15 @@
         "walk_back": 10,
         "jump_vx": 15,
         "grav_up": 10,
-        "grav_dn": 11
+        "grav_dn": 11,
+        "fb_spd": 4,
+        "fb_dmg": 11,
+        "fb_spd_s": 5,
+        "fb_dmg_s": 14,
+        "fb_spd_ex": 5,
+        "fb_dmg_ex": 20,
+        "fb_spd_sup": 4,
+        "fb_dmg_sup": 38
       }
     },
     {
@@ -1203,7 +1219,15 @@
         "walk_back": 10,
         "jump_vx": 15,
         "grav_up": 10,
-        "grav_dn": 11
+        "grav_dn": 11,
+        "fb_spd": 4,
+        "fb_dmg": 11,
+        "fb_spd_s": 5,
+        "fb_dmg_s": 14,
+        "fb_spd_ex": 5,
+        "fb_dmg_ex": 20,
+        "fb_spd_sup": 4,
+        "fb_dmg_sup": 38
       }
     }
   ]
