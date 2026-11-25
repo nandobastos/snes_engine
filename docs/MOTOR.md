@@ -65,3 +65,10 @@ Medido com o mesmo corte 16x16 da engine nos 78 quadros da folha: media 20 pedac
 e perderiam 3 a 82 pixels de borda (o mais vazio sai). Ou seja: um lutador do tamanho do Big Bear (~100x120, ate 154 de altura
 esticado) ja cabe no limite atual de 24 pedacos; basta ajustar essas poses no SF Pixel (o custo aparece em cada quadro).
 Por isso nao foi preciso mudar a VRAM/OAM dos lutadores. Modelo "grande" do SF Pixel: 104x160.
+
+## Comandos dos especiais por lutador
+fighters[].commands = 5 comandos (magia, giro, golpe para cima, atalho, super), cada um lista de passos [mascara, valor]
+do primeiro ao ultimo (direcao relativa: 1 cima 2 baixo 4 tras 8 frente). No pack: 5 x 16 bytes depois dos tracos
+(n, depois (mascara, valor) do ultimo ao primeiro: o formato da antiga mot_tab). O motor copia para mot_ram (80 bytes por
+jogador) e o motion_id (src/drawobj.asm) le a linha do jogador. Testado: padrao = original; clone com magia em <- -> + soco
+solta a magia assim e a meia-lua deixa de soltar.

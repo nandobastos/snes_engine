@@ -697,17 +697,11 @@ _pl_queue:
 ; ---------------------------------------------------------------------------------
 ; u8 motion_id(u8 id): comando de especial no historico do direcional do P1 (dir_hist, 1 cima 2 baixo 4 tras
 ; 8 frente). Mesma regra das versoes em C: procura os passos do ultimo para o primeiro; o ultimo passo tem que
-; estar nos 15 quadros mais recentes, o comando inteiro nos 30.
+; estar nos 15 quadros mais recentes, o comando inteiro nos 30. A tabela (mot_ram, 5 linhas de 16 bytes por jogador)
+; vem do pack (comandos de cada lutador no game.json).
 ; id: 0 = baixo, baixo-frente, frente; 1 = baixo, baixo-tras, tras; 2 = frente, baixo-frente (Shoryuken);
 ;     3 = frente, baixo-frente, frente (atalho do Shoryuken). Tabela: passos, (mascara, valor) do ultimo ao 1o.
 ; 4 = super: baixo, baixo-frente, frente duas vezes (linhas de 16 bytes)
-mot_tab:
-    .db 3, 14, 8, 14, 10, 14, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0
-    .db 3, 14, 4, 14, 6, 14, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0
-    .db 2, 14, 10, 14, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-    .db 3, 12, 8, 14, 10, 14, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0
-    .db 6, 14, 8, 14, 10, 14, 2, 14, 8, 14, 10, 14, 2, 0, 0, 0
-
 motion_id:
     php
     rep #$30
@@ -720,8 +714,16 @@ motion_id:
     asl a
     asl a
     sta.l do_tmp            ; base da linha da tabela (16 bytes)
+    lda.l hist_off          ; P2 (hist_off 32): comandos do P2, 80 bytes depois (mot_ram vem do pack)
+    beq _mi_p1
+    lda.l do_tmp
+    clc
+    adc #80
+    sta.l do_tmp
+_mi_p1:
+    lda.l do_tmp
     tax
-    lda.l mot_tab,x
+    lda.l mot_ram,x
     and #$00FF
     sta.l do_tmp2           ; quantidade de passos
     lda #0
@@ -748,10 +750,10 @@ _mi_loop:
     clc
     adc.l do_tmp
     tax
-    lda.l mot_tab+1,x       ; mascara (byte baixo) e valor (byte alto)
+    lda.l mot_ram+1,x       ; mascara (byte baixo) e valor (byte alto)
     and.l do_f              ; byte baixo = h & mascara (o alto fica com lixo: compara so o baixo)
     sep #$20
-    cmp.l mot_tab+2,x
+    cmp.l mot_ram+2,x
     rep #$20
     bne _mi_no
     lda.l do_base

@@ -733,6 +733,8 @@ const u8 trb[2] = {0, 40};
 s8 fwf[2], fwb[2], fjvx[2], fgup[2], fgdn[2];   // copias (por jogador) da fisica do lutador: lidas todo quadro, mais baratas que TR()
 #define TR(i, k) ftr[trb[i] + (k)]
 const u8 mvb[2] = {0, ATK_COUNT};
+const u8 mvb80[2] = {0, 80};
+u8 mot_ram[160];   // comandos dos especiais por jogador (5 linhas de 16 bytes; src/drawobj.asm motion_id)
 const u8 mvb8[2] = {0, ATK_COUNT * 8};
 // ---- tabelas dos QUADROS (hitbox, hurtbox, pedacos 16x16): vem do PACK (tools/sfpack.py) e sao copiadas para a RAM no inicio da luta
 // (pk_load_frames). A logica em C e o draw_obj/plan_frames em assembly (acesso longo, $7E:) leem estas tabelas pelo indice do quadro.
@@ -878,7 +880,9 @@ void pk_load_moves(u8 p, u8 ch)
     pk_dst = (u16)&mv_dur[mvb8[p]];
     pk_get(pk_o + 7 * ATK_COUNT, ATK_COUNT * 8);
     pk_dst = (u16)&ftr[trb[p]];
-    pk_get(pk_o + 15 * ATK_COUNT, 80);   // tracos
+    pk_get(pk_o + 15 * ATK_COUNT, 80);
+    pk_dst = (u16)&mot_ram[mvb80[p]];
+    pk_get(pk_o + 15 * ATK_COUNT + 80, 80);   // comandos dos especiais (motion_id)   // tracos
 }
 
 const u8 atk_base[ATK_COUNT] = {A_MP, A_HP, A_MK, A_HK, A_CMP, A_CHP, A_CMK, A_CHK, A_JP, A_JK, A_JDK,

@@ -47,7 +47,11 @@ def build(proj, fr, res_dir):   # traits do lutador (docs/FORMAT_SFPK.md): depoi
         if f["name"] in fr.get("art_faces", {}):     # retrato proprio: rosto 3+j, paleta 3 ou 6 (P2 igual), game over le a paleta 7+j
             j = fr["art_faces"][f["name"]]
             words[18], words[19], words[20], words[22] = (3, 6)[j], (3, 6)[j], 7 + j, 3 + j
-        out += b"".join(struct.pack("<H", w) for w in words)      # traits: 40 palavras (ver TRK_* em engine/src/fight.c)
+        out += b"".join(struct.pack("<H", w) for w in words)
+        for st in f.get("commands", []) + [[]] * (5 - len(f.get("commands", []))):   # comandos dos especiais: 5 x 16 bytes
+            row = [len(st)] + [b for m, v in st[::-1] for b in (m, v)]
+            assert len(row) <= 16, "comando com mais de 7 passos"
+            out += bytes(row + [0] * (16 - len(row)))      # traits: 40 palavras (ver TRK_* em engine/src/fight.c)
     for i, o in enumerate(offs):
         struct.pack_into("<H", out, tab + 2 * i, o)
     gm = proj.get("game", {})

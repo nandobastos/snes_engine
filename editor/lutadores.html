@@ -16,6 +16,7 @@ small{color:var(--mu)}table{border-collapse:collapse;width:100%;overflow-x:auto;
 td,th{border-bottom:1px solid var(--ln);padding:3px 4px;text-align:left;font-weight:normal}th{color:var(--mu);font-size:12px}
 input{background:var(--bg);color:var(--tx);border:1px solid var(--ln);border-radius:4px;padding:3px 5px;width:62px;font:inherit}
 input.n{width:200px}.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px 12px}
+div.cmd{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 0}div.cmd b{flex:1 1 260px;font-weight:normal}div.cmd .seq{min-width:120px;font-size:18px;letter-spacing:2px}div.cmd .ks button{padding:3px 7px;margin:1px}
 label{display:flex;justify-content:space-between;gap:6px;align-items:center}#msg{color:var(--mu)}
 </style></head><body>
 <header><h1>Lutadores</h1>
@@ -32,6 +33,10 @@ label{display:flex;justify-content:space-between;gap:6px;align-items:center}#msg
 <script src="sfbuild.js"></script>
 <script src="sfstage.js"></script>
 <script>
+const TOK=[['↓',14,2],['↘',14,10],['→',14,8],['↗',15,9],['↑',15,1],['↖',15,5],['←',14,4],['↙',14,6],['→*',12,8],['←*',12,4]];
+const tok=([m,v])=>{const t=TOK.find(x=>x[1]===m&&x[2]===v);return t?t[0]:m+'/'+v};
+const DEFCMD=[[[14,2],[14,10],[14,8]],[[14,2],[14,6],[14,4]],[[14,8],[14,10]],[[14,8],[14,10],[12,8]],[[14,2],[14,10],[14,8],[14,2],[14,10],[14,8]]];
+const CMDN=['Magia + soco (Hadouken; Sagat: Tiger Shot, chute = rasteiro)','Giro + chute (Tatsumaki)','Golpe para cima + soco (Shoryuken; Sagat: Tiger Uppercut, chute = Tiger Knee)','Atalho do golpe para cima','Super + soco forte (3 bolinhas)'];
 const MAX=8, ORIG=3; let G=null, sel=0; const ARTS={}, STAGES={}; let BASE=null, BASEJ=null;
 const $=id=>document.getElementById(id);
 const TR=[["jump_vy","Força do pulo"],["walk_ticks","Passo do andar (quadros)"],["walk_adj","Ajuste de velocidade"],["fb_alt_hi","Altura da magia (alta)"],["fb_alt_lo","Altura da magia (baixa)"],["fb_sfx","Som da magia"],["hp_close_hk","HP de perto = HK de perto (0/1)"],["walk_pingpong","Andar vai e volta (0/1)"],["moveset","Especiais (0 = estilo Ryu, 1 = Sagat)"],["walk_fwd","Velocidade andando para frente"],["walk_back","Velocidade andando para trás"],["jump_vx","Velocidade do pulo para o lado"],["grav_up","Gravidade subindo (menor = pula mais alto)"],["grav_dn","Gravidade descendo"],["fb_spd","Magia fraca: velocidade"],["fb_dmg","Magia fraca: dano"],["fb_spd_s","Magia média: velocidade"],["fb_dmg_s","Magia média: dano"],["fb_spd_ex","Magia reforçada (EX): velocidade"],["fb_dmg_ex","Magia reforçada (EX): dano"],["fb_spd_sup","Super: velocidade"],["fb_dmg_sup","Super: dano"]];
@@ -61,6 +66,14 @@ function refresh(){
   e.insertAdjacentHTML('beforeend','<h3>Características</h3>');const g=document.createElement('div');g.className='g';
   TR.forEach(([k,n])=>{const l=document.createElement('label');l.textContent=n;const i=document.createElement('input');i.type='number';i.value=f.traits[k];
     i.onchange=()=>{f.traits[k]=+i.value};l.appendChild(i);g.appendChild(l)});e.appendChild(g);
+  e.insertAdjacentHTML('beforeend','<h3>Comandos dos especiais</h3><p><small>Direções do primeiro ao último passo (o lutador olhando para a direita: → = frente). Clique nas setas para montar; ⌫ apaga o último passo. →* = qualquer frente (com ou sem baixo).</small></p>');
+  if(!f.commands)f.commands=JSON.parse(JSON.stringify(DEFCMD));
+  CMDN.forEach((nm,ci)=>{const row=document.createElement('div');row.className='cmd';
+    const show=()=>row.querySelector('.seq').textContent=f.commands[ci].length?f.commands[ci].map(tok).join(' '):'(nenhum: desligado)';
+    row.innerHTML='<b>'+nm+'</b><span class="seq"></span><span class="ks">'+TOK.map((t,ti)=>'<button data-t="'+ti+'">'+t[0]+'</button>').join('')+'<button data-t="x">⌫</button><button data-t="d">padrão</button></span>';
+    row.querySelectorAll('button').forEach(b=>b.onclick=()=>{const t=b.dataset.t,c=f.commands[ci];
+      if(t==='x')c.pop();else if(t==='d')f.commands[ci]=JSON.parse(JSON.stringify(DEFCMD[ci]));else if(c.length<7)c.push([TOK[+t][1],TOK[+t][2]]);else msg('Máximo 7 passos.');show()});
+    e.appendChild(row);show()});
   e.insertAdjacentHTML('beforeend','<h3>Golpes</h3>');
   const t=document.createElement('table');t.innerHTML='<tr><th>Golpe</th>'+MV.map(m=>'<th>'+m[1]+'</th>').join('')+'<th>Duração dos quadros (8)</th></tr>';
   G.atk_names.forEach(a=>{const m=f.moves[a];const r=t.insertRow();r.insertCell().textContent=a;

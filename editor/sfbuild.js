@@ -135,6 +135,8 @@
         if (j === undefined) return v;
         return i === 18 || i === 19 ? [3, 6][j] : i === 20 ? 7 + j : i === 22 ? 3 + j : v;
       }).forEach(p16);
+      const cm = (f.commands || []).slice(0, 5); while (cm.length < 5) cm.push([]);   // comandos dos especiais: 5 x 16 bytes
+      cm.forEach((st) => { const row = [st.length]; st.slice().reverse().forEach(([m, v]) => row.push(m & 255, v & 255)); if (row.length > 16) throw new Error("Comando com mais de 7 passos (" + f.name + ")"); while (row.length < 16) row.push(0); row.forEach((b) => out.push(b)); });
     });
     offs.forEach((o, i) => w16(out, tab + 2 * i, o));
     const gm = game.game || {}, ofsGs = out.length, dv = (v, d) => (v === undefined ? d : v);   // bloco do jogo: HUD e rounds
