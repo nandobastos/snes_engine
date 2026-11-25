@@ -25,3 +25,9 @@
 2. ~25 usos de `fchar[i]` (lógica "Sagat") espalhados no `fight.c` que viram parâmetros do lutador: especiais (Tiger Shot, Tiger Uppercut/Knee), voadora, chute fraco de perto, passos mais lentos, agarrão, etc.
 3. Física (andar, pulo, gravidade), custos de super/EX, IA, regras de round e HUD.
 4. Número de lutadores (hoje 3 fixos: `CH_RYU/CH_SAGAT/CH_BOXER`, `SAGAT_OFF`, `BOXER_OFF`).
+
+## Pendencia conhecida (equivalencia)
+Na luta aleatoria DonLee x DonLee (tests/equiv.py, semente 7) 1 dos 11 prints (quadro 89, os dois no ar) mostra a pose do lutador de cima
+1 quadro adiantada/atrasada; no quadro 99 ja volta a ser identico e os registros finais sao iguais. Ryu e Sagat: 0 diferencas.
+Suspeita: pequena variacao de tempo do quadro (CPU) pelos novos tracos; investigar com PROFILING=1 antes de fechar a etapa 1.
+Tracos 18-21 (retrato, retrato alt., paleta do game over, 1o oponente do arcade) sao copiados para a RAM no boot (ftc[]).

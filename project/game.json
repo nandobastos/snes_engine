@@ -1,1180 +1,1192 @@
 {
- "atk_names": [
-  "MP",
-  "HP",
-  "MK",
-  "HK",
-  "CMP",
-  "CHP",
-  "CMK",
-  "CHK",
-  "JP",
-  "JK",
-  "JDK",
-  "HADOUKEN",
-  "SHORYU",
-  "TATSU",
-  "CLOSE_HP",
-  "CLOSE_HK",
-  "CLOSE_MK",
-  "CLOSE_MP",
-  "THROW"
- ],
- "fighters": [
-  {
-   "name": "Ryu",
-   "moves": {
-    "MP": {
-     "dur": [
-      4,
-      9,
-      8,
-      0,
-      0,
-      0,
-      0,
-      0
-     ],
-     "dmg": 7,
-     "stun": 13,
-     "hgt": 0,
-     "flags": 0,
-     "hitstop": 6,
-     "snd_swing": 0,
-     "snd_hit": 4
+  "atk_names": [
+    "MP",
+    "HP",
+    "MK",
+    "HK",
+    "CMP",
+    "CHP",
+    "CMK",
+    "CHK",
+    "JP",
+    "JK",
+    "JDK",
+    "HADOUKEN",
+    "SHORYU",
+    "TATSU",
+    "CLOSE_HP",
+    "CLOSE_HK",
+    "CLOSE_MK",
+    "CLOSE_MP",
+    "THROW"
+  ],
+  "fighters": [
+    {
+      "name": "Ryu",
+      "moves": {
+        "MP": {
+          "dur": [
+            4,
+            9,
+            8,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "dmg": 7,
+          "stun": 13,
+          "hgt": 0,
+          "flags": 0,
+          "hitstop": 6,
+          "snd_swing": 0,
+          "snd_hit": 4
+        },
+        "HP": {
+          "dur": [
+            3,
+            3,
+            12,
+            6,
+            6,
+            0,
+            0,
+            0
+          ],
+          "dmg": 12,
+          "stun": 17,
+          "hgt": 0,
+          "flags": 0,
+          "hitstop": 9,
+          "snd_swing": 2,
+          "snd_hit": 6
+        },
+        "MK": {
+          "dur": [
+            4,
+            3,
+            12,
+            5,
+            5,
+            0,
+            0,
+            0
+          ],
+          "dmg": 8,
+          "stun": 14,
+          "hgt": 0,
+          "flags": 0,
+          "hitstop": 6,
+          "snd_swing": 1,
+          "snd_hit": 7
+        },
+        "HK": {
+          "dur": [
+            5,
+            4,
+            12,
+            6,
+            6,
+            0,
+            0,
+            0
+          ],
+          "dmg": 13,
+          "stun": 18,
+          "hgt": 0,
+          "flags": 0,
+          "hitstop": 9,
+          "snd_swing": 3,
+          "snd_hit": 9
+        },
+        "CMP": {
+          "dur": [
+            3,
+            8,
+            6,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "dmg": 5,
+          "stun": 12,
+          "hgt": 0,
+          "flags": 0,
+          "hitstop": 6,
+          "snd_swing": 0,
+          "snd_hit": 4
+        },
+        "CHP": {
+          "dur": [
+            3,
+            3,
+            12,
+            9,
+            0,
+            0,
+            0,
+            0
+          ],
+          "dmg": 11,
+          "stun": 18,
+          "hgt": 0,
+          "flags": 0,
+          "hitstop": 9,
+          "snd_swing": 2,
+          "snd_hit": 6
+        },
+        "CMK": {
+          "dur": [
+            4,
+            10,
+            8,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "dmg": 6,
+          "stun": 14,
+          "hgt": 1,
+          "flags": 1,
+          "hitstop": 6,
+          "snd_swing": 1,
+          "snd_hit": 7
+        },
+        "CHK": {
+          "dur": [
+            4,
+            12,
+            6,
+            6,
+            6,
+            0,
+            0,
+            0
+          ],
+          "dmg": 10,
+          "stun": 0,
+          "hgt": 1,
+          "flags": 3,
+          "hitstop": 9,
+          "snd_swing": 3,
+          "snd_hit": 8
+        },
+        "JP": {
+          "dur": [
+            4,
+            255,
+            255,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "dmg": 8,
+          "stun": 26,
+          "hgt": 2,
+          "flags": 0,
+          "hitstop": 6,
+          "snd_swing": 0,
+          "snd_hit": 4
+        },
+        "JK": {
+          "dur": [
+            4,
+            3,
+            255,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "dmg": 10,
+          "stun": 28,
+          "hgt": 2,
+          "flags": 0,
+          "hitstop": 6,
+          "snd_swing": 1,
+          "snd_hit": 7
+        },
+        "JDK": {
+          "dur": [
+            3,
+            255,
+            255,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "dmg": 10,
+          "stun": 28,
+          "hgt": 2,
+          "flags": 0,
+          "hitstop": 6,
+          "snd_swing": 2,
+          "snd_hit": 5
+        },
+        "HADOUKEN": {
+          "dur": [
+            6,
+            6,
+            6,
+            20,
+            0,
+            0,
+            0,
+            0
+          ],
+          "dmg": 0,
+          "stun": 0,
+          "hgt": 0,
+          "flags": 0,
+          "hitstop": 6,
+          "snd_swing": 255,
+          "snd_hit": 255
+        },
+        "SHORYU": {
+          "dur": [
+            3,
+            3,
+            3,
+            3,
+            3,
+            3,
+            0,
+            0
+          ],
+          "dmg": 16,
+          "stun": 0,
+          "hgt": 0,
+          "flags": 2,
+          "hitstop": 10,
+          "snd_swing": 14,
+          "snd_hit": 6
+        },
+        "TATSU": {
+          "dur": [
+            5,
+            3,
+            3,
+            3,
+            3,
+            8,
+            0,
+            0
+          ],
+          "dmg": 5,
+          "stun": 16,
+          "hgt": 0,
+          "flags": 4,
+          "hitstop": 6,
+          "snd_swing": 15,
+          "snd_hit": 5
+        },
+        "CLOSE_HP": {
+          "dur": [
+            3,
+            10,
+            12,
+            6,
+            6,
+            0,
+            0,
+            0
+          ],
+          "dmg": 13,
+          "stun": 24,
+          "hgt": 0,
+          "flags": 0,
+          "hitstop": 9,
+          "snd_swing": 2,
+          "snd_hit": 6
+        },
+        "CLOSE_HK": {
+          "dur": [
+            6,
+            12,
+            8,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "dmg": 9,
+          "stun": 18,
+          "hgt": 0,
+          "flags": 0,
+          "hitstop": 9,
+          "snd_swing": 3,
+          "snd_hit": 8
+        },
+        "CLOSE_MK": {
+          "dur": [
+            3,
+            3,
+            12,
+            5,
+            5,
+            0,
+            0,
+            0
+          ],
+          "dmg": 8,
+          "stun": 14,
+          "hgt": 0,
+          "flags": 0,
+          "hitstop": 6,
+          "snd_swing": 1,
+          "snd_hit": 7
+        },
+        "CLOSE_MP": {
+          "dur": [
+            4,
+            9,
+            8,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "dmg": 6,
+          "stun": 13,
+          "hgt": 0,
+          "flags": 0,
+          "hitstop": 6,
+          "snd_swing": 0,
+          "snd_hit": 4
+        },
+        "THROW": {
+          "dur": [
+            4,
+            17,
+            24,
+            7,
+            10,
+            0,
+            0,
+            0
+          ],
+          "dmg": 11,
+          "stun": 0,
+          "hgt": 0,
+          "flags": 0,
+          "hitstop": 6,
+          "snd_swing": 255,
+          "snd_hit": 255
+        }
+      },
+      "traits": {
+        "moveset": 0,
+        "fireball_from": 0,
+        "jump_vy": 290,
+        "walk_adj": 0,
+        "walk_ticks": 5,
+        "fb_pal": 2,
+        "fb_alt_hi": 36,
+        "fb_alt_lo": 36,
+        "pal_asset": 8,
+        "pal_alt_off": 32,
+        "dirswap": 0,
+        "fbpal_asset": 8,
+        "fbpal_off1": 160,
+        "fbpal_off2": 192,
+        "fb_sfx": 13,
+        "hp_close_hk": 0,
+        "walk_pingpong": 0,
+        "face_pal": 2,
+        "face_pal_alt": 3,
+        "gameover_fp": 0,
+        "arcade_opp": 1
+      }
     },
-    "HP": {
-     "dur": [
-      3,
-      3,
-      12,
-      6,
-      6,
-      0,
-      0,
-      0
-     ],
-     "dmg": 12,
-     "stun": 17,
-     "hgt": 0,
-     "flags": 0,
-     "hitstop": 9,
-     "snd_swing": 2,
-     "snd_hit": 6
+    {
+      "name": "Sagat",
+      "moves": {
+        "MP": {
+          "dur": [
+            3,
+            6,
+            6,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "dmg": 7,
+          "stun": 13,
+          "hgt": 0,
+          "flags": 0,
+          "hitstop": 6,
+          "snd_swing": 0,
+          "snd_hit": 4
+        },
+        "HP": {
+          "dur": [
+            3,
+            3,
+            12,
+            6,
+            6,
+            0,
+            0,
+            0
+          ],
+          "dmg": 12,
+          "stun": 17,
+          "hgt": 0,
+          "flags": 0,
+          "hitstop": 12,
+          "snd_swing": 2,
+          "snd_hit": 6
+        },
+        "MK": {
+          "dur": [
+            3,
+            2,
+            8,
+            4,
+            4,
+            0,
+            0,
+            0
+          ],
+          "dmg": 8,
+          "stun": 14,
+          "hgt": 0,
+          "flags": 0,
+          "hitstop": 6,
+          "snd_swing": 1,
+          "snd_hit": 7
+        },
+        "HK": {
+          "dur": [
+            5,
+            4,
+            12,
+            6,
+            6,
+            0,
+            0,
+            0
+          ],
+          "dmg": 13,
+          "stun": 18,
+          "hgt": 0,
+          "flags": 0,
+          "hitstop": 12,
+          "snd_swing": 3,
+          "snd_hit": 9
+        },
+        "CMP": {
+          "dur": [
+            2,
+            6,
+            4,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "dmg": 5,
+          "stun": 12,
+          "hgt": 0,
+          "flags": 0,
+          "hitstop": 6,
+          "snd_swing": 0,
+          "snd_hit": 4
+        },
+        "CHP": {
+          "dur": [
+            3,
+            3,
+            12,
+            9,
+            0,
+            0,
+            0,
+            0
+          ],
+          "dmg": 11,
+          "stun": 18,
+          "hgt": 0,
+          "flags": 0,
+          "hitstop": 12,
+          "snd_swing": 2,
+          "snd_hit": 6
+        },
+        "CMK": {
+          "dur": [
+            3,
+            7,
+            6,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "dmg": 6,
+          "stun": 14,
+          "hgt": 1,
+          "flags": 1,
+          "hitstop": 6,
+          "snd_swing": 1,
+          "snd_hit": 7
+        },
+        "CHK": {
+          "dur": [
+            4,
+            12,
+            6,
+            6,
+            6,
+            0,
+            0,
+            0
+          ],
+          "dmg": 10,
+          "stun": 0,
+          "hgt": 1,
+          "flags": 3,
+          "hitstop": 12,
+          "snd_swing": 3,
+          "snd_hit": 8
+        },
+        "JP": {
+          "dur": [
+            4,
+            255,
+            255,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "dmg": 8,
+          "stun": 26,
+          "hgt": 2,
+          "flags": 0,
+          "hitstop": 6,
+          "snd_swing": 0,
+          "snd_hit": 4
+        },
+        "JK": {
+          "dur": [
+            4,
+            3,
+            255,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "dmg": 10,
+          "stun": 28,
+          "hgt": 2,
+          "flags": 0,
+          "hitstop": 6,
+          "snd_swing": 1,
+          "snd_hit": 7
+        },
+        "JDK": {
+          "dur": [
+            3,
+            255,
+            255,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "dmg": 10,
+          "stun": 28,
+          "hgt": 2,
+          "flags": 0,
+          "hitstop": 6,
+          "snd_swing": 2,
+          "snd_hit": 5
+        },
+        "HADOUKEN": {
+          "dur": [
+            6,
+            6,
+            6,
+            20,
+            0,
+            0,
+            0,
+            0
+          ],
+          "dmg": 0,
+          "stun": 0,
+          "hgt": 0,
+          "flags": 0,
+          "hitstop": 6,
+          "snd_swing": 255,
+          "snd_hit": 255
+        },
+        "SHORYU": {
+          "dur": [
+            3,
+            3,
+            3,
+            3,
+            3,
+            3,
+            0,
+            0
+          ],
+          "dmg": 16,
+          "stun": 0,
+          "hgt": 0,
+          "flags": 2,
+          "hitstop": 10,
+          "snd_swing": 14,
+          "snd_hit": 6
+        },
+        "TATSU": {
+          "dur": [
+            5,
+            3,
+            3,
+            3,
+            3,
+            8,
+            0,
+            0
+          ],
+          "dmg": 5,
+          "stun": 16,
+          "hgt": 0,
+          "flags": 4,
+          "hitstop": 6,
+          "snd_swing": 15,
+          "snd_hit": 5
+        },
+        "CLOSE_HP": {
+          "dur": [
+            3,
+            10,
+            12,
+            6,
+            6,
+            0,
+            0,
+            0
+          ],
+          "dmg": 13,
+          "stun": 24,
+          "hgt": 0,
+          "flags": 0,
+          "hitstop": 12,
+          "snd_swing": 2,
+          "snd_hit": 6
+        },
+        "CLOSE_HK": {
+          "dur": [
+            6,
+            12,
+            8,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "dmg": 9,
+          "stun": 18,
+          "hgt": 0,
+          "flags": 0,
+          "hitstop": 12,
+          "snd_swing": 3,
+          "snd_hit": 8
+        },
+        "CLOSE_MK": {
+          "dur": [
+            2,
+            2,
+            8,
+            4,
+            4,
+            0,
+            0,
+            0
+          ],
+          "dmg": 8,
+          "stun": 14,
+          "hgt": 0,
+          "flags": 0,
+          "hitstop": 6,
+          "snd_swing": 1,
+          "snd_hit": 7
+        },
+        "CLOSE_MP": {
+          "dur": [
+            3,
+            6,
+            6,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "dmg": 6,
+          "stun": 13,
+          "hgt": 0,
+          "flags": 0,
+          "hitstop": 6,
+          "snd_swing": 0,
+          "snd_hit": 4
+        },
+        "THROW": {
+          "dur": [
+            4,
+            17,
+            24,
+            7,
+            10,
+            0,
+            0,
+            0
+          ],
+          "dmg": 11,
+          "stun": 0,
+          "hgt": 0,
+          "flags": 0,
+          "hitstop": 6,
+          "snd_swing": 255,
+          "snd_hit": 255
+        }
+      },
+      "traits": {
+        "moveset": 1,
+        "fireball_from": 1,
+        "jump_vy": 255,
+        "walk_adj": -2,
+        "walk_ticks": 7,
+        "fb_pal": 5,
+        "fb_alt_hi": 52,
+        "fb_alt_lo": 20,
+        "pal_asset": 9,
+        "pal_alt_off": 32,
+        "dirswap": 0,
+        "fbpal_asset": 9,
+        "fbpal_off1": 96,
+        "fbpal_off2": 128,
+        "fb_sfx": 18,
+        "hp_close_hk": 0,
+        "walk_pingpong": 0,
+        "face_pal": 5,
+        "face_pal_alt": 6,
+        "gameover_fp": 3,
+        "arcade_opp": 0
+      }
     },
-    "MK": {
-     "dur": [
-      4,
-      3,
-      12,
-      5,
-      5,
-      0,
-      0,
-      0
-     ],
-     "dmg": 8,
-     "stun": 14,
-     "hgt": 0,
-     "flags": 0,
-     "hitstop": 6,
-     "snd_swing": 1,
-     "snd_hit": 7
-    },
-    "HK": {
-     "dur": [
-      5,
-      4,
-      12,
-      6,
-      6,
-      0,
-      0,
-      0
-     ],
-     "dmg": 13,
-     "stun": 18,
-     "hgt": 0,
-     "flags": 0,
-     "hitstop": 9,
-     "snd_swing": 3,
-     "snd_hit": 9
-    },
-    "CMP": {
-     "dur": [
-      3,
-      8,
-      6,
-      0,
-      0,
-      0,
-      0,
-      0
-     ],
-     "dmg": 5,
-     "stun": 12,
-     "hgt": 0,
-     "flags": 0,
-     "hitstop": 6,
-     "snd_swing": 0,
-     "snd_hit": 4
-    },
-    "CHP": {
-     "dur": [
-      3,
-      3,
-      12,
-      9,
-      0,
-      0,
-      0,
-      0
-     ],
-     "dmg": 11,
-     "stun": 18,
-     "hgt": 0,
-     "flags": 0,
-     "hitstop": 9,
-     "snd_swing": 2,
-     "snd_hit": 6
-    },
-    "CMK": {
-     "dur": [
-      4,
-      10,
-      8,
-      0,
-      0,
-      0,
-      0,
-      0
-     ],
-     "dmg": 6,
-     "stun": 14,
-     "hgt": 1,
-     "flags": 1,
-     "hitstop": 6,
-     "snd_swing": 1,
-     "snd_hit": 7
-    },
-    "CHK": {
-     "dur": [
-      4,
-      12,
-      6,
-      6,
-      6,
-      0,
-      0,
-      0
-     ],
-     "dmg": 10,
-     "stun": 0,
-     "hgt": 1,
-     "flags": 3,
-     "hitstop": 9,
-     "snd_swing": 3,
-     "snd_hit": 8
-    },
-    "JP": {
-     "dur": [
-      4,
-      255,
-      255,
-      0,
-      0,
-      0,
-      0,
-      0
-     ],
-     "dmg": 8,
-     "stun": 26,
-     "hgt": 2,
-     "flags": 0,
-     "hitstop": 6,
-     "snd_swing": 0,
-     "snd_hit": 4
-    },
-    "JK": {
-     "dur": [
-      4,
-      3,
-      255,
-      0,
-      0,
-      0,
-      0,
-      0
-     ],
-     "dmg": 10,
-     "stun": 28,
-     "hgt": 2,
-     "flags": 0,
-     "hitstop": 6,
-     "snd_swing": 1,
-     "snd_hit": 7
-    },
-    "JDK": {
-     "dur": [
-      3,
-      255,
-      255,
-      0,
-      0,
-      0,
-      0,
-      0
-     ],
-     "dmg": 10,
-     "stun": 28,
-     "hgt": 2,
-     "flags": 0,
-     "hitstop": 6,
-     "snd_swing": 2,
-     "snd_hit": 5
-    },
-    "HADOUKEN": {
-     "dur": [
-      6,
-      6,
-      6,
-      20,
-      0,
-      0,
-      0,
-      0
-     ],
-     "dmg": 0,
-     "stun": 0,
-     "hgt": 0,
-     "flags": 0,
-     "hitstop": 6,
-     "snd_swing": 255,
-     "snd_hit": 255
-    },
-    "SHORYU": {
-     "dur": [
-      3,
-      3,
-      3,
-      3,
-      3,
-      3,
-      0,
-      0
-     ],
-     "dmg": 16,
-     "stun": 0,
-     "hgt": 0,
-     "flags": 2,
-     "hitstop": 10,
-     "snd_swing": 14,
-     "snd_hit": 6
-    },
-    "TATSU": {
-     "dur": [
-      5,
-      3,
-      3,
-      3,
-      3,
-      8,
-      0,
-      0
-     ],
-     "dmg": 5,
-     "stun": 16,
-     "hgt": 0,
-     "flags": 4,
-     "hitstop": 6,
-     "snd_swing": 15,
-     "snd_hit": 5
-    },
-    "CLOSE_HP": {
-     "dur": [
-      3,
-      10,
-      12,
-      6,
-      6,
-      0,
-      0,
-      0
-     ],
-     "dmg": 13,
-     "stun": 24,
-     "hgt": 0,
-     "flags": 0,
-     "hitstop": 9,
-     "snd_swing": 2,
-     "snd_hit": 6
-    },
-    "CLOSE_HK": {
-     "dur": [
-      6,
-      12,
-      8,
-      0,
-      0,
-      0,
-      0,
-      0
-     ],
-     "dmg": 9,
-     "stun": 18,
-     "hgt": 0,
-     "flags": 0,
-     "hitstop": 9,
-     "snd_swing": 3,
-     "snd_hit": 8
-    },
-    "CLOSE_MK": {
-     "dur": [
-      3,
-      3,
-      12,
-      5,
-      5,
-      0,
-      0,
-      0
-     ],
-     "dmg": 8,
-     "stun": 14,
-     "hgt": 0,
-     "flags": 0,
-     "hitstop": 6,
-     "snd_swing": 1,
-     "snd_hit": 7
-    },
-    "CLOSE_MP": {
-     "dur": [
-      4,
-      9,
-      8,
-      0,
-      0,
-      0,
-      0,
-      0
-     ],
-     "dmg": 6,
-     "stun": 13,
-     "hgt": 0,
-     "flags": 0,
-     "hitstop": 6,
-     "snd_swing": 0,
-     "snd_hit": 4
-    },
-    "THROW": {
-     "dur": [
-      4,
-      17,
-      24,
-      7,
-      10,
-      0,
-      0,
-      0
-     ],
-     "dmg": 11,
-     "stun": 0,
-     "hgt": 0,
-     "flags": 0,
-     "hitstop": 6,
-     "snd_swing": 255,
-     "snd_hit": 255
+    {
+      "name": "DonLee",
+      "moves": {
+        "MP": {
+          "dur": [
+            2,
+            4,
+            7,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "dmg": 7,
+          "stun": 13,
+          "hgt": 0,
+          "flags": 0,
+          "hitstop": 6,
+          "snd_swing": 0,
+          "snd_hit": 4
+        },
+        "HP": {
+          "dur": [
+            3,
+            3,
+            12,
+            8,
+            6,
+            0,
+            0,
+            0
+          ],
+          "dmg": 12,
+          "stun": 17,
+          "hgt": 0,
+          "flags": 0,
+          "hitstop": 9,
+          "snd_swing": 2,
+          "snd_hit": 6
+        },
+        "MK": {
+          "dur": [
+            4,
+            3,
+            12,
+            6,
+            12,
+            0,
+            0,
+            0
+          ],
+          "dmg": 8,
+          "stun": 14,
+          "hgt": 0,
+          "flags": 0,
+          "hitstop": 6,
+          "snd_swing": 1,
+          "snd_hit": 7
+        },
+        "HK": {
+          "dur": [
+            5,
+            4,
+            12,
+            8,
+            8,
+            0,
+            0,
+            0
+          ],
+          "dmg": 13,
+          "stun": 18,
+          "hgt": 0,
+          "flags": 0,
+          "hitstop": 9,
+          "snd_swing": 3,
+          "snd_hit": 9
+        },
+        "CMP": {
+          "dur": [
+            3,
+            8,
+            6,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "dmg": 5,
+          "stun": 12,
+          "hgt": 0,
+          "flags": 0,
+          "hitstop": 6,
+          "snd_swing": 0,
+          "snd_hit": 4
+        },
+        "CHP": {
+          "dur": [
+            3,
+            3,
+            12,
+            9,
+            0,
+            0,
+            0,
+            0
+          ],
+          "dmg": 11,
+          "stun": 18,
+          "hgt": 0,
+          "flags": 0,
+          "hitstop": 9,
+          "snd_swing": 2,
+          "snd_hit": 6
+        },
+        "CMK": {
+          "dur": [
+            4,
+            10,
+            8,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "dmg": 6,
+          "stun": 14,
+          "hgt": 1,
+          "flags": 1,
+          "hitstop": 6,
+          "snd_swing": 1,
+          "snd_hit": 7
+        },
+        "CHK": {
+          "dur": [
+            4,
+            12,
+            6,
+            6,
+            6,
+            0,
+            0,
+            0
+          ],
+          "dmg": 10,
+          "stun": 0,
+          "hgt": 1,
+          "flags": 3,
+          "hitstop": 9,
+          "snd_swing": 3,
+          "snd_hit": 8
+        },
+        "JP": {
+          "dur": [
+            4,
+            255,
+            255,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "dmg": 8,
+          "stun": 26,
+          "hgt": 2,
+          "flags": 0,
+          "hitstop": 6,
+          "snd_swing": 0,
+          "snd_hit": 4
+        },
+        "JK": {
+          "dur": [
+            4,
+            3,
+            255,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "dmg": 10,
+          "stun": 28,
+          "hgt": 2,
+          "flags": 0,
+          "hitstop": 6,
+          "snd_swing": 1,
+          "snd_hit": 7
+        },
+        "JDK": {
+          "dur": [
+            3,
+            255,
+            255,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "dmg": 10,
+          "stun": 28,
+          "hgt": 2,
+          "flags": 0,
+          "hitstop": 6,
+          "snd_swing": 2,
+          "snd_hit": 5
+        },
+        "HADOUKEN": {
+          "dur": [
+            6,
+            6,
+            6,
+            20,
+            0,
+            0,
+            0,
+            0
+          ],
+          "dmg": 0,
+          "stun": 0,
+          "hgt": 0,
+          "flags": 0,
+          "hitstop": 6,
+          "snd_swing": 255,
+          "snd_hit": 255
+        },
+        "SHORYU": {
+          "dur": [
+            3,
+            3,
+            3,
+            3,
+            3,
+            3,
+            0,
+            0
+          ],
+          "dmg": 16,
+          "stun": 0,
+          "hgt": 0,
+          "flags": 2,
+          "hitstop": 10,
+          "snd_swing": 14,
+          "snd_hit": 6
+        },
+        "TATSU": {
+          "dur": [
+            5,
+            3,
+            3,
+            3,
+            3,
+            8,
+            0,
+            0
+          ],
+          "dmg": 5,
+          "stun": 16,
+          "hgt": 0,
+          "flags": 4,
+          "hitstop": 6,
+          "snd_swing": 15,
+          "snd_hit": 5
+        },
+        "CLOSE_HP": {
+          "dur": [
+            3,
+            10,
+            12,
+            8,
+            8,
+            0,
+            0,
+            0
+          ],
+          "dmg": 13,
+          "stun": 24,
+          "hgt": 0,
+          "flags": 0,
+          "hitstop": 9,
+          "snd_swing": 2,
+          "snd_hit": 6
+        },
+        "CLOSE_HK": {
+          "dur": [
+            7,
+            14,
+            8,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "dmg": 9,
+          "stun": 18,
+          "hgt": 0,
+          "flags": 0,
+          "hitstop": 9,
+          "snd_swing": 3,
+          "snd_hit": 8
+        },
+        "CLOSE_MK": {
+          "dur": [
+            4,
+            3,
+            12,
+            6,
+            12,
+            0,
+            0,
+            0
+          ],
+          "dmg": 8,
+          "stun": 14,
+          "hgt": 0,
+          "flags": 0,
+          "hitstop": 6,
+          "snd_swing": 1,
+          "snd_hit": 7
+        },
+        "CLOSE_MP": {
+          "dur": [
+            4,
+            9,
+            8,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "dmg": 6,
+          "stun": 13,
+          "hgt": 0,
+          "flags": 0,
+          "hitstop": 6,
+          "snd_swing": 0,
+          "snd_hit": 4
+        },
+        "THROW": {
+          "dur": [
+            4,
+            17,
+            24,
+            7,
+            10,
+            0,
+            0,
+            0
+          ],
+          "dmg": 11,
+          "stun": 0,
+          "hgt": 0,
+          "flags": 0,
+          "hitstop": 6,
+          "snd_swing": 255,
+          "snd_hit": 255
+        }
+      },
+      "traits": {
+        "moveset": 0,
+        "fireball_from": 0,
+        "jump_vy": 290,
+        "walk_adj": 0,
+        "walk_ticks": 5,
+        "fb_pal": 2,
+        "fb_alt_hi": 36,
+        "fb_alt_lo": 36,
+        "pal_asset": 10,
+        "pal_alt_off": 0,
+        "dirswap": 1,
+        "fbpal_asset": 8,
+        "fbpal_off1": 160,
+        "fbpal_off2": 192,
+        "fb_sfx": 13,
+        "hp_close_hk": 1,
+        "walk_pingpong": 1,
+        "face_pal": 7,
+        "face_pal_alt": 1,
+        "gameover_fp": 5,
+        "arcade_opp": 0
+      }
     }
-   },
-   "traits": {
-    "moveset": 0,
-    "fireball_from": 0,
-    "jump_vy": 290,
-    "walk_adj": 0,
-    "walk_ticks": 5,
-    "fb_pal": 2,
-    "fb_alt_hi": 36,
-    "fb_alt_lo": 36,
-    "pal_asset": 8,
-    "pal_alt_off": 32,
-    "dirswap": 0,
-    "fbpal_asset": 8,
-    "fbpal_off1": 160,
-    "fbpal_off2": 192,
-    "fb_sfx": 13,
-    "hp_close_hk": 0,
-    "walk_pingpong": 0
-   }
-  },
-  {
-   "name": "Sagat",
-   "moves": {
-    "MP": {
-     "dur": [
-      3,
-      6,
-      6,
-      0,
-      0,
-      0,
-      0,
-      0
-     ],
-     "dmg": 7,
-     "stun": 13,
-     "hgt": 0,
-     "flags": 0,
-     "hitstop": 6,
-     "snd_swing": 0,
-     "snd_hit": 4
-    },
-    "HP": {
-     "dur": [
-      3,
-      3,
-      12,
-      6,
-      6,
-      0,
-      0,
-      0
-     ],
-     "dmg": 12,
-     "stun": 17,
-     "hgt": 0,
-     "flags": 0,
-     "hitstop": 12,
-     "snd_swing": 2,
-     "snd_hit": 6
-    },
-    "MK": {
-     "dur": [
-      3,
-      2,
-      8,
-      4,
-      4,
-      0,
-      0,
-      0
-     ],
-     "dmg": 8,
-     "stun": 14,
-     "hgt": 0,
-     "flags": 0,
-     "hitstop": 6,
-     "snd_swing": 1,
-     "snd_hit": 7
-    },
-    "HK": {
-     "dur": [
-      5,
-      4,
-      12,
-      6,
-      6,
-      0,
-      0,
-      0
-     ],
-     "dmg": 13,
-     "stun": 18,
-     "hgt": 0,
-     "flags": 0,
-     "hitstop": 12,
-     "snd_swing": 3,
-     "snd_hit": 9
-    },
-    "CMP": {
-     "dur": [
-      2,
-      6,
-      4,
-      0,
-      0,
-      0,
-      0,
-      0
-     ],
-     "dmg": 5,
-     "stun": 12,
-     "hgt": 0,
-     "flags": 0,
-     "hitstop": 6,
-     "snd_swing": 0,
-     "snd_hit": 4
-    },
-    "CHP": {
-     "dur": [
-      3,
-      3,
-      12,
-      9,
-      0,
-      0,
-      0,
-      0
-     ],
-     "dmg": 11,
-     "stun": 18,
-     "hgt": 0,
-     "flags": 0,
-     "hitstop": 12,
-     "snd_swing": 2,
-     "snd_hit": 6
-    },
-    "CMK": {
-     "dur": [
-      3,
-      7,
-      6,
-      0,
-      0,
-      0,
-      0,
-      0
-     ],
-     "dmg": 6,
-     "stun": 14,
-     "hgt": 1,
-     "flags": 1,
-     "hitstop": 6,
-     "snd_swing": 1,
-     "snd_hit": 7
-    },
-    "CHK": {
-     "dur": [
-      4,
-      12,
-      6,
-      6,
-      6,
-      0,
-      0,
-      0
-     ],
-     "dmg": 10,
-     "stun": 0,
-     "hgt": 1,
-     "flags": 3,
-     "hitstop": 12,
-     "snd_swing": 3,
-     "snd_hit": 8
-    },
-    "JP": {
-     "dur": [
-      4,
-      255,
-      255,
-      0,
-      0,
-      0,
-      0,
-      0
-     ],
-     "dmg": 8,
-     "stun": 26,
-     "hgt": 2,
-     "flags": 0,
-     "hitstop": 6,
-     "snd_swing": 0,
-     "snd_hit": 4
-    },
-    "JK": {
-     "dur": [
-      4,
-      3,
-      255,
-      0,
-      0,
-      0,
-      0,
-      0
-     ],
-     "dmg": 10,
-     "stun": 28,
-     "hgt": 2,
-     "flags": 0,
-     "hitstop": 6,
-     "snd_swing": 1,
-     "snd_hit": 7
-    },
-    "JDK": {
-     "dur": [
-      3,
-      255,
-      255,
-      0,
-      0,
-      0,
-      0,
-      0
-     ],
-     "dmg": 10,
-     "stun": 28,
-     "hgt": 2,
-     "flags": 0,
-     "hitstop": 6,
-     "snd_swing": 2,
-     "snd_hit": 5
-    },
-    "HADOUKEN": {
-     "dur": [
-      6,
-      6,
-      6,
-      20,
-      0,
-      0,
-      0,
-      0
-     ],
-     "dmg": 0,
-     "stun": 0,
-     "hgt": 0,
-     "flags": 0,
-     "hitstop": 6,
-     "snd_swing": 255,
-     "snd_hit": 255
-    },
-    "SHORYU": {
-     "dur": [
-      3,
-      3,
-      3,
-      3,
-      3,
-      3,
-      0,
-      0
-     ],
-     "dmg": 16,
-     "stun": 0,
-     "hgt": 0,
-     "flags": 2,
-     "hitstop": 10,
-     "snd_swing": 14,
-     "snd_hit": 6
-    },
-    "TATSU": {
-     "dur": [
-      5,
-      3,
-      3,
-      3,
-      3,
-      8,
-      0,
-      0
-     ],
-     "dmg": 5,
-     "stun": 16,
-     "hgt": 0,
-     "flags": 4,
-     "hitstop": 6,
-     "snd_swing": 15,
-     "snd_hit": 5
-    },
-    "CLOSE_HP": {
-     "dur": [
-      3,
-      10,
-      12,
-      6,
-      6,
-      0,
-      0,
-      0
-     ],
-     "dmg": 13,
-     "stun": 24,
-     "hgt": 0,
-     "flags": 0,
-     "hitstop": 12,
-     "snd_swing": 2,
-     "snd_hit": 6
-    },
-    "CLOSE_HK": {
-     "dur": [
-      6,
-      12,
-      8,
-      0,
-      0,
-      0,
-      0,
-      0
-     ],
-     "dmg": 9,
-     "stun": 18,
-     "hgt": 0,
-     "flags": 0,
-     "hitstop": 12,
-     "snd_swing": 3,
-     "snd_hit": 8
-    },
-    "CLOSE_MK": {
-     "dur": [
-      2,
-      2,
-      8,
-      4,
-      4,
-      0,
-      0,
-      0
-     ],
-     "dmg": 8,
-     "stun": 14,
-     "hgt": 0,
-     "flags": 0,
-     "hitstop": 6,
-     "snd_swing": 1,
-     "snd_hit": 7
-    },
-    "CLOSE_MP": {
-     "dur": [
-      3,
-      6,
-      6,
-      0,
-      0,
-      0,
-      0,
-      0
-     ],
-     "dmg": 6,
-     "stun": 13,
-     "hgt": 0,
-     "flags": 0,
-     "hitstop": 6,
-     "snd_swing": 0,
-     "snd_hit": 4
-    },
-    "THROW": {
-     "dur": [
-      4,
-      17,
-      24,
-      7,
-      10,
-      0,
-      0,
-      0
-     ],
-     "dmg": 11,
-     "stun": 0,
-     "hgt": 0,
-     "flags": 0,
-     "hitstop": 6,
-     "snd_swing": 255,
-     "snd_hit": 255
-    }
-   },
-   "traits": {
-    "moveset": 1,
-    "fireball_from": 1,
-    "jump_vy": 255,
-    "walk_adj": -2,
-    "walk_ticks": 7,
-    "fb_pal": 5,
-    "fb_alt_hi": 52,
-    "fb_alt_lo": 20,
-    "pal_asset": 9,
-    "pal_alt_off": 32,
-    "dirswap": 0,
-    "fbpal_asset": 9,
-    "fbpal_off1": 96,
-    "fbpal_off2": 128,
-    "fb_sfx": 18,
-    "hp_close_hk": 0,
-    "walk_pingpong": 0
-   }
-  },
-  {
-   "name": "DonLee",
-   "moves": {
-    "MP": {
-     "dur": [
-      2,
-      4,
-      7,
-      0,
-      0,
-      0,
-      0,
-      0
-     ],
-     "dmg": 7,
-     "stun": 13,
-     "hgt": 0,
-     "flags": 0,
-     "hitstop": 6,
-     "snd_swing": 0,
-     "snd_hit": 4
-    },
-    "HP": {
-     "dur": [
-      3,
-      3,
-      12,
-      8,
-      6,
-      0,
-      0,
-      0
-     ],
-     "dmg": 12,
-     "stun": 17,
-     "hgt": 0,
-     "flags": 0,
-     "hitstop": 9,
-     "snd_swing": 2,
-     "snd_hit": 6
-    },
-    "MK": {
-     "dur": [
-      4,
-      3,
-      12,
-      6,
-      12,
-      0,
-      0,
-      0
-     ],
-     "dmg": 8,
-     "stun": 14,
-     "hgt": 0,
-     "flags": 0,
-     "hitstop": 6,
-     "snd_swing": 1,
-     "snd_hit": 7
-    },
-    "HK": {
-     "dur": [
-      5,
-      4,
-      12,
-      8,
-      8,
-      0,
-      0,
-      0
-     ],
-     "dmg": 13,
-     "stun": 18,
-     "hgt": 0,
-     "flags": 0,
-     "hitstop": 9,
-     "snd_swing": 3,
-     "snd_hit": 9
-    },
-    "CMP": {
-     "dur": [
-      3,
-      8,
-      6,
-      0,
-      0,
-      0,
-      0,
-      0
-     ],
-     "dmg": 5,
-     "stun": 12,
-     "hgt": 0,
-     "flags": 0,
-     "hitstop": 6,
-     "snd_swing": 0,
-     "snd_hit": 4
-    },
-    "CHP": {
-     "dur": [
-      3,
-      3,
-      12,
-      9,
-      0,
-      0,
-      0,
-      0
-     ],
-     "dmg": 11,
-     "stun": 18,
-     "hgt": 0,
-     "flags": 0,
-     "hitstop": 9,
-     "snd_swing": 2,
-     "snd_hit": 6
-    },
-    "CMK": {
-     "dur": [
-      4,
-      10,
-      8,
-      0,
-      0,
-      0,
-      0,
-      0
-     ],
-     "dmg": 6,
-     "stun": 14,
-     "hgt": 1,
-     "flags": 1,
-     "hitstop": 6,
-     "snd_swing": 1,
-     "snd_hit": 7
-    },
-    "CHK": {
-     "dur": [
-      4,
-      12,
-      6,
-      6,
-      6,
-      0,
-      0,
-      0
-     ],
-     "dmg": 10,
-     "stun": 0,
-     "hgt": 1,
-     "flags": 3,
-     "hitstop": 9,
-     "snd_swing": 3,
-     "snd_hit": 8
-    },
-    "JP": {
-     "dur": [
-      4,
-      255,
-      255,
-      0,
-      0,
-      0,
-      0,
-      0
-     ],
-     "dmg": 8,
-     "stun": 26,
-     "hgt": 2,
-     "flags": 0,
-     "hitstop": 6,
-     "snd_swing": 0,
-     "snd_hit": 4
-    },
-    "JK": {
-     "dur": [
-      4,
-      3,
-      255,
-      0,
-      0,
-      0,
-      0,
-      0
-     ],
-     "dmg": 10,
-     "stun": 28,
-     "hgt": 2,
-     "flags": 0,
-     "hitstop": 6,
-     "snd_swing": 1,
-     "snd_hit": 7
-    },
-    "JDK": {
-     "dur": [
-      3,
-      255,
-      255,
-      0,
-      0,
-      0,
-      0,
-      0
-     ],
-     "dmg": 10,
-     "stun": 28,
-     "hgt": 2,
-     "flags": 0,
-     "hitstop": 6,
-     "snd_swing": 2,
-     "snd_hit": 5
-    },
-    "HADOUKEN": {
-     "dur": [
-      6,
-      6,
-      6,
-      20,
-      0,
-      0,
-      0,
-      0
-     ],
-     "dmg": 0,
-     "stun": 0,
-     "hgt": 0,
-     "flags": 0,
-     "hitstop": 6,
-     "snd_swing": 255,
-     "snd_hit": 255
-    },
-    "SHORYU": {
-     "dur": [
-      3,
-      3,
-      3,
-      3,
-      3,
-      3,
-      0,
-      0
-     ],
-     "dmg": 16,
-     "stun": 0,
-     "hgt": 0,
-     "flags": 2,
-     "hitstop": 10,
-     "snd_swing": 14,
-     "snd_hit": 6
-    },
-    "TATSU": {
-     "dur": [
-      5,
-      3,
-      3,
-      3,
-      3,
-      8,
-      0,
-      0
-     ],
-     "dmg": 5,
-     "stun": 16,
-     "hgt": 0,
-     "flags": 4,
-     "hitstop": 6,
-     "snd_swing": 15,
-     "snd_hit": 5
-    },
-    "CLOSE_HP": {
-     "dur": [
-      3,
-      10,
-      12,
-      8,
-      8,
-      0,
-      0,
-      0
-     ],
-     "dmg": 13,
-     "stun": 24,
-     "hgt": 0,
-     "flags": 0,
-     "hitstop": 9,
-     "snd_swing": 2,
-     "snd_hit": 6
-    },
-    "CLOSE_HK": {
-     "dur": [
-      7,
-      14,
-      8,
-      0,
-      0,
-      0,
-      0,
-      0
-     ],
-     "dmg": 9,
-     "stun": 18,
-     "hgt": 0,
-     "flags": 0,
-     "hitstop": 9,
-     "snd_swing": 3,
-     "snd_hit": 8
-    },
-    "CLOSE_MK": {
-     "dur": [
-      4,
-      3,
-      12,
-      6,
-      12,
-      0,
-      0,
-      0
-     ],
-     "dmg": 8,
-     "stun": 14,
-     "hgt": 0,
-     "flags": 0,
-     "hitstop": 6,
-     "snd_swing": 1,
-     "snd_hit": 7
-    },
-    "CLOSE_MP": {
-     "dur": [
-      4,
-      9,
-      8,
-      0,
-      0,
-      0,
-      0,
-      0
-     ],
-     "dmg": 6,
-     "stun": 13,
-     "hgt": 0,
-     "flags": 0,
-     "hitstop": 6,
-     "snd_swing": 0,
-     "snd_hit": 4
-    },
-    "THROW": {
-     "dur": [
-      4,
-      17,
-      24,
-      7,
-      10,
-      0,
-      0,
-      0
-     ],
-     "dmg": 11,
-     "stun": 0,
-     "hgt": 0,
-     "flags": 0,
-     "hitstop": 6,
-     "snd_swing": 255,
-     "snd_hit": 255
-    }
-   },
-   "traits": {
-    "moveset": 0,
-    "fireball_from": 0,
-    "jump_vy": 290,
-    "walk_adj": 0,
-    "walk_ticks": 5,
-    "fb_pal": 2,
-    "fb_alt_hi": 36,
-    "fb_alt_lo": 36,
-    "pal_asset": 10,
-    "pal_alt_off": 0,
-    "dirswap": 1,
-    "fbpal_asset": 8,
-    "fbpal_off1": 160,
-    "fbpal_off2": 192,
-    "fb_sfx": 13,
-    "hp_close_hk": 1,
-    "walk_pingpong": 1
-   }
-  }
- ]
+  ]
 }

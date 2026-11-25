@@ -64,10 +64,13 @@ u16 prof_dummy;
 #else
 #define PROF(v)
 #endif
+enum { TRK_MOVESET, TRK_FRAME_BASE, TRK_FX_BASE, TRK_JUMP_VY, TRK_WALK_ADJ, TRK_WALK_TICKS, TRK_FB_PAL, TRK_FB_ALT_HI, TRK_FB_ALT_LO,
+       TRK_PAL_ASSET, TRK_PAL_ALT, TRK_DIRSWAP, TRK_FBPAL_ASSET, TRK_FBPAL_OFF1, TRK_FBPAL_OFF2, TRK_FB_SFX, TRK_HP_CLOSE_HK, TRK_PINGPONG, TRK_FACE_PAL, TRK_FACE_ALT, TRK_GAMEOVER_FP, TRK_ARCADE_OPP };
+u16 pk_trait(u8 ch, u8 k);
+u8 pk_i, pk_j;
+u8 ftc[4 * 8];   // tracos das telas (retrato, game over, 1o oponente) de ate 8 lutadores, lidos do pack uma vez no boot
+#define FTC(ch, k) ftc[((k) - TRK_FACE_PAL) * 8 + (ch)]
 u8 game_screen; // 0 menus, 1 selecao, 2 VS, 3 luta (usado pelos testes)
-enum { CH_RYU, CH_SAGAT, CH_BOXER };
-const u8 face_pal_base[3] = {2, 5, 7}; // paleta de BG do retrato de cada personagem (selecao/VS)
-const u8 face_pal_alt[3] = {3, 6, 1};  // ... e a alternativa (mesmo personagem dos dois lados)
 u8 sel_char[2];  // personagens escolhidos na selecao (P1, P2)
 u8 fchar[2];     // logica do lutador na luta: 0 = Ryu (o Boxer tambem), 1 = Sagat
 u8 fgfx[2];      // personagem escolhido (CH_*): decide quadros, paletas e retrato
@@ -569,11 +572,11 @@ void vs_run(void)
     faces_load();
     set_color(0, 0x2000);
     // P1 olhando para a direita, P2 para a esquerda; mesmo personagem dos dois lados: o P2 usa a paleta alternativa
-    face_put(4, 9, face_pal_base[sel_char[0]], 1, sel_char[0]);
+    face_put(4, 9, FTC(sel_char[0], TRK_FACE_PAL), 1, sel_char[0]);
     if (sel_char[0] == sel_char[1])
-        face_put(21, 9, face_pal_alt[sel_char[1]], 0, sel_char[1]);
+        face_put(21, 9, FTC(sel_char[1], TRK_FACE_ALT), 0, sel_char[1]);
     else
-        face_put(21, 9, face_pal_base[sel_char[1]], 0, sel_char[1]);
+        face_put(21, 9, FTC(sel_char[1], TRK_FACE_PAL), 0, sel_char[1]);
     fx_text(fx_block_vs(), 10, 0, 1, map3, VRAM_BG3_GFX);
     dmaCopyVram((u8 *)map1, VRAM_BG1_MAP, 2048);
     dmaCopyVram((u8 *)map3, VRAM_BG3_MAP, 2048);
@@ -668,7 +671,9 @@ u16 pq0, pq1, pq2, pq3, pq4;
 u16 prof_ovr, prof_a, prof_b, prof_c, prof_d, prof_e, prof_f, prof_g; // linha da tela (0-261) no comeco do vblank, apos os sprites e apos o debug
  // quadros que a logica nao coube em 1/60 s (medida para testes)
 u8 dir_hist[64], hist_head; // direcoes relativas ao lado (1 cima, 2 baixo, 4 tras, 8 frente): P1 0-31, P2 32-63
-u8 fdsw[2];      // copia do traco DIRSWAP (usada na parte critica do vblank: mais barato que TR())
+u8 fdsw[2], fpal_a[2];
+u16 fsw_src[4];  // endereco da paleta das luvas (por jogador e lado), pronto no inicio da luta
+u8 fsw_bank[2];      // copia do traco DIRSWAP (usada na parte critica do vblank: mais barato que TR())
 u8 bx_dir[2];    // Boxer: lado (fdir) para o qual a paleta das luvas esta ajustada (255 = ainda nao)
 u8 fwin[2];     // 1 = lutador fazendo a pose de vitoria
 u8 dark_lvl, dark_c; // escurecimento do cenario no Super (0-12 de 31 = ~40%) e contador do fade
@@ -704,10 +709,8 @@ u8 mv_dmg[2 * ATK_COUNT], mv_stun[2 * ATK_COUNT], mv_hgt[2 * ATK_COUNT], mv_flag
 u8 mv_hs[2 * ATK_COUNT], mv_sw[2 * ATK_COUNT], mv_sh[2 * ATK_COUNT];  // hitstop, som do golpe, som do impacto
 u8 mv_dur[2 * ATK_COUNT * 8];
 // ---- TRACOS do lutador (vem do pack, 20 palavras depois dos golpes; ver docs/FORMAT_SFPK.md): numeros que antes eram "if (Sagat)" no codigo
-enum { TRK_MOVESET, TRK_FRAME_BASE, TRK_FX_BASE, TRK_JUMP_VY, TRK_WALK_ADJ, TRK_WALK_TICKS, TRK_FB_PAL, TRK_FB_ALT_HI, TRK_FB_ALT_LO,
-       TRK_PAL_ASSET, TRK_PAL_ALT, TRK_DIRSWAP, TRK_FBPAL_ASSET, TRK_FBPAL_OFF1, TRK_FBPAL_OFF2, TRK_FB_SFX, TRK_HP_CLOSE_HK, TRK_PINGPONG };
-u16 ftr[2 * 20];
-const u8 trb[2] = {0, 20};
+u16 ftr[2 * 24];
+const u8 trb[2] = {0, 24};
 #define TR(i, k) ftr[trb[i] + (k)]
 const u8 mvb[2] = {0, ATK_COUNT};
 const u8 mvb8[2] = {0, ATK_COUNT * 8};
@@ -779,6 +782,9 @@ void pk_boot(void)
     pk_get(0, 32);
     pk_dst = (u16)&asset_tab;
     pk_get(pk_h[11], AS_COUNT * 8);
+    for (pk_i = 0; pk_i < pk_h[3]; pk_i++)
+        for (pk_j = TRK_FACE_PAL; pk_j <= TRK_ARCADE_OPP; pk_j++)
+            ftc[(pk_j - TRK_FACE_PAL) * 8 + pk_i] = pk_trait(pk_i, pk_j);
 }
 
 // aponta pk_src/pk_bank/pk_n para o asset id (a partir do byte off; n = 0: ate o fim)
@@ -813,6 +819,17 @@ void pk_ram(u8 id, u16 n)
 }
 
 // carrega os golpes do lutador ch (indice no pack) para o jogador p
+u16 pk_tv;
+// um traco de um lutador qualquer (usado nas telas de selecao/VS/game over, fora da luta)
+u16 pk_trait(u8 ch, u8 k)
+{
+    pk_dst = (u16)&pk_o;
+    pk_get(pk_h[5] + (ch << 1), 2);
+    pk_dst = (u16)&pk_tv;
+    pk_get(pk_o + 15 * ATK_COUNT + (k << 1), 2);
+    return pk_tv;
+}
+
 void pk_load_moves(u8 p, u8 ch)
 {
     u8 b = mvb[p];
@@ -835,7 +852,7 @@ void pk_load_moves(u8 p, u8 ch)
     pk_dst = (u16)&mv_dur[mvb8[p]];
     pk_get(pk_o + 7 * ATK_COUNT, ATK_COUNT * 8);
     pk_dst = (u16)&ftr[trb[p]];
-    pk_get(pk_o + 15 * ATK_COUNT, 40);   // tracos
+    pk_get(pk_o + 15 * ATK_COUNT, 48);   // tracos
 }
 
 const u8 atk_base[ATK_COUNT] = {A_MP, A_HP, A_MK, A_HK, A_CMP, A_CHP, A_CMK, A_CHK, A_JP, A_JK, A_JDK,
@@ -1447,7 +1464,7 @@ void sfx_set_pause(void)
 // fraco e a aterrissagem usa o som de cair no chao
 void sfx_set_fight(u8 c0, u8 c1)
 {
-    u8 k, ryu = (c0 == CH_RYU || c1 == CH_RYU), sag = (c0 == CH_SAGAT || c1 == CH_SAGAT);
+    u8 k, ryu = (c0 == 0 || c1 == 0), sag = (c0 == 1 || c1 == 1);
     sfx_cur = 2;
     sfx_n = 0;
     for (k = SFX_LIGHT; k <= SFX_LANDING; k++)
@@ -4488,6 +4505,11 @@ u8 fight_run(void)
         fgfx[i] = sel_char[i];
         pk_load_moves(i, fgfx[i]); // golpes e tracos do lutador (do pack)
         fdsw[i] = TR(i, TRK_DIRSWAP);
+        fpal_a[i] = TR(i, TRK_PAL_ASSET);
+        pk_asset(fpal_a[i], 0, 32);
+        fsw_src[i << 1] = pk_src;
+        fsw_src[(i << 1) + 1] = pk_src + 32;
+        fsw_bank[i] = pk_bank;
         fchar[i] = TR(i, TRK_MOVESET);   // conjunto de golpes especiais: 0 = estilo Ryu, 1 = estilo Sagat
         choff[i] = TR(i, TRK_FRAME_BASE);
         obj_off[i] = choff[i];
@@ -4776,10 +4798,12 @@ u8 fight_run(void)
         for (i = 0; i < 2; i++)
             if (fdsw[i] && bx_dir[i] != fdir[i])
             {
-                pk_t = 0;
-                if (fdir[i])
-                    pk_t = 32;
-                pk_cgram(TR(i, TRK_PAL_ASSET), pk_t, 128 + (i << 4), 32);
+                pk_t = (i << 1) + fdir[i];
+                pk_src = fsw_src[pk_t];
+                pk_bank = fsw_bank[i];
+                pk_n = 32;
+                pk_dst = 128 + (i << 4);
+                sf_cgram();
                 bx_dir[i] = fdir[i];
             }
         if (pal_pend[0] | pal_pend[1])
@@ -4874,7 +4898,7 @@ void p1_face_screen(void)
     screen_base();
     faces_load();
     set_color(0, 0);
-    face_put(12, 3, face_pal_base[sel_char[0]], 0, sel_char[0]);
+    face_put(12, 3, FTC(sel_char[0], TRK_FACE_PAL), 0, sel_char[0]);
     dmaCopyVram((u8 *)map1, VRAM_BG1_MAP, 2048);
 }
 
@@ -4925,11 +4949,7 @@ u8 continue_run(void)
     ann_row = 15;
     ann_show(ANN_OVER);
     play_sfx(SFX_KO); // (sem a voz do "game over" ainda)
-    fp = 0;
-    if (sel_char[0] == CH_SAGAT)
-        fp = 3;
-    else if (sel_char[0] == CH_BOXER)
-        fp = 5;
+    fp = FTC(sel_char[0], TRK_GAMEOVER_FP);
     for (i = 0; i < 16; i++)
         gbuf[i] = gray(fpal[(fp << 4) + i]);
     fx_frame();
@@ -4985,9 +5005,7 @@ u8 arcade_run(void)
         sel_char[1] = sel_char[0];
         if (arc_stage == 0)
         {
-            sel_char[1] = sel_char[0] ^ 1; // 1o oponente: outro lutador (Ryu <-> Sagat; o Boxer enfrenta o Ryu)
-            if (sel_char[0] == CH_BOXER)
-                sel_char[1] = CH_RYU;
+            sel_char[1] = FTC(sel_char[0], TRK_ARCADE_OPP); // 1o oponente (Ryu <-> Sagat; o DonLee enfrenta o Ryu)
         }
         vs_run();
         r = fight_run();
