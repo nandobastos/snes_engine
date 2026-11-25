@@ -23,7 +23,7 @@
 .DEFINE UP_MAX 32           ; pecas por vblank (medido: com 40 o envio passava do fim do vblank e perdia pedacos: 61 casos em 1500 quadros de luta do DonLee; com 32, zero)
 .DEFINE BUF_CH 96
 
-.include "res/chunks.inc"   ; chunk_tab: endereco (24 bits + 1 byte) de cada bloco de graficos dos lutadores
+; chunk_tab (RAM, src/fight.c): endereco (16 bits), banco e 0 de cada bloco de graficos dos lutadores; vem do pack
 
 draw_obj:
     php

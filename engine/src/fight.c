@@ -686,6 +686,21 @@ u8 mv_hs[2 * ATK_COUNT], mv_sw[2 * ATK_COUNT], mv_sh[2 * ATK_COUNT];  // hitstop
 u8 mv_dur[2 * ATK_COUNT * 8];
 const u8 mvb[2] = {0, ATK_COUNT};
 const u8 mvb8[2] = {0, ATK_COUNT * 8};
+// ---- tabelas dos QUADROS (hitbox, hurtbox, pedacos 16x16): vem do PACK (tools/sfpack.py) e sao copiadas para a RAM no inicio da luta
+// (pk_load_frames). A logica em C e o draw_obj/plan_frames em assembly (acesso longo, $7E:) leem estas tabelas pelo indice do quadro.
+u8 pf_chunk[PF_N];
+u16 pf_off[PF_N];
+u8 pf_count[PF_N], pf_w[PF_N], pf_h[PF_N], pf_ax[PF_N], pf_belt[PF_N], pf_hb[PF_N];
+s8 pf_hbx0[PF_N], pf_hbx1[PF_N];
+u8 pf_hby0[PF_N], pf_hby1[PF_N], pf_hu[PF_N];
+s8 pf_hux0[PF_N], pf_hux1[PF_N];
+u8 pf_huy0[PF_N], pf_huy1[PF_N], pf_hb2[PF_N];
+s8 pf_hb2x0[PF_N], pf_hb2x1[PF_N];
+u8 pf_hb2y0[PF_N], pf_hb2y1[PF_N];
+u16 pf_first[PF_N];
+u8 pp_dx[PP_N], pp_dy[PP_N];
+u8 chunk_tab[NCHUNK * 4];   // por bloco de graficos: endereco (u16), banco, 0
+u16 pk_h[16], pk_dir[25];   // cabecalho do pack e diretorio das tabelas de quadros
 u16 pk_dst, pk_src, pk_bank, pk_n;   // parametros do sf_copy (src/sfcopy.asm)
 u16 pk_o;
 void sf_copy(void);
@@ -700,12 +715,50 @@ void pk_get(u16 off, u16 n)
     sf_copy();
 }
 
+// copia as tabelas de quadros e a tabela de blocos de graficos do pack para a RAM (uma vez por luta; a tela esta coberta)
+#define PKA(arr, size) pk_dst = (u16)&arr; pk_get(pk_dir[k++], size)
+void pk_load_frames(void)
+{
+    u8 k = 0;
+    pk_dst = (u16)&pk_h;
+    pk_get(0, 32);
+    pk_dst = (u16)&pk_dir;
+    pk_get(pk_h[10], 50);
+    pk_dst = (u16)&chunk_tab;
+    pk_get(pk_h[9], NCHUNK * 4);
+    PKA(pf_chunk, PF_N);
+    PKA(pf_off, PF_N * 2);
+    PKA(pf_count, PF_N);
+    PKA(pf_w, PF_N);
+    PKA(pf_h, PF_N);
+    PKA(pf_ax, PF_N);
+    PKA(pf_belt, PF_N);
+    PKA(pf_hb, PF_N);
+    PKA(pf_hbx0, PF_N);
+    PKA(pf_hbx1, PF_N);
+    PKA(pf_hby0, PF_N);
+    PKA(pf_hby1, PF_N);
+    PKA(pf_hu, PF_N);
+    PKA(pf_hux0, PF_N);
+    PKA(pf_hux1, PF_N);
+    PKA(pf_huy0, PF_N);
+    PKA(pf_huy1, PF_N);
+    PKA(pf_hb2, PF_N);
+    PKA(pf_hb2x0, PF_N);
+    PKA(pf_hb2x1, PF_N);
+    PKA(pf_hb2y0, PF_N);
+    PKA(pf_hb2y1, PF_N);
+    PKA(pf_first, PF_N * 2);
+    PKA(pp_dx, PP_N);
+    PKA(pp_dy, PP_N);
+}
+
 // carrega os golpes do lutador ch (indice no pack) para o jogador p
 void pk_load_moves(u8 p, u8 ch)
 {
     u8 b = mvb[p];
     pk_dst = (u16)&pk_o;
-    pk_get(16 + (ch << 1), 2);   // ofs do bloco de golpes deste lutador
+    pk_get(pk_h[5] + (ch << 1), 2);   // ofs do bloco de golpes deste lutador (pk_h lido por pk_load_frames)
     pk_dst = (u16)&mv_dmg[b];
     pk_get(pk_o, ATK_COUNT);
     pk_dst = (u16)&mv_stun[b];
@@ -776,25 +829,6 @@ void anim_step(u8 i, u8 dur, u8 once)
         fidx[i]++;
     else if (!once)
         fidx[i] = 0;
-}
-
-void upload_frame(u8 f, u16 char0)
-{
-    u8 n = pf_count[f], k;
-    u8 *src = ryu_ptr(pf_chunk[f]) + pf_off[f];
-    u16 dst = VRAM_OBJ_GFX + (char0 << 4);
-    while (n)
-    {
-        k = 8;
-        if (n < 8)
-            k = n;
-        dmaCopyVram(src, dst, k << 6);
-        src += k << 6;
-        dmaCopyVram(src, dst + 256, k << 6);
-        src += k << 6;
-        dst += 512;
-        n -= k;
-    }
 }
 
 void fight_gfx_init(void)
@@ -4399,6 +4433,7 @@ u8 fight_run(void)
     oam_base[5] = 64;
     oam_base[6] = 0;
     front = 0;
+    pk_load_frames();   // tabelas de quadros e blocos de graficos (do pack)
     // personagens escolhidos: o quadro real de cada objeto = quadro logico (A_*) + o comeco do personagem na tabela
     for (i = 0; i < 2; i++)
     {

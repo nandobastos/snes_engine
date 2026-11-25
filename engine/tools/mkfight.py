@@ -735,8 +735,7 @@ def build_ryu():
     cur = st["cur"]
     chunks.append(cur)
     for i, c in enumerate(chunks):
-        save_bin("ryu_%d.bin" % i, c)
-        outputs.setdefault("ryu", []).append("ryu_%d.bin" % i)
+        save_bin("ryu_%d.bin" % i, c)   # graficos dos quadros: vao para o PACK (tools/sfpack.py), nao para a ROM fixa
     pal5 = [(0, 0, 0), (76, 60, 52), (255, 235, 150), (255, 70, 20)]   # faisca de golpe acertado (fogo)
     def green(pal):
         # magia especial (super): mesma bola, em verde claro (luminosidade da cor original numa escala de verdes)
@@ -758,7 +757,7 @@ def build_ryu():
     save_bin("sagat.pal", pal_words(sg["pal1"]) + pal_words(sg["pal2"]) + pal_words(sg["pal3"])
              + pal_words(green(sg["pal3"])) + pal_words(red(sg["pal3"])))  # Sagat: P1, P2, Tiger Shot, super (verde)
     save_bin("boxer.pal", pal_words(bx["pal1"]) + pal_words(bx["pal2"]))
-    outputs["ryu"].append("boxer.pal")
+    outputs.setdefault("ryu", []).append("boxer.pal")
     outputs["ryu"].append("sagat.pal")
     outputs["ryu"].append("ryu.pal")
     # contato visual para conferir recortes e ancoras
@@ -777,11 +776,6 @@ def build_ryu():
             cs.putpixel((ox, yy), (255, 0, 0))
     cs.save(os.path.join(os.environ.get("MKFIGHT_DEBUG", "/tmp"), "ryu_contact.png"))
     # tabelas C
-    # tabela dos blocos de graficos para o plan_frames em assembly (src/drawobj.asm): endereco e banco
-    with open(os.path.join(RES, "chunks.inc"), "w") as f:
-        f.write("; gerado por tools/mkfight.py\nchunk_tab:\n")
-        for i in range(len(chunks)):
-            f.write("    .dw ryu_%d_bin\n    .db :ryu_%d_bin, 0\n" % (i, i))
     with open(os.path.join(RES, "ryu.h"), "w") as f:
         f.write("// gerado por tools/mkfight.py\n")
         for anim, lst in anims:
@@ -792,41 +786,26 @@ def build_ryu():
         for anim, lst in sg["anims"]:
             if anim not in first:   # animacoes so do Sagat (indice relativo a SAGAT_OFF, como as outras)
                 f.write("#define A_%s %d\n#define A_%s_N %d\n" % (anim.upper(), sfirst[anim] - ryu_n, anim.upper(), len(lst)))
-        f.write("const u8 pf_chunk[] = {%s};\n" % ", ".join(str(fr["chunk"]) for fr in table))
-        f.write("const u16 pf_off[] = {%s};\n" % ", ".join(str(fr["off"]) for fr in table))
-        f.write("const u8 pf_count[] = {%s};\n" % ", ".join(str(fr["n"]) for fr in table))
-        f.write("const u8 pf_w[] = {%s};\n" % ", ".join(str(fr["w"]) for fr in table))
-        f.write("const u8 pf_h[] = {%s};\n" % ", ".join(str(fr["h"]) for fr in table))
-        f.write("const u8 pf_ax[] = {%s};\n" % ", ".join(str(fr["ax"]) for fr in table))
-        f.write("const u8 pf_belt[] = {%s}; // faixa preta: distancia do topo (255 = nao tem)\n" % ", ".join(str(fr["belt"]) for fr in table))
-        f.write("const u8 pf_hb[] = {%s}; // 1 = o quadro tem hitbox (retangulo vermelho da folha)\n" % ", ".join("1" if fr["hb"] else "0" for fr in table))
-        f.write("const s8 pf_hbx0[] = {%s}; // hitbox: x em relacao a ancora (virado para a direita)\n" % ", ".join(str(fr["hb"][0]) if fr["hb"] else "0" for fr in table))
-        f.write("const s8 pf_hbx1[] = {%s};\n" % ", ".join(str(fr["hb"][1]) if fr["hb"] else "0" for fr in table))
-        f.write("const u8 pf_hby0[] = {%s}; // hitbox: altura acima do chao (base e topo)\n" % ", ".join(str(fr["hb"][2]) if fr["hb"] else "0" for fr in table))
-        f.write("const u8 pf_hby1[] = {%s};\n" % ", ".join(str(fr["hb"][3]) if fr["hb"] else "0" for fr in table))
-        f.write("const u8 pf_hu[] = {%s}; // 1 = o quadro tem hurtbox propria (retangulo verde da folha)\n" % ", ".join("1" if fr["hu"] else "0" for fr in table))
-        f.write("const s8 pf_hux0[] = {%s};\n" % ", ".join(str(fr["hu"][0]) if fr["hu"] else "0" for fr in table))
-        f.write("const s8 pf_hux1[] = {%s};\n" % ", ".join(str(fr["hu"][1]) if fr["hu"] else "0" for fr in table))
-        f.write("const u8 pf_huy0[] = {%s};\n" % ", ".join(str(fr["hu"][2]) if fr["hu"] else "0" for fr in table))
-        f.write("const u8 pf_huy1[] = {%s};\n" % ", ".join(str(fr["hu"][3]) if fr["hu"] else "0" for fr in table))
-        f.write("const u8 pf_hb2[] = {%s}; // 1 = o quadro tem uma segunda hitbox\n" % ", ".join("1" if fr["hb2"] else "0" for fr in table))
-        f.write("const s8 pf_hb2x0[] = {%s};\n" % ", ".join(str(fr["hb2"][0]) if fr["hb2"] else "0" for fr in table))
-        f.write("const s8 pf_hb2x1[] = {%s};\n" % ", ".join(str(fr["hb2"][1]) if fr["hb2"] else "0" for fr in table))
-        f.write("const u8 pf_hb2y0[] = {%s};\n" % ", ".join(str(fr["hb2"][2]) if fr["hb2"] else "0" for fr in table))
-        f.write("const u8 pf_hb2y1[] = {%s};\n" % ", ".join(str(fr["hb2"][3]) if fr["hb2"] else "0" for fr in table))
-        firsts = []
-        dx, dy = [], []
+        firsts, dx, dy = [], [], []
         for fr in table:
             firsts.append(len(dx))
             dx += [p[0] for p in fr["pcs"]]
             dy += [p[1] for p in fr["pcs"]]
-        f.write("const u16 pf_first[] = {%s};\n" % ", ".join(map(str, firsts)))
-        f.write("const u8 pp_dx[] = {%s};\n" % ", ".join(map(str, dx)))
-        f.write("const u8 pp_dy[] = {%s};\n" % ", ".join(map(str, dy)))
-        f.write("u8 *ryu_ptr(u8 chunk)\n{\n")
-        for i in range(len(chunks) - 1):
-            f.write("    if (chunk == %d)\n        return (u8 *)&ryu_%d_bin;\n" % (i, i))
-        f.write("    return (u8 *)&ryu_%d_bin;\n}\n" % (len(chunks) - 1))
+        f.write("#define PF_N %d     // quadros (todas as tabelas pf_*)\n#define PP_N %d     // pedacos 16x16 (pp_dx/pp_dy)\n#define NCHUNK %d\n" % (len(table), len(dx), len(chunks)))
+    hbv = lambda k, i: [(fr[k][i] if fr[k] else 0) & 255 for fr in table]
+    arrays = [("pf_chunk", 1, [fr["chunk"] for fr in table]), ("pf_off", 2, [fr["off"] for fr in table]),
+              ("pf_count", 1, [fr["n"] for fr in table]), ("pf_w", 1, [fr["w"] for fr in table]), ("pf_h", 1, [fr["h"] for fr in table]),
+              ("pf_ax", 1, [fr["ax"] for fr in table]), ("pf_belt", 1, [fr["belt"] for fr in table]),
+              ("pf_hb", 1, [1 if fr["hb"] else 0 for fr in table]), ("pf_hbx0", 1, hbv("hb", 0)), ("pf_hbx1", 1, hbv("hb", 1)),
+              ("pf_hby0", 1, hbv("hb", 2)), ("pf_hby1", 1, hbv("hb", 3)),
+              ("pf_hu", 1, [1 if fr["hu"] else 0 for fr in table]), ("pf_hux0", 1, hbv("hu", 0)), ("pf_hux1", 1, hbv("hu", 1)),
+              ("pf_huy0", 1, hbv("hu", 2)), ("pf_huy1", 1, hbv("hu", 3)),
+              ("pf_hb2", 1, [1 if fr["hb2"] else 0 for fr in table]), ("pf_hb2x0", 1, hbv("hb2", 0)), ("pf_hb2x1", 1, hbv("hb2", 1)),
+              ("pf_hb2y0", 1, hbv("hb2", 2)), ("pf_hb2y1", 1, hbv("hb2", 3)),
+              ("pf_first", 2, firsts), ("pp_dx", 1, [v & 255 for v in dx]), ("pp_dy", 1, [v & 255 for v in dy])]
+    import json as _json
+    _json.dump(dict(nframes=len(table), npieces=len(dx), arrays=[dict(name=n, size=sz, data=d) for n, sz, d in arrays],
+                    chunks=["ryu_%d.bin" % i for i in range(len(chunks))]), open(os.path.join(RES, "frames.json"), "w"))
     maxp = max(fr["n"] for fr in table)
     if DUMP is not None:
         DUMP.append(dict(char="info", pal1=pal1, pal2=pal2, pal3=pal3, pal4=pal4, spal1=sg["pal1"], spal2=sg["pal2"],

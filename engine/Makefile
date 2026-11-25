@@ -27,7 +27,7 @@ include ${PVSNESLIB_HOME}/devkitsnes/snes_rules
 assets:
 	python3 tools/mkassets.py
 	python3 tools/mkfight.py
-	python3 tools/sfpack.py ../project/game.json res/pack.bin res/pack.asm
+	python3 tools/sfpack.py ../project/game.json res/frames.json res/pack.bin res/pack.asm
 
 SMCONVFLAGS := -s -o $(SOUNDBANK) -V -b 5
 musics: $(SOUNDBANK).obj
