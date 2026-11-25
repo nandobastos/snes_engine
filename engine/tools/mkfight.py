@@ -732,6 +732,79 @@ def build_ryu():
          bx["hurt_of"], bfirst)
     for anim, _ in anims:
         assert bfirst[anim] - boxer_off == first[anim], anim
+    # ---- lutadores com arte propria (SF Pixel): project/game.json -> fighters[i].traits.art = "arquivo.sffighter.json" (relativo a project/)
+    art_bases = {}
+    art_pals = []
+    import base64
+    import json as _j
+    _gj = os.path.join(os.path.dirname(ROOT), "project", "game.json")
+    for _f in _j.load(open(_gj))["fighters"]:
+        _art = _f["traits"].get("art")
+        if not _art:
+            continue
+        data = _j.load(open(os.path.join(os.path.dirname(_gj), _art)))
+        tags = {t["name"]: t["frames"] for t in data["tags"]}
+        base0 = len(table)
+        art_bases[_f["name"]] = base0
+        dump_char[0] = _f["name"]
+        for anim, lst in anims:
+            frs = tags.get(anim)
+            cache = {}
+            for i in range(len(lst)):
+                if not frs:
+                    table.append(table[first[anim] + i])   # animacao que a arte nao tem: usa o quadro do Ryu (a engine continua funcionando)
+                    names.append(anim)
+                    continue
+                k = min(i, len(frs) - 1)
+                if k in cache:
+                    table.append(cache[k])
+                    names.append(anim)
+                    continue
+                af = frs[k]
+                h0, dy = af["h"], af.get("dy", 0)
+                ax = int(round(af["anchor"][0])) if af.get("anchor") else af["w"] // 2
+                pcs = [(p_["x"] + dy * 0, p_["y"] + dy, base64.b64decode(p_["px"])) for p_ in af["pieces"]]
+                while len(pcs) > 24:
+                    cnt = [sum(1 for v in p_[2] if v) for p_ in pcs]
+                    j = cnt.index(min(cnt))
+                    print("AVISO: quadro de %s/%s com %d pedacos: tirado um pedaco com %d pixels" % (_f["name"], anim, len(pcs), cnt[j]))
+                    pcs.pop(j)
+                rows = (len(pcs) + 7) // 8
+                sheet = [0] * (128 * 16 * max(1, rows))
+                for ii, (x, y, px) in enumerate(pcs):
+                    ox, oy = (ii % 8) * 16, (ii // 8) * 16
+                    for yy in range(16):
+                        for xx in range(16):
+                            sheet[(oy + yy) * 128 + ox + xx] = px[yy * 16 + xx]
+                raw = encode_tiles(sheet, 128, 16 * max(1, rows), 4)
+                out = bytearray()
+                for r in range(rows):
+                    n = min(8, len(pcs) - r * 8)
+                    for half in range(2):
+                        start = (r * 2 + half) * 16 * 32
+                        out += raw[start:start + n * 64]
+                if len(st["cur"]) + len(out) > CHUNK:
+                    chunks.append(st["cur"])
+                    st["cur"] = bytearray()
+                def box(b):   # [x0,y0,x1,y1] exclusivo, relativo ao canto da arte -> (x0, x1, y0 do chao, y1 do chao) relativo a ancora
+                    if not b:
+                        return None
+                    return (b[0] - ax, b[2] - 1 - ax, max(0, h0 - b[3]), h0 - b[1])
+                fr = dict(chunk=len(chunks), off=len(st["cur"]), n=len(pcs), w=af["w"], h=h0 + dy, ax=ax,
+                          pcs=[(x - ax + 64, y) for x, y, _p in pcs], box=-1, belt=255,
+                          hb=box(af.get("hitbox")), hb2=box(af.get("hitbox2")), hu=box(af.get("hurtbox")))
+                st["cur"] += out
+                cache[k] = fr
+                table.append(fr)
+                names.append(anim)
+        pal = [int(v) for v in data["pal"]] + [0] * 16
+        pal = pal[:16]
+        words = b"".join(w_.to_bytes(2, "little") for w_ in pal)
+        slug = "".join(ch if ch.isalnum() else "_" for ch in _f["name"].lower())
+        save_bin("art_%s.pal" % slug, words + words)    # P1 e P2 (mesma paleta)
+        art_pals.append("art_%s.pal" % slug)
+        PACK_ASSETS.append("art_%s.pal" % slug)
+        outputs.setdefault("ryu", []).append("art_%s.pal" % slug)
     cur = st["cur"]
     chunks.append(cur)
     for i, c in enumerate(chunks):
@@ -810,7 +883,7 @@ def build_ryu():
             ra.write("%s dsb %d\n" % (n_, len(d_) * sz_))
         ra.write("chunk_tab dsb %d\nsmap dsb 2048\n.ENDS\n.BASE $80\n" % (4 * len(chunks)))
     import json as _json
-    _json.dump(dict(fighter_bases=[0, ryu_n, boxer_off], nframes=len(table), npieces=len(dx), arrays=[dict(name=n, size=sz, data=d) for n, sz, d in arrays],
+    _json.dump(dict(fighter_bases=[0, ryu_n, boxer_off], art_bases=art_bases, art_pals={n: PACK_ASSETS.index('art_%s.pal' % ''.join(ch if ch.isalnum() else '_' for ch in n.lower())) for n in art_bases}, nframes=len(table), npieces=len(dx), arrays=[dict(name=n, size=sz, data=d) for n, sz, d in arrays],
                     chunks=["ryu_%d.bin" % i for i in range(len(chunks))]), open(os.path.join(RES, "frames.json"), "w"))
     maxp = max(fr["n"] for fr in table)
     if DUMP is not None:

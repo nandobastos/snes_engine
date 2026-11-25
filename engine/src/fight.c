@@ -329,7 +329,8 @@ void face_put(u8 x, u8 y, u8 pal, u8 flip, u8 face)
 enum { AS_STAGE_BIN, AS_STAGE_MAP, AS_STAGE_PAL, AS_FACE_BIN, AS_FACE_PAL, AS_HUD_BIN, AS_HUD_PAL, AS_HUD2_BIN, AS_RYU_PAL, AS_SAGAT_PAL,
        AS_BOXER_PAL, AS_COUNT };
 u16 pk_dst, pk_src, pk_bank, pk_n, pk_db;   // parametros do sf_copy (src/sfcopy.asm); pk_db: 0 = destino no banco $7E, 1 = $7F
-u16 asset_tab[AS_COUNT * 4];
+#define AS_MAX 32            // ids de asset (tabela do pack): os AS_* acima + paletas dos lutadores criados no SF Pixel
+u16 asset_tab[AS_MAX * 4];
 u16 fpal[7 * 16];   // paletas dos retratos (CPU: conversao para cinza)
 u16 pk_t;
 void sf_vram(void);
@@ -781,7 +782,7 @@ void pk_boot(void)
     pk_dst = (u16)&pk_h;
     pk_get(0, 32);
     pk_dst = (u16)&asset_tab;
-    pk_get(pk_h[11], AS_COUNT * 8);
+    pk_get(pk_h[11], pk_h[12] * 8);
     for (pk_i = 0; pk_i < pk_h[3]; pk_i++)
         for (pk_j = TRK_FACE_PAL; pk_j <= TRK_FACE_IDX; pk_j++)
             ftc[(pk_j - TRK_FACE_PAL) * 8 + pk_i] = pk_trait(pk_i, pk_j);

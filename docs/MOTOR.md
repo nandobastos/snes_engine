@@ -37,3 +37,8 @@ Clone = copia profunda de golpes e tracos no game.json (independente do original
 (indice do lutador dono dos quadros), `face_idx` (retrato), `pal_asset`. A tela de selecao mostra os lutadores do pack (ate 8; celulas
 extras ficam cinza). Pendente: arte propria (SG Pixel -> quadros novos no pack), retrato e paleta proprios, e o estagio por lutador.
 Testado: Ryu clonado como 4o lutador aparece na selecao e luta.
+
+## Arte propria (SF Pixel -> engine)
+traits.art = arquivo .sffighter.json (em project/). engine/tools/mkfight.py (bloco "lutadores com arte propria") le o arquivo e acrescenta os quadros
+depois do DonLee (mesma ordem/contagem de animacoes do Ryu; animacao ausente = quadro do Ryu; menos quadros = repete o ultimo), gera graficos em pedacos 16x16,
+caixas (relativas a ancora e ao chao) e art_<nome>.pal (P1=P2). frames.json ganha art_bases/art_pals; sfpack usa no frame_base e pal_asset. asset_tab agora tem 32 ids.

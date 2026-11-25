@@ -1069,7 +1069,8 @@ async function exportSF() {
       for (let y = 0; y < doc.h; y++) for (let x = 0; x < doc.w; x++) if (idx[y * doc.w + x]) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); }
       const rel = (b) => (b ? [b.x0 - x0, b.y0 - y0, b.x1 - x0 + 1, b.y1 - y0 + 1] : null), bx = (k) => { const li = kindLayer(k); return li < 0 ? null : boxOf(li, f); };
       const an = bx("anchor");
-      frames.push({ ms: doc.frames[f].d, pieces: sp.map((q) => { const px = new Uint8Array(256); for (let yy = 0; yy < 16; yy++) for (let xx = 0; xx < 16; xx++) { const X = q.px + xx, Y = q.py + yy; px[yy * 16 + xx] = X >= 0 && Y >= 0 && X < doc.w && Y < doc.h ? idx[Y * doc.w + X] : 0; } return { x: q.px - x0, y: q.py - y0, px: b64(px) }; }),
+      let x1b = 0, y1b = 0; for (let y = 0; y < doc.h; y++) for (let x = 0; x < doc.w; x++) if (idx[y * doc.w + x]) { x1b = Math.max(x1b, x); y1b = Math.max(y1b, y); }
+      frames.push({ ms: doc.frames[f].d, w: x1b - x0 + 1, h: y1b - y0 + 1, dy: sp.length ? sp[0].dy : 0, pieces: sp.map((q) => { const px = new Uint8Array(256); for (let yy = 0; yy < 16; yy++) for (let xx = 0; xx < 16; xx++) { const X = q.px + xx, Y = q.py + yy; px[yy * 16 + xx] = X >= 0 && Y >= 0 && X < doc.w && Y < doc.h ? idx[Y * doc.w + X] : 0; } return { x: q.px - x0, y: q.py - y0, px: b64(px) }; }),
         hitbox: rel(bx("hitbox")), hitbox2: rel(bx("hitbox2")), hurtbox: rel(bx("hurtbox")), anchor: an ? [(an.x0 + an.x1 + 1) / 2 - x0, an.y1 + 1 - y0] : null });
     }
     out.tags.push({ name: t.name, loop: t.loop, frames });

@@ -8,4 +8,10 @@ Abra `index.html` no navegador (não precisa instalar nada). É o SG Pixel adapt
 - **Tags = animações da engine:** Arquivo → Novo lutador cria as 42 tags com o número de quadros que a engine espera (idle, walk, hp, shoryu...). O painel mostra o que falta.
 - **Salvar:** `.sgpx` (guarda as caixas). **Exportar:** `.sffighter.json` (pedaços, caixas, âncora e paleta por quadro), a entrada do conversor da engine.
 
-Pendente: conversor `.sffighter.json` → pack da engine (quadros, gráficos e tabelas) e prévia com o emulador.
+## Levar a arte para o jogo
+1. No SF Pixel: Exportar → `.sffighter.json`; coloque o arquivo na pasta `project/`.
+2. Clone um lutador (`editor/lutadores.html`) e, no `game.json`, ponha no lutador `"art": "nome.sffighter.json"` dentro de `traits`.
+3. Gere a ROM (`make` em `engine/`): o `mkfight.py` corta os quadros, cria os gráficos, as caixas e a paleta do lutador.
+Animações que a arte não tem usam o quadro do Ryu (o lutador continua funcionando). Testado com um lutador de teste: aparece na seleção e luta com a arte e as caixas do SF Pixel.
+
+Pendente: prévia com o emulador, retrato e magia próprios.
