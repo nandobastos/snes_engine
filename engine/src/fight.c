@@ -668,6 +668,7 @@ u16 pq0, pq1, pq2, pq3, pq4;
 u16 prof_ovr, prof_a, prof_b, prof_c, prof_d, prof_e, prof_f, prof_g; // linha da tela (0-261) no comeco do vblank, apos os sprites e apos o debug
  // quadros que a logica nao coube em 1/60 s (medida para testes)
 u8 dir_hist[64], hist_head; // direcoes relativas ao lado (1 cima, 2 baixo, 4 tras, 8 frente): P1 0-31, P2 32-63
+u8 fdsw[2];      // copia do traco DIRSWAP (usada na parte critica do vblank: mais barato que TR())
 u8 bx_dir[2];    // Boxer: lado (fdir) para o qual a paleta das luvas esta ajustada (255 = ainda nao)
 u8 fwin[2];     // 1 = lutador fazendo a pose de vitoria
 u8 dark_lvl, dark_c; // escurecimento do cenario no Super (0-12 de 31 = ~40%) e contador do fade
@@ -702,6 +703,12 @@ enum { ATK_MP, ATK_HP, ATK_MK, ATK_HK, ATK_CMP, ATK_CHP, ATK_CMK, ATK_CHK, ATK_J
 u8 mv_dmg[2 * ATK_COUNT], mv_stun[2 * ATK_COUNT], mv_hgt[2 * ATK_COUNT], mv_flags[2 * ATK_COUNT];
 u8 mv_hs[2 * ATK_COUNT], mv_sw[2 * ATK_COUNT], mv_sh[2 * ATK_COUNT];  // hitstop, som do golpe, som do impacto
 u8 mv_dur[2 * ATK_COUNT * 8];
+// ---- TRACOS do lutador (vem do pack, 20 palavras depois dos golpes; ver docs/FORMAT_SFPK.md): numeros que antes eram "if (Sagat)" no codigo
+enum { TRK_MOVESET, TRK_FRAME_BASE, TRK_FX_BASE, TRK_JUMP_VY, TRK_WALK_ADJ, TRK_WALK_TICKS, TRK_FB_PAL, TRK_FB_ALT_HI, TRK_FB_ALT_LO,
+       TRK_PAL_ASSET, TRK_PAL_ALT, TRK_DIRSWAP, TRK_FBPAL_ASSET, TRK_FBPAL_OFF1, TRK_FBPAL_OFF2, TRK_FB_SFX, TRK_HP_CLOSE_HK, TRK_PINGPONG };
+u16 ftr[2 * 20];
+const u8 trb[2] = {0, 20};
+#define TR(i, k) ftr[trb[i] + (k)]
 const u8 mvb[2] = {0, ATK_COUNT};
 const u8 mvb8[2] = {0, ATK_COUNT * 8};
 // ---- tabelas dos QUADROS (hitbox, hurtbox, pedacos 16x16): vem do PACK (tools/sfpack.py) e sao copiadas para a RAM no inicio da luta
@@ -827,6 +834,8 @@ void pk_load_moves(u8 p, u8 ch)
     pk_get(pk_o + 6 * ATK_COUNT, ATK_COUNT);
     pk_dst = (u16)&mv_dur[mvb8[p]];
     pk_get(pk_o + 7 * ATK_COUNT, ATK_COUNT * 8);
+    pk_dst = (u16)&ftr[trb[p]];
+    pk_get(pk_o + 15 * ATK_COUNT, 40);   // tracos
 }
 
 const u8 atk_base[ATK_COUNT] = {A_MP, A_HP, A_MK, A_HK, A_CMP, A_CHP, A_CMK, A_CHK, A_JP, A_JK, A_JDK,
@@ -918,13 +927,10 @@ void fight_gfx_init(void)
     // paleta de cada lutador pelo personagem; o mesmo personagem dos dois lados: o P2 usa a alternativa
     for (i = 0; i < 2; i++)
     {
-        k = (i == 1 && fgfx[0] == fgfx[1]) ? 32 : 0;
-        if (fgfx[i] == CH_SAGAT)
-            pk_cgram(AS_SAGAT_PAL, k, 128 + (i << 4), 32);
-        else if (fgfx[i] == CH_BOXER)
-            pk_cgram(AS_BOXER_PAL, 0, 128 + (i << 4), 32); // (o lado das luvas e ajustado no loop: bx_dir)
-        else
-            pk_cgram(AS_RYU_PAL, k, 128 + (i << 4), 32);
+        k = 0;
+        if (i == 1 && fgfx[0] == fgfx[1])
+            k = TR(i, TRK_PAL_ALT);
+        pk_cgram(TR(i, TRK_PAL_ASSET), k, 128 + (i << 4), 32); // (DonLee: o lado das luvas e ajustado no loop: bx_dir)
     }
     pk_cgram(AS_SAGAT_PAL, 64, 208, 32); // OBJ paleta 5: Tiger Shot
     // OBJ paletas 6 (P1) e 7 (P2): magia especial do jogador (verde = super, vermelha = 2 socos), carregada no
@@ -944,9 +950,8 @@ void fight_gfx_init(void)
         up_t[i] = 255;
         plan_ch[i] = 0;
     }
-    belt_ref[0] = pf_h[A_JUMP] - pf_belt[A_JUMP];
-    belt_ref[1] = pf_h[A_JUMP + SAGAT_OFF] - pf_belt[A_JUMP + SAGAT_OFF];
-    belt_ref[2] = pf_h[A_JUMP + BOXER_OFF] - pf_belt[A_JUMP + BOXER_OFF];
+    belt_ref[0] = pf_h[A_JUMP + choff[0]] - pf_belt[A_JUMP + choff[0]];
+    belt_ref[1] = pf_h[A_JUMP + choff[1]] - pf_belt[A_JUMP + choff[1]];
 }
 
 // barra de energia de 12 tiles na linha 2: p = 0 (P1, esvazia pela esquerda) ou 1 (P2, pela direita)
@@ -1232,7 +1237,7 @@ s16 fbase(u8 i, u8 f)
     s16 b = fh[i] >> 6;
     u16 rf = f + choff[i];
     if (fstate[i] == ST_JUMP && pf_belt[rf] != 255)
-        b += belt_ref[fgfx[i]] - (pf_h[rf] - pf_belt[rf]);
+        b += belt_ref[i] - (pf_h[rf] - pf_belt[rf]);
     return b;
 }
 
@@ -1925,7 +1930,7 @@ void spawn_fireball(u8 i)
         return;
     pj_on[i] = 1;
     pj_t[i] = 0;
-    play_sfx(fchar[i] ? SFX_TIGER : SFX_HADOUKEN);
+    play_sfx(TR(i, TRK_FB_SFX));
     if (fdir[i])
     {
         pj_dir[i] = -1;
@@ -1970,14 +1975,9 @@ void spawn_fireball(u8 i)
         pj_dmg[i] = 20;   // forte normal: 14
         pal_pend[i] = 2;
     }
-    pj_alt[i] = FB_ALT;
-    if (fchar[i])
-    {
-        // Sagat: Tiger Shot alto (na altura do peito/cabeca) ou baixo (rasteiro)
-        pj_alt[i] = 52;
-        if (flow[i])
-            pj_alt[i] = 20; // na altura do punho do Sagat agachado (caixa do quadro do tiro baixo)
-    }
+    pj_alt[i] = TR(i, TRK_FB_ALT_HI);    // altura da magia (Sagat: Tiger Shot alto ou baixo = rasteiro)
+    if (flow[i])
+        pj_alt[i] = TR(i, TRK_FB_ALT_LO);
 }
 
 void proj_update(void)
@@ -2127,10 +2127,7 @@ void start_hop(u8 i, s8 dir)
 void start_jump(u8 i, s8 dir)
 {
     fstate[i] = ST_JUMP;
-    fvy[i] = JUMP_VY;
-    if (fchar[i])
-        fvy[i] = 255; // Sagat: o quadro encolhido dele sobe 28 px (Ryu 15) para alinhar o corpo: pulo mais baixo
-                      // para os pes chegarem na mesma altura do Ryu (~80 px no alto)
+    fvy[i] = TR(i, TRK_JUMP_VY);   // forca do pulo (Sagat: o quadro encolhido sobe 28 px, Ryu 15: pulo mais baixo para os pes chegarem na mesma altura)
     fvx[i] = dir * JUMP_VX;
     fjump_t[i] = 0;
     fatk[i] = NOATK;
@@ -2509,7 +2506,7 @@ u8 try_normal(u8 i, u16 down, u8 crouch)
             if (close_range(i))
             {
                 id = ATK_CLOSE_HP;
-                if (fgfx[i] == CH_BOXER)
+                if (TR(i, TRK_HP_CLOSE_HK))
                     id = ATK_CLOSE_HK; // DonLee: o HP de perto usa a arte do HK de perto
             }
         }
@@ -3229,20 +3226,15 @@ void fighter_update(u8 i, u16 keys, u16 down)
         spd = WALK_BACK;
         if (fwd)
             spd = WALK_FWD;
-        c = 5;
-        if (fchar[i])
-        {
-            // Sagat: passos pesados (mais devagar e cada quadro dura mais); para tras um pouco mais lento
-            spd -= 2;
-            c = 7;
-        }
+        c = TR(i, TRK_WALK_TICKS);          // duracao de cada quadro do andar
+        spd += (s16)TR(i, TRK_WALK_ADJ);    // Sagat: passos pesados (mais devagar)
         fx[i] += dx * spd;
         fstate[i] = ST_WALK;
         if (fwd)
             set_anim(i, A_WALK, A_WALK_N, c);
         else
             set_anim(i, A_WALKB, A_WALKB_N, c);
-        if (fgfx[i] == CH_BOXER)
+        if (TR(i, TRK_PINGPONG))
         {
             // DonLee: andar mais devagar e em vai-e-volta (ping-pong): quadros 0 1 2 3 4 3 2 1
             if (ftick[i])
@@ -3831,7 +3823,7 @@ void fight_draw(void)
     {
         if (pj_on[i])
         {
-            c = fchar[i] ? 5 : 2;
+            c = TR(i, TRK_FB_PAL);
             if (pj_super[i] || pj_ex[i])
                 c = 6 + i;
             draw_obj(2 + i, pj_x[i], fb_alt(i), pj_dir[i] < 0, c);
@@ -4494,17 +4486,12 @@ u8 fight_run(void)
     for (i = 0; i < 2; i++)
     {
         fgfx[i] = sel_char[i];
-        fchar[i] = (sel_char[i] == CH_SAGAT); // o Boxer usa a logica do Ryu
-        pk_load_moves(i, fgfx[i]); // golpes do lutador (do pack)
-        choff[i] = 0;
-        if (fgfx[i] == CH_SAGAT)
-            choff[i] = SAGAT_OFF;
-        else if (fgfx[i] == CH_BOXER)
-            choff[i] = BOXER_OFF;
+        pk_load_moves(i, fgfx[i]); // golpes e tracos do lutador (do pack)
+        fdsw[i] = TR(i, TRK_DIRSWAP);
+        fchar[i] = TR(i, TRK_MOVESET);   // conjunto de golpes especiais: 0 = estilo Ryu, 1 = estilo Sagat
+        choff[i] = TR(i, TRK_FRAME_BASE);
         obj_off[i] = choff[i];
-        obj_off[2 + i] = choff[i];
-        if (fgfx[i] == CH_BOXER)
-            obj_off[2 + i] = 0; // a magia do Boxer (ele nao tem a dele) usa a do Ryu
+        obj_off[2 + i] = TR(i, TRK_FX_BASE);   // a magia do lutador (o DonLee usa a do Ryu)
         obj_off[4 + i] = 0;
         flow[i] = 0;
         pj_alt[i] = FB_ALT;
@@ -4787,12 +4774,12 @@ u8 fight_run(void)
         // Boxer: virado para a esquerda, as luvas trocam de cor (azul <-> vermelho): so a paleta muda (32 bytes), o desenho e o
         // mesmo espelhado
         for (i = 0; i < 2; i++)
-            if (fgfx[i] == CH_BOXER && bx_dir[i] != fdir[i])
+            if (fdsw[i] && bx_dir[i] != fdir[i])
             {
                 pk_t = 0;
                 if (fdir[i])
                     pk_t = 32;
-                pk_cgram(AS_BOXER_PAL, pk_t, 128 + (i << 4), 32);
+                pk_cgram(TR(i, TRK_PAL_ASSET), pk_t, 128 + (i << 4), 32);
                 bx_dir[i] = fdir[i];
             }
         if (pal_pend[0] | pal_pend[1])
@@ -4800,20 +4787,10 @@ u8 fight_run(void)
             for (i = 0; i < 2; i++)
                 if (pal_pend[i])
                 {
-                    if (fchar[i])
-                    {
-                        pk_t = 128;
-                        if (pal_pend[i] == 1)
-                            pk_t = 96;
-                        pk_cgram(AS_SAGAT_PAL, pk_t, 224 + (i << 4), 32);
-                    }
-                    else
-                    {
-                        pk_t = 192;
-                        if (pal_pend[i] == 1)
-                            pk_t = 160;
-                        pk_cgram(AS_RYU_PAL, pk_t, 224 + (i << 4), 32);
-                    }
+                    pk_t = TR(i, TRK_FBPAL_OFF2);
+                    if (pal_pend[i] == 1)
+                        pk_t = TR(i, TRK_FBPAL_OFF1);
+                    pk_cgram(TR(i, TRK_FBPAL_ASSET), pk_t, 224 + (i << 4), 32);
                     pal_pend[i] = 0;
                 }
         }

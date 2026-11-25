@@ -385,6 +385,25 @@
      "snd_swing": 255,
      "snd_hit": 255
     }
+   },
+   "traits": {
+    "moveset": 0,
+    "fireball_from": 0,
+    "jump_vy": 290,
+    "walk_adj": 0,
+    "walk_ticks": 5,
+    "fb_pal": 2,
+    "fb_alt_hi": 36,
+    "fb_alt_lo": 36,
+    "pal_asset": 8,
+    "pal_alt_off": 32,
+    "dirswap": 0,
+    "fbpal_asset": 8,
+    "fbpal_off1": 160,
+    "fbpal_off2": 192,
+    "fb_sfx": 13,
+    "hp_close_hk": 0,
+    "walk_pingpong": 0
    }
   },
   {
@@ -751,6 +770,25 @@
      "snd_swing": 255,
      "snd_hit": 255
     }
+   },
+   "traits": {
+    "moveset": 1,
+    "fireball_from": 1,
+    "jump_vy": 255,
+    "walk_adj": -2,
+    "walk_ticks": 7,
+    "fb_pal": 5,
+    "fb_alt_hi": 52,
+    "fb_alt_lo": 20,
+    "pal_asset": 9,
+    "pal_alt_off": 32,
+    "dirswap": 0,
+    "fbpal_asset": 9,
+    "fbpal_off1": 96,
+    "fbpal_off2": 128,
+    "fb_sfx": 18,
+    "hp_close_hk": 0,
+    "walk_pingpong": 0
    }
   },
   {
@@ -1117,6 +1155,25 @@
      "snd_swing": 255,
      "snd_hit": 255
     }
+   },
+   "traits": {
+    "moveset": 0,
+    "fireball_from": 0,
+    "jump_vy": 290,
+    "walk_adj": 0,
+    "walk_ticks": 5,
+    "fb_pal": 2,
+    "fb_alt_hi": 36,
+    "fb_alt_lo": 36,
+    "pal_asset": 10,
+    "pal_alt_off": 0,
+    "dirswap": 1,
+    "fbpal_asset": 8,
+    "fbpal_off1": 160,
+    "fbpal_off2": 192,
+    "fb_sfx": 13,
+    "hp_close_hk": 1,
+    "walk_pingpong": 1
    }
   }
  ]

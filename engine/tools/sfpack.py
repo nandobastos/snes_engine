@@ -15,7 +15,7 @@ BANK = 0x8000
 FAST_BASE = 0xA0     # banco do motor (FastROM) onde o pack comeca
 
 
-def build(proj, fr, res_dir):
+def build(proj, fr, res_dir):   # traits do lutador (docs/FORMAT_SFPK.md): depois dos golpes
     atk = proj["atk_names"]
     n = len(atk)
     fs = proj["fighters"]
@@ -32,6 +32,12 @@ def build(proj, fr, res_dir):
             out += bytes(m[a][key] for a in atk)
         for a in atk:
             out += bytes(m[a]["dur"])
+        t = f["traits"]
+        bases = fr["fighter_bases"]
+        words = [t["moveset"], bases[fs.index(f)], bases[t["fireball_from"]], t["jump_vy"], t["walk_adj"] & 0xFFFF, t["walk_ticks"], t["fb_pal"],
+                 t["fb_alt_hi"], t["fb_alt_lo"], t["pal_asset"], t["pal_alt_off"], t["dirswap"], t["fbpal_asset"], t["fbpal_off1"],
+                 t["fbpal_off2"], t["fb_sfx"], t["hp_close_hk"], t["walk_pingpong"], 0, 0]
+        out += b"".join(struct.pack("<H", w) for w in words)      # traits: 20 palavras (ver TRK_* em engine/src/fight.c)
     for i, o in enumerate(offs):
         struct.pack_into("<H", out, tab + 2 * i, o)
     # tabela de blocos de graficos (endereco, banco)

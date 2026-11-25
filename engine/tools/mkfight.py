@@ -810,7 +810,7 @@ def build_ryu():
             ra.write("%s dsb %d\n" % (n_, len(d_) * sz_))
         ra.write("chunk_tab dsb %d\nsmap dsb 2048\n.ENDS\n.BASE $80\n" % (4 * len(chunks)))
     import json as _json
-    _json.dump(dict(nframes=len(table), npieces=len(dx), arrays=[dict(name=n, size=sz, data=d) for n, sz, d in arrays],
+    _json.dump(dict(fighter_bases=[0, ryu_n, boxer_off], nframes=len(table), npieces=len(dx), arrays=[dict(name=n, size=sz, data=d) for n, sz, d in arrays],
                     chunks=["ryu_%d.bin" % i for i in range(len(chunks))]), open(os.path.join(RES, "frames.json"), "w"))
     maxp = max(fr["n"] for fr in table)
     if DUMP is not None:

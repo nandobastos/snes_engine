@@ -42,3 +42,8 @@ Peças: `s8 dx, u8 dy` por peça 16x16 (máx. 24 por quadro hoje). Gráficos: 4b
 - Sons: conjuntos de efeitos (limite do SNESMOD: 16 por conjunto).
 
 > Rascunho: os campos exatos serão fechados junto com o motor (etapa 1), medindo tamanho e desempenho no jogo real.
+
+## Tracos do lutador (20 palavras u16, logo depois do bloco de golpes de cada lutador)
+moveset, frame_base, fx_base, jump_vy, walk_adj, walk_ticks, fb_pal, fb_alt_hi, fb_alt_lo, pal_asset, pal_alt_off, dirswap,
+fbpal_asset, fbpal_off1, fbpal_off2, fb_sfx, hp_close_hk, walk_pingpong, 0, 0. Substituem os antigos "if (Sagat)" / "if (Boxer)" do codigo.
+Na parte critica do vblank use copias em u8 (ex.: fdsw): TR() custa CPU e atrasou uma troca de paleta em 1 quadro.

@@ -40,6 +40,7 @@ def main():
         a, b = run(ref, txt, tmp + "/a"), run(eng, txt, tmp + "/b")
         shots = sorted(f for f in os.listdir(tmp + "/a") if f.endswith(".png"))
         diff = [f for f in shots if open(tmp + "/a/" + f, "rb").read() != open(tmp + "/b/" + f, "rb").read()]
+        if diff: print("  difere:", diff, tmp)
         same = a == b and not diff
         ok &= same
         print("%-7s registros %s, prints diferentes: %d de %d" % (name, "iguais" if a == b else "DIFEREM", len(diff), len(shots)))
