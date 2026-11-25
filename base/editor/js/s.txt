@@ -1,0 +1,7 @@
+80 80 20
+shot 82
+shot 86
+shot 92
+shot 96
+shot 104
+shot 120

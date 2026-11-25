@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SG Engine</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body>
+
+<!-- ============================================================ tela inicial -->
+<div id="start" class="start">
+  <div class="start-box">
+    <h1>SG Engine</h1>
+    <p class="sub">Editor de jogos para Mega Drive</p>
+    <label class="field">Nome do projeto <input id="np-name" value="Meu jogo"></label>
+    <h3>Escolha o template</h3>
+    <div class="templates">
+      <div class="tpl tpl-main">
+        <div class="tpl-ico" data-icon="enemy"></div>
+        <b>Beat'em up</b>
+        <span>Combos, agarrões, hordas de inimigos, chefes, itens e objetos destrutíveis.</span>
+        <div class="move-opts">
+          <div class="hint">Movimento do personagem (não dá para trocar depois):</div>
+          <label><input type="radio" name="move" value="8dir" checked> <b>Profundidade, 8 direções</b> — anda para o fundo e para a frente da tela, inclusive na diagonal.</label>
+          <label><input type="radio" name="move" value="4dir"> <b>Profundidade, 4 direções</b> — anda para o fundo e para a frente, sem diagonal.</label>
+          <label><input type="radio" name="move" value="side"> <b>Lateral, 2 direções</b> — só esquerda e direita; pula e abaixa (sem profundidade).</label>
+          <label><input type="radio" name="move" value="plat"> <b>Plataforma / Aventura</b> — lateral com gravidade, plataformas, escadas e fases que sobem e descem (luta + tiro, estilo Blackthorne).</label>
+        </div>
+        <button id="btn-create" class="on">Criar projeto</button>
+      </div>
+      <button class="tpl" data-tpl="platform" disabled>
+        <div class="tpl-ico" data-icon="platform"></div>
+        <b>Plataforma</b>
+        <span>Em breve.</span>
+      </button>
+    </div>
+    <div class="start-actions">
+      <button id="btn-open-start">Abrir pack (.zip)</button>
+      <button id="btn-continue" class="hidden">Continuar último projeto</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================== editor -->
+<div id="app" class="app hidden">
+  <header class="menubar">
+    <span class="logo">SG Engine</span>
+    <div class="menu">
+      <button data-menu="file">Arquivo ▾</button>
+      <div class="dropdown" id="menu-file">
+        <button data-act="new">Novo projeto…</button>
+        <button data-act="open">Abrir pack…</button>
+        <button data-act="save">Salvar pack (.zip)</button>
+        <button data-act="rom">Exportar ROM (.bin)</button>
+        <hr>
+        <button data-act="import-bg">Importar imagem de fundo…</button>
+      </div>
+    </div>
+    <div class="tools">
+      <button data-tool="select" class="on" title="Selecionar / mover (V)"><span data-icon="select"></span>Selecionar</button>
+      <button data-tool="camera" title="Desenhar área de câmera (C)"><span data-icon="camera"></span>Área de câmera</button>
+      <button data-tool="transition" title="Ligar duas áreas com uma transição (T)"><span data-icon="transition"></span>Transição</button>
+      <button data-tool="spawn" title="Ponto de início do jogador (P)"><span data-icon="flag"></span>Início</button>
+      <button data-tool="col" class="plat-only" title="Pintar colisão em tiles de 8×8 (K) · botão direito apaga · Shift+arrastar = retângulo"><span data-icon="grid"></span>Colisão</button>
+      <select id="col-type" class="plat-only" style="width:auto;min-width:150px;flex:none" title="O que pintar (teclas 0 a 6)"><option value="1">1 · Sólido (chão/parede)</option><option value="2">2 · Plataforma (atravessa por baixo)</option><option value="3">3 · Escada</option><option value="4">4 · Perigo (espinho, dano)</option><option value="5">5 · Abismo mortal</option><option value="6">6 · Borda (sólido que dá para agarrar)</option><option value="0">0 · Apagar</option></select>
+      <button data-act="undo" title="Desfazer (Ctrl+Z)"><span data-icon="undo"></span></button>
+      <button data-act="redo" title="Refazer (Ctrl+Y)"><span data-icon="redo"></span></button>
+      <button data-tool="pan" title="Arrastar a vista (espaço)"><span data-icon="hand"></span>Mover vista</button>
+    </div>
+    <div class="right">
+      <span id="mem-meter" class="mem-meter" title="Memória do Mega Drive (estimativa)"></span>
+      <span id="tpl-badge" class="badge"></span>
+      <span>Zoom</span>
+      <button id="zoom-out">−</button><span id="zoom-v">100%</span><button id="zoom-in">+</button>
+      <button id="zoom-fit">Ajustar</button>
+    </div>
+  </header>
+
+  <aside class="left panel">
+    <div class="panel-title">Propriedades</div>
+    <div id="props" class="props"></div>
+  </aside>
+
+  <main class="center">
+    <div class="tabs">
+      <button class="tab on" id="tab-layout">Fase 1</button>
+      <button class="tab" id="tab-events" title="Folha de eventos desta fase">Eventos</button>
+      <button class="tab" id="tab-flow" title="Telas do jogo: splash, título, fases, opções, créditos e as ligações entre elas">Telas</button>
+      <span class="tabs-hint">Duplo clique no canvas: inserir objeto</span>
+      <button class="play" id="btn-play-here" title="Testa só esta tela/fase, começando direto nela (Shift+F12)"><span data-icon="play"></span>Testar esta tela</button><button class="play" id="btn-play" title="Testa o jogo inteiro, desde a tela inicial do mapa de Telas (F12)"><span data-icon="play"></span>Testar tudo</button>
+    </div>
+    <div id="viewport" class="viewport">
+      <canvas id="cv"></canvas>
+      <div id="col-pal" class="hidden"></div>
+    </div>
+    <div class="statusbar"><span id="status">Pronto</span><span id="coords"></span></div>
+  </main>
+
+  <aside class="right panel">
+    <div class="panel-title">Projeto</div>
+    <div id="tree" class="tree"></div>
+    <div class="panel-title">Camadas</div>
+    <div id="layers" class="layers"></div>
+  </aside>
+</div>
+
+<input type="file" id="file-zip" accept=".zip" class="hidden">
+<input type="file" id="file-img" accept="image/png,image/gif,image/bmp" class="hidden">
+<script src="js/i18n.js"></script>
+<script src="js/version.js"></script>
+<script src="js/icons.js"></script>
+<script src="js/md.js"></script>
+<script src="js/app.js"></script>
+<script src="js/actors.js"></script>
+<script src="js/combos.js"></script>
+<script src="js/behaviors.js"></script>
+<script src="js/ase.js"></script>
+<script src="js/sgpixel.js"></script>
+<script src="js/groups.js"></script>
+<script src="js/stageobjs.js"></script>
+<script src="js/insert.js"></script>
+<script src="js/placeholders.js"></script>
+<script src="js/engine_rom.js"></script>
+<script src="js/controls.js"></script>
+<script src="js/events.js"></script>
+<script src="js/flow.js"></script>
+<script src="js/hud.js"></script>
+<script src="js/export.js"></script>
+<select id="sg-lang" title="Idioma / Language" style="position:fixed;right:150px;bottom:2px;z-index:99;font-size:11px;padding:0 2px;width:auto"><option value="pt">PT</option><option value="en">EN</option></select>
+<div id="sg-version" title="Versão do SG Engine e quando foi alterada pela última vez"></div>
+<script>(function () { const l = document.getElementById("sg-lang"); l.value = I18N.lang; l.onchange = () => I18N.set(l.value); })();</script>
+<script>(function () { const v = window.SG_VERSION; if (v) document.getElementById("sg-version").textContent = `v${v.n} · ${v.date}`; })();</script>
+</body>
+</html>

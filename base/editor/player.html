@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SG Engine Player</title>
+<style>
+  :root { color-scheme: dark; }
+  html, body { margin: 0; height: 100%; background: #000; color: #ddd; font: 13px system-ui, sans-serif; overflow: hidden; }
+  #game { width: 100%; height: 100%; }
+  #padinfo { position: absolute; left: 8px; top: 8px; z-index: 9999; background: rgba(0,0,0,.75); color: #f1c46a; padding: 3px 8px; border-radius: 4px; font-size: 12px; pointer-events: none; transition: opacity .6s; }
+  #msg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 16px; }
+</style>
+</head>
+<body>
+<!-- Emulador de TESTE (desenvolvimento): EmulatorJS (GPL-3.0) + nucleo Genesis Plus GX (uso nao comercial).
+     Antes de vender a SG Engine, este player precisa ser trocado. -->
+<div id="game"></div>
+<div id="msg">Esperando a ROM do editor…</div>
+<script>
+"use strict";
+const EJS_VER = "4.2.3";
+const PLAYER_V = 41;   // sobe junto com a versao do SG Engine quando esta janela muda
+const q = new URLSearchParams(location.search);
+// ?local=URL troca o CDN por uma copia local (usado nos testes do desenvolvimento)
+// os arquivos do emulador ficam junto da pagina (ejs/data), no mesmo endereco
+const DATA = "ejs/data/";
+let started = false;
+
+function start(bytes) {
+  if (started) { location.reload(); return; }
+  started = true;
+  document.getElementById("msg").remove();
+  const url = URL.createObjectURL(new Blob([bytes], { type: "application/octet-stream" }));
+  window.EJS_player = "#game";
+  window.EJS_core = "segaMD";
+  window.EJS_gameName = "teste";
+  window.EJS_gameUrl = url;
+  window.EJS_pathtodata = DATA;
+  // o claude.ai so serve arquivos de tipos conhecidos: o nucleo vai com extensao .wasm (o conteudo e o mesmo)
+  window.EJS_paths = {
+    "genesis_plus_gx-wasm.data": new URL(DATA + "cores/gpgx-core.wasm", location.href).href,
+    "genesis_plus_gx-legacy-wasm.data": new URL(DATA + "cores/gpgx-core-legacy.wasm", location.href).href,
+  };
+  window.EJS_startOnLoaded = true;
+  window.EJS_threads = false;
+  // os controles vem sempre do SG Engine (teclado + controle de Xbox): apaga o que o emulador tinha guardado
+  try { Object.keys(localStorage).filter((k) => k.startsWith("ejs-") && k.endsWith("-settings")).forEach((k) => localStorage.removeItem(k)); } catch (e) { /* sem armazenamento */ }
+  // imagem estavel: sincroniza com o monitor e sem filtro
+  window.EJS_defaultOptions = { vsync: "enabled", shader: "disabled", "fps": "hide" };
+  window.EJS_language = "en-US";
+  window.EJS_color = "#d1202b";
+  window.EJS_backgroundColor = "#000";
+  // controle (Xbox ou qualquer controle padrao): o proprio SG Engine le o controle e aperta os botoes no emulador,
+  // sem depender da tela de configuracao do EmulatorJS. Analogico esquerdo tambem anda.
+  // botao do controle padrao (indice da Gamepad API) -> botao do EmulatorJS
+  const PADMAP = { 12: 4, 13: 5, 14: 6, 15: 7, 2: 1, 0: 0, 1: 8, 4: 10, 3: 9, 5: 11, 9: 3, 8: 2 };   // cima baixo esq dir, X=A, A=B, B=C, LB=X, Y=Y, RB=Z, Menu=Start, View=Mode
+  const padInfo = document.createElement("div"); padInfo.id = "padinfo"; document.body.appendChild(padInfo);
+  let lastName = null;
+  function padStatus(name) {
+    if (name === lastName) return; lastName = name;
+    padInfo.textContent = name ? "🎮 Controle ligado: " + name.replace(/\(.*\)/, "").trim() : "🎮 Nenhum controle visto ainda: aperte um botão do controle";
+    padInfo.style.opacity = 1; clearTimeout(padInfo.t); padInfo.t = setTimeout(() => { padInfo.style.opacity = name ? 0 : .8; }, 4000);
+  }
+  window.EJS_onGameStart = () => {
+    const emu = window.EJS_emulator, held = {};
+    padStatus(null);
+    setInterval(() => {
+      const pads = (navigator.getGamepads ? [...navigator.getGamepads()] : []).filter((g) => g && g.connected !== false);
+      if (!pads.length) { padStatus(null); return; }
+      const g = pads[0]; padStatus(g.id);
+      const want = {};
+      Object.entries(PADMAP).forEach(([b, k]) => { const bt = g.buttons[b]; if (bt && (bt.pressed || bt.value > .5)) want[k] = 1; });
+      const ax = g.axes || [];
+      if ((ax[0] || 0) < -.5) want[6] = 1; if ((ax[0] || 0) > .5) want[7] = 1;
+      if ((ax[1] || 0) < -.5) want[4] = 1; if ((ax[1] || 0) > .5) want[5] = 1;
+      [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].forEach((k) => { const v = want[k] ? 1 : 0; if ((held[k] || 0) !== v) { held[k] = v; emu.gameManager.simulateInput(0, k, v); } });
+    }, 16);
+  };
+  window.addEventListener("gamepadconnected", (e) => padStatus(e.gamepad.id));
+  const s = document.createElement("script");
+  s.src = DATA + "loader.js";
+  s.onerror = () => { document.body.insertAdjacentHTML("beforeend", '<div id="msg">Não consegui carregar o emulador. Use Exportar ROM.</div>'); };
+  document.body.appendChild(s);
+}
+
+// teclas com o foco no jogo: manda para o editor, que aplica o mapeamento do projeto
+["keydown", "keyup"].forEach((t) => window.addEventListener(t, (e) => {
+  parent.postMessage({ type: "sg-key", down: t === "keydown", key: e.key, code: e.code, repeat: e.repeat }, "*");
+}, true));
+const NAMES = { 0: "B", 1: "A", 2: "Mode", 3: "Start", 4: "cima", 5: "baixo", 6: "esquerda", 7: "direita", 8: "C", 9: "Y", 10: "X", 11: "Z" };
+window.addEventListener("message", (e) => {
+  if (e.data && e.data.type === "sg-input") {
+    const emu = window.EJS_emulator;
+    if (emu && emu.gameManager && emu.started) emu.gameManager.simulateInput(0, e.data.k, e.data.v);
+    if (e.data.v) parent.postMessage({ type: "sg-ack", name: NAMES[e.data.k], started: !!(emu && emu.started) }, "*");
+    const pi = document.getElementById("padinfo");
+    if (e.data.v && pi) { pi.textContent = (emu && emu.started ? "comando: " : "jogo ainda não começou: ") + NAMES[e.data.k]; pi.style.opacity = 1; clearTimeout(pi.t); pi.t = setTimeout(() => { pi.style.opacity = 0; }, 1500); }
+    return;
+  }
+  if (e.data && e.data.type === "sg-rom") { if (e.data.controls) window.EJS_defaultControls = e.data.controls; start(new Uint8Array(e.data.rom)); }
+});
+if (window.parent !== window) window.parent.postMessage({ type: "sg-player-ready", v: PLAYER_V }, "*");
+</script>
+</body>
+</html>
