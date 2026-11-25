@@ -48,3 +48,9 @@ caixas (relativas a ancora e ao chao) e art_<nome>.pal (P1=P2). frames.json ganh
 Tag "retrato" no SF Pixel (1 quadro, ate 56x80, mesma paleta do lutador) -> portrait no .sffighter.json -> rosto 3/4 no face.bin e
 paleta 7/8 no face.pal; vai para as paletas alternativas 3/6 da selecao (face_vs_fix devolve a original no VS de espelho de um original).
 Limite: a VRAM do BG1 (0x0000-0x17FF) cabe 5 rostos. Testado: selecao e VS com o retrato; telas dos originais identicas.
+
+## Estagio por lutador
+Tracos 36-38 = ids dos assets do cenario (tiles, mapa, paletas); a luta usa o estagio do P2 (oponente). Padrao 0,1,2 = o cenario original.
+editor/sfstage.js converte qualquer imagem (256x224, encaixada pela largura, encostada embaixo) em 6 paletas de 15 cores e ate 512 tiles
+(k-means nos grupos de tiles e nas cores; tiles repetidos e espelhados viram um so). Resultado = .sfstage.json (traits.stage).
+Testado: estagio convertido aparece na luta quando o lutador e o P2; ROM do navegador = ROM do Python; lutadores originais identicos.

@@ -421,7 +421,10 @@
         "fb_spd_ex": 5,
         "fb_dmg_ex": 20,
         "fb_spd_sup": 4,
-        "fb_dmg_sup": 38
+        "fb_dmg_sup": 38,
+        "stage_bin": 0,
+        "stage_map": 1,
+        "stage_pal": 2
       }
     },
     {
@@ -824,7 +827,10 @@
         "fb_spd_ex": 5,
         "fb_dmg_ex": 20,
         "fb_spd_sup": 4,
-        "fb_dmg_sup": 38
+        "fb_dmg_sup": 38,
+        "stage_bin": 0,
+        "stage_map": 1,
+        "stage_pal": 2
       }
     },
     {
@@ -1227,7 +1233,10 @@
         "fb_spd_ex": 5,
         "fb_dmg_ex": 20,
         "fb_spd_sup": 4,
-        "fb_dmg_sup": 38
+        "fb_dmg_sup": 38,
+        "stage_bin": 0,
+        "stage_map": 1,
+        "stage_pal": 2
       }
     }
   ]

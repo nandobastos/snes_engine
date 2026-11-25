@@ -66,7 +66,7 @@ u16 prof_dummy;
 #endif
 enum { TRK_MOVESET, TRK_FRAME_BASE, TRK_FX_BASE, TRK_JUMP_VY, TRK_WALK_ADJ, TRK_WALK_TICKS, TRK_FB_PAL, TRK_FB_ALT_HI, TRK_FB_ALT_LO,
        TRK_PAL_ASSET, TRK_PAL_ALT, TRK_DIRSWAP, TRK_FBPAL_ASSET, TRK_FBPAL_OFF1, TRK_FBPAL_OFF2, TRK_FB_SFX, TRK_HP_CLOSE_HK, TRK_PINGPONG, TRK_FACE_PAL, TRK_FACE_ALT, TRK_GAMEOVER_FP, TRK_ARCADE_OPP, TRK_FACE_IDX, TRK_WALK_FWD, TRK_WALK_BACK, TRK_JUMP_VX, TRK_GRAV_UP, TRK_GRAV_DN,
-       TRK_FB_SPD, TRK_FB_DMG, TRK_FB_SPD_S, TRK_FB_DMG_S, TRK_FB_SPD_EX, TRK_FB_DMG_EX, TRK_FB_SPD_SUP, TRK_FB_DMG_SUP };
+       TRK_FB_SPD, TRK_FB_DMG, TRK_FB_SPD_S, TRK_FB_DMG_S, TRK_FB_SPD_EX, TRK_FB_DMG_EX, TRK_FB_SPD_SUP, TRK_FB_DMG_SUP, TRK_STAGE_BIN, TRK_STAGE_MAP, TRK_STAGE_PAL };
 u16 pk_trait(u8 ch, u8 k);
 u16 pk_h[16], pk_dir[50];   // cabecalho do pack e diretorio das tabelas de quadros
 u8 pk_i, pk_j;
@@ -725,8 +725,8 @@ u8 mv_dmg[2 * ATK_COUNT], mv_stun[2 * ATK_COUNT], mv_hgt[2 * ATK_COUNT], mv_flag
 u8 mv_hs[2 * ATK_COUNT], mv_sw[2 * ATK_COUNT], mv_sh[2 * ATK_COUNT];  // hitstop, som do golpe, som do impacto
 u8 mv_dur[2 * ATK_COUNT * 8];
 // ---- TRACOS do lutador (vem do pack, 20 palavras depois dos golpes; ver docs/FORMAT_SFPK.md): numeros que antes eram "if (Sagat)" no codigo
-u16 ftr[2 * 36];
-const u8 trb[2] = {0, 36};
+u16 ftr[2 * 40];
+const u8 trb[2] = {0, 40};
 s8 fwf[2], fwb[2], fjvx[2], fgup[2], fgdn[2];   // copias (por jogador) da fisica do lutador: lidas todo quadro, mais baratas que TR()
 #define TR(i, k) ftr[trb[i] + (k)]
 const u8 mvb[2] = {0, ATK_COUNT};
@@ -869,7 +869,7 @@ void pk_load_moves(u8 p, u8 ch)
     pk_dst = (u16)&mv_dur[mvb8[p]];
     pk_get(pk_o + 7 * ATK_COUNT, ATK_COUNT * 8);
     pk_dst = (u16)&ftr[trb[p]];
-    pk_get(pk_o + 15 * ATK_COUNT, 72);   // tracos
+    pk_get(pk_o + 15 * ATK_COUNT, 80);   // tracos
 }
 
 const u8 atk_base[ATK_COUNT] = {A_MP, A_HP, A_MK, A_HK, A_CMP, A_CHP, A_CMK, A_CHK, A_JP, A_JK, A_JDK,
@@ -930,10 +930,11 @@ void fight_gfx_init(void)
 {
     u8 i, j, k;
     screen_base();
-    pk_vram(AS_STAGE_BIN, VRAM_BG1_GFX);
+    // cenario: o do oponente (P2), definido no pack (tracos stage_*)
+    pk_vram(TR(1, TRK_STAGE_BIN), VRAM_BG1_GFX);
     pk_dst = (u16)&smap;
     pk_db = 1;
-    pk_ram(AS_STAGE_MAP, 2048);
+    pk_ram(TR(1, TRK_STAGE_MAP), 2048);
     pk_db = 0;
     // cenario 64x32: a segunda tela e o espelho da primeira (sem emenda visivel)
     for (k = 0; k < 32; k++)
@@ -942,7 +943,7 @@ void fight_gfx_init(void)
     bgSetMapPtr(0, VRAM_BG1_FMAP, SC_64x32);
     dmaCopyVram((u8 *)smap, VRAM_BG1_FMAP, 2048);
     dmaCopyVram((u8 *)map1, VRAM_BG1_FMAP + 0x400, 2048);
-    pk_cgram(AS_STAGE_PAL, 0, 32, 6 * 16 * 2); // BG paletas 2-7: cenario
+    pk_cgram(TR(1, TRK_STAGE_PAL), 0, 32, 6 * 16 * 2); // BG paletas 2-7: cenario
     pk_vram(AS_HUD_BIN, VRAM_BG3_GFX);
     bgSetGfxPtr(1, VRAM_BG2_GFX);
     bgSetMapPtr(1, VRAM_BG2_MAP, SC_32x32);

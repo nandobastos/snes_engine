@@ -27,7 +27,8 @@
   }
   const slugOf = (n) => n.toLowerCase().replace(/[^a-z0-9]/g, (c) => (/[\p{L}\p{N}]/u.test(c) ? c : "_"));
 
-  function build(rom, base, game, arts) {
+  function build(rom, base, game, arts, stages) {
+    stages = stages || {};
     const R = rom, rd16 = (o) => R[o] | (R[o + 1] << 8);
     const H = PACK_OFS, h = (i) => rd16(H + 2 * i);
     const romOff = (addr, bank) => PACK_OFS + (bank - FAST) * BANK + (addr - 0x8000);
@@ -50,9 +51,14 @@
     const frames = [];   // quadros novos: {pf valores, pcs: [[dx, dy]]}
     const fromBase = (k) => { const f = {}; PF.forEach((n) => (f[n] = A[n][k])); f.pcs = []; for (let j = 0; j < A.pf_count[k]; j++) f.pcs.push([A.pp_dx[A.pf_first[k] + j], A.pp_dy[A.pf_first[k] + j]]); return f; };
     const first = {}; base.layout.forEach(([n, f]) => (first[n] = f));
-    const artBases = {}, artPals = {}, artFaces = {}, artSwap = {};
+    const artBases = {}, artPals = {}, artFaces = {}, artSwap = {}, artStages = {};
     let total = nf0;
     game.fighters.forEach((F) => {
+      if (F.traits.stage) {   // estagio proprio: 3 assets (tiles, mapa, paletas)
+        const st = stages[F.traits.stage];
+        if (!st) throw new Error("Falta o estágio " + F.traits.stage + " (do lutador " + F.name + ")");
+        artStages[F.name] = ["bin", "map", "pal"].map((ext) => { assets.push("stage_" + slugOf(F.name) + "." + ext); adata.push(Array.from(b64dec(st[ext]))); return assets.length - 1; });
+      }
       const file = F.traits.art;
       if (!file) return;
       const data = arts[file];
@@ -122,7 +128,8 @@
       [t.moveset, fb, bases[t.fireball_from], t.jump_vy, t.walk_adj & 0xFFFF, t.walk_ticks, t.fb_pal, t.fb_alt_hi, t.fb_alt_lo,
         artPals[f.name] !== undefined ? artPals[f.name] : t.pal_asset, t.pal_alt_off, t.dirswap, t.fbpal_asset, t.fbpal_off1, t.fbpal_off2, t.fb_sfx,
         t.hp_close_hk, t.walk_pingpong, t.face_pal, t.face_pal_alt, t.gameover_fp, t.arcade_opp, t.face_idx, t.walk_fwd, t.walk_back, t.jump_vx,
-        t.grav_up, t.grav_dn, t.fb_spd, t.fb_dmg, t.fb_spd_s, t.fb_dmg_s, t.fb_spd_ex, t.fb_dmg_ex, t.fb_spd_sup, t.fb_dmg_sup].map((v, i, a) => {
+        t.grav_up, t.grav_dn, t.fb_spd, t.fb_dmg, t.fb_spd_s, t.fb_dmg_s, t.fb_spd_ex, t.fb_dmg_ex, t.fb_spd_sup, t.fb_dmg_sup, t.stage_bin !== undefined ? t.stage_bin : 0, t.stage_map !== undefined ? t.stage_map : 1, t.stage_pal !== undefined ? t.stage_pal : 2, 0].map((v, i, a) => {
+        if (artStages[f.name] && i >= 36 && i <= 38) return artStages[f.name][i - 36];
         if (artBases[f.name] !== undefined && (i === 10 || i === 11)) return i === 10 ? 0 : (artSwap[f.name] ? 1 : 0);
         const j = artFaces[f.name];   // retrato proprio: rosto 3+j, paleta 3 ou 6 (P2 igual), game over le a paleta 7+j
         if (j === undefined) return v;

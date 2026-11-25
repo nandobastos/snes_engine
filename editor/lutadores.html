@@ -25,13 +25,14 @@ label{display:flex;justify-content:space-between;gap:6px;align-items:center}#msg
 <button id="rem" disabled>Excluir</button><button class="p" id="salvar" disabled>Salvar game.json</button>
 <input type="file" id="arqArte" accept=".json" multiple hidden><button id="arte" disabled>Carregar arte (SF Pixel)</button>
 <button id="rom" disabled>Gerar ROM (.sfc)</button><button class="p" id="jogar" disabled>Jogar</button>
-<input type="file" id="arqBase" accept=".sfc" hidden>
+<input type="file" id="arqBase" accept=".sfc" hidden><input type="file" id="arqImg" accept="image/*" hidden><input type="file" id="arqStg" accept=".json" multiple hidden>
 <span id="msg">Abra o arquivo project/game.json do seu projeto.</span></header>
 <main><div class="pn"><div id="lista"></div><small>Os 3 originais não podem ser excluídos. Clones e novos têm cópia própria dos golpes: mudar um não muda o outro.</small></div>
 <div class="pn" id="ed"><small>Selecione um lutador.</small></div></main>
 <script src="sfbuild.js"></script>
+<script src="sfstage.js"></script>
 <script>
-const MAX=8, ORIG=3; let G=null, sel=0; const ARTS={}; let BASE=null, BASEJ=null;
+const MAX=8, ORIG=3; let G=null, sel=0; const ARTS={}, STAGES={}; let BASE=null, BASEJ=null;
 const $=id=>document.getElementById(id);
 const TR=[["jump_vy","Força do pulo"],["walk_ticks","Passo do andar (quadros)"],["walk_adj","Ajuste de velocidade"],["fb_alt_hi","Altura da magia (alta)"],["fb_alt_lo","Altura da magia (baixa)"],["fb_sfx","Som da magia"],["hp_close_hk","HP de perto = HK de perto (0/1)"],["walk_pingpong","Andar vai e volta (0/1)"],["moveset","Especiais (0 = estilo Ryu, 1 = Sagat)"],["walk_fwd","Velocidade andando para frente"],["walk_back","Velocidade andando para trás"],["jump_vx","Velocidade do pulo para o lado"],["grav_up","Gravidade subindo (menor = pula mais alto)"],["grav_dn","Gravidade descendo"],["fb_spd","Magia fraca: velocidade"],["fb_dmg","Magia fraca: dano"],["fb_spd_s","Magia média: velocidade"],["fb_dmg_s","Magia média: dano"],["fb_spd_ex","Magia reforçada (EX): velocidade"],["fb_dmg_ex","Magia reforçada (EX): dano"],["fb_spd_sup","Super: velocidade"],["fb_dmg_sup","Super: dano"]];
 const MV=[["dmg","Dano"],["stun","Stun"],["hgt","Altura"],["flags","Flags"],["hitstop","Hitstop"],["snd_swing","Som do golpe"],["snd_hit","Som do impacto"]];
@@ -49,6 +50,14 @@ function refresh(){
   as.innerHTML='<option value="">— a do lutador de origem —</option>'+Object.keys(ARTS).concat(f.traits.art&&!ARTS[f.traits.art]?[f.traits.art]:[]).map(n=>'<option'+(n===f.traits.art?' selected':'')+'>'+n+'</option>').join('');
   as.onchange=()=>{if(as.value)f.traits.art=as.value;else delete f.traits.art;refresh()};ar.appendChild(as);e.appendChild(ar);
   if(f.traits.art&&!ARTS[f.traits.art])e.insertAdjacentHTML('beforeend','<p><small style="color:#c22">Carregue o arquivo '+f.traits.art+' (botão Carregar arte) antes de gerar a ROM.</small></p>');
+  const sl=document.createElement('label');sl.innerHTML='<b>Estágio (quando ele é o P2)</b>';const ss=document.createElement('select');
+  ss.innerHTML='<option value="">— o estágio padrão —</option>'+Object.keys(STAGES).concat(f.traits.stage&&!STAGES[f.traits.stage]?[f.traits.stage]:[]).map(n=>'<option'+(n===f.traits.stage?' selected':'')+'>'+n+'</option>').join('');
+  ss.onchange=()=>{if(ss.value)f.traits.stage=ss.value;else delete f.traits.stage;refresh()};sl.appendChild(ss);e.appendChild(sl);
+  const sb=document.createElement('div');sb.style.margin='6px 0';sb.innerHTML='<button id="stNew">Criar estágio de uma imagem…</button> <button id="stLoad">Carregar estágio (.sfstage.json)</button>';e.appendChild(sb);
+  if(f.traits.stage&&STAGES[f.traits.stage]){const cv=document.createElement('canvas');cv.width=256;cv.height=224;cv.style.cssText='width:256px;max-width:100%;image-rendering:pixelated;border:1px solid var(--ln);display:block';cv.getContext('2d').putImageData(SFStage.render(STAGES[f.traits.stage]),0,0);e.appendChild(cv);
+    e.insertAdjacentHTML('beforeend','<small>'+STAGES[f.traits.stage].tiles+' tiles de 512.</small>')}
+  else if(f.traits.stage)e.insertAdjacentHTML('beforeend','<p><small style="color:#c22">Carregue o arquivo '+f.traits.stage+' antes de gerar a ROM.</small></p>');
+  $('stNew').onclick=()=>$('arqImg').click();$('stLoad').onclick=()=>$('arqStg').click();
   e.insertAdjacentHTML('beforeend','<h3>Características</h3>');const g=document.createElement('div');g.className='g';
   TR.forEach(([k,n])=>{const l=document.createElement('label');l.textContent=n;const i=document.createElement('input');i.type='number';i.value=f.traits[k];
     i.onchange=()=>{f.traits[k]=+i.value};l.appendChild(i);g.appendChild(l)});e.appendChild(g);
@@ -73,6 +82,13 @@ $('novo').onclick=()=>{const m=prompt('Modelo (digite o número): '+G.fighters.m
   const i=+m;if(!G.fighters[i]){msg('Modelo inválido.');return}const n=prompt('Nome do novo lutador:','Novo lutador');if(n)clonar(i,n)};
 $('rem').onclick=()=>{if(sel<ORIG)return;const i=sel;if(G.fighters.some(f=>f.traits.frames_from===i)){msg('Outro lutador usa a arte deste.');return}
   if(!confirm('Excluir '+G.fighters[i].name+'?'))return;G.fighters.splice(i,1);G.fighters.forEach(f=>{if(f.traits.frames_from>i)f.traits.frames_from--});sel=0;refresh()};
+$('arqImg').onchange=async e=>{const fl=e.target.files[0];e.target.value='';if(!fl)return;msg('Convertendo a imagem para o SNES…');
+  const bm=await createImageBitmap(fl),c=document.createElement('canvas');c.width=bm.width;c.height=bm.height;const g=c.getContext('2d');g.drawImage(bm,0,0);
+  const st=SFStage.convert(g.getImageData(0,0,c.width,c.height)),f=G.fighters[sel],nm=f.name.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'')+'.sfstage.json';
+  STAGES[nm]=st;f.traits.stage=nm;refresh();
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(st)],{type:'application/json'}));a.download=nm;a.click();
+  msg('Estágio criado ('+st.tiles+' tiles). Baixei '+nm+': guarde na pasta project/ junto com o game.json.')};
+$('arqStg').onchange=async e=>{for(const f of e.target.files){try{const o=JSON.parse(await f.text());if(o.format!=='sf-stage')throw 0;STAGES[f.name]=o}catch(x){msg(f.name+' não é um estágio.');return}}e.target.value='';refresh();msg('Estágio(s) carregado(s).')};
 $('arte').onclick=()=>$('arqArte').click();
 $('arqArte').onchange=async e=>{for(const f of e.target.files){try{const o=JSON.parse(await f.text());if(o.format!=='sf-fighter')throw 0;ARTS[f.name]=o;}catch(x){msg(f.name+' não é um arquivo exportado do SF Pixel.');return}}msg(Object.keys(ARTS).length+' arquivo(s) de arte carregado(s). Escolha a arte no lutador.');refresh()};
 async function motor(){
@@ -82,7 +98,7 @@ async function motor(){
 }
 async function gerar(){
   if(!await motor())return null;
-  try{const r=SFBuild.build(BASE,BASEJ,G,ARTS);msg('ROM gerada ('+G.fighters.length+' lutadores).');return r}catch(x){msg('Erro ao gerar: '+x.message);return null}
+  try{const r=SFBuild.build(BASE,BASEJ,G,ARTS,STAGES);msg('ROM gerada ('+G.fighters.length+' lutadores).');return r}catch(x){msg('Erro ao gerar: '+x.message);return null}
 }
 $('rom').onclick=async()=>{const r=await gerar();if(!r)return;const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([r],{type:'application/octet-stream'}));a.download='jogo.sfc';a.click()};
 $('jogar').onclick=async()=>{const r=await gerar();if(!r)return;const w=window.open('../tester/jogar.html','sfjogo');

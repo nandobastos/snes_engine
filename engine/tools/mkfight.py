@@ -738,10 +738,22 @@ def build_ryu():
     art_pals = []
     art_faces = {}
     art_swap = {}
+    art_stages = {}
     import base64
     import json as _j
     _gj = os.path.join(os.path.dirname(ROOT), "project", "game.json")
     for _f in _j.load(open(_gj))["fighters"]:
+        _stg = _f["traits"].get("stage")
+        if _stg:   # estagio proprio: assets prontos (convertidos no navegador, editor/sfstage.js)
+            st_ = _j.load(open(os.path.join(os.path.dirname(_gj), _stg)))
+            sslug = "".join(ch if ch.isalnum() else "_" for ch in _f["name"].lower())
+            ids = []
+            for ext in ("bin", "map", "pal"):
+                fn = "stage_%s.%s" % (sslug, ext)
+                save_bin(fn, base64.b64decode(st_[ext]))
+                ids.append(len(PACK_ASSETS))
+                PACK_ASSETS.append(fn)
+            art_stages[_f["name"]] = ids
         _art = _f["traits"].get("art")
         if not _art:
             continue
@@ -902,7 +914,7 @@ def build_ryu():
             ra.write("%s dsb %d\n" % (n_, (PP_MAX if n_.startswith("pp_") else PF_MAX) * sz_))
         ra.write("chunk_tab dsb %d\nsmap dsb 2048\n.ENDS\n.BASE $80\n" % (4 * NCHUNK_MAX))
     import json as _json
-    _json.dump(dict(layout=[[a_, first[a_], len(l_)] for a_, l_ in anims], chunk_sizes=[len(c_) for c_ in chunks], fighter_bases=[0, ryu_n, boxer_off], art_bases=art_bases, art_faces=art_faces, art_swap=art_swap, art_pals={n: PACK_ASSETS.index('art_%s.pal' % ''.join(ch if ch.isalnum() else '_' for ch in n.lower())) for n in art_bases}, nframes=len(table), npieces=len(dx), arrays=[dict(name=n, size=sz, data=d) for n, sz, d in arrays],
+    _json.dump(dict(layout=[[a_, first[a_], len(l_)] for a_, l_ in anims], chunk_sizes=[len(c_) for c_ in chunks], fighter_bases=[0, ryu_n, boxer_off], art_bases=art_bases, art_faces=art_faces, art_swap=art_swap, art_stages=art_stages, art_pals={n: PACK_ASSETS.index('art_%s.pal' % ''.join(ch if ch.isalnum() else '_' for ch in n.lower())) for n in art_bases}, nframes=len(table), npieces=len(dx), arrays=[dict(name=n, size=sz, data=d) for n, sz, d in arrays],
                     chunks=["ryu_%d.bin" % i for i in range(len(chunks))]), open(os.path.join(RES, "frames.json"), "w"))
     maxp = max(fr["n"] for fr in table)
     if DUMP is not None:
