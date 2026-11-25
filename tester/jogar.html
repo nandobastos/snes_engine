@@ -58,6 +58,7 @@ window.addEventListener("drop", async (e) => { e.preventDefault(); const f = e.d
 // o editor pode mandar a ROM: postMessage({type: "sf-rom", rom: ArrayBuffer})
 window.addEventListener("message", (e) => { if (e.data && e.data.type === "sf-rom") start(new Uint8Array(e.data.rom)); });
 if (window.parent !== window) window.parent.postMessage({ type: "sf-player-ready" }, "*");
+if (window.opener) window.opener.postMessage({ type: "sf-player-ready" }, "*");
 </script>
 </body>
 </html>

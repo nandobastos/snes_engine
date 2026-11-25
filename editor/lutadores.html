@@ -23,11 +23,15 @@ label{display:flex;justify-content:space-between;gap:6px;align-items:center}#msg
 <button id="abrir">Abrir game.json</button>
 <button id="clonar" disabled>Clonar</button><button id="novo" disabled>Novo (a partir de um modelo)</button>
 <button id="rem" disabled>Excluir</button><button class="p" id="salvar" disabled>Salvar game.json</button>
+<input type="file" id="arqArte" accept=".json" multiple hidden><button id="arte" disabled>Carregar arte (SF Pixel)</button>
+<button id="rom" disabled>Gerar ROM (.sfc)</button><button class="p" id="jogar" disabled>Jogar</button>
+<input type="file" id="arqBase" accept=".sfc" hidden>
 <span id="msg">Abra o arquivo project/game.json do seu projeto.</span></header>
 <main><div class="pn"><div id="lista"></div><small>Os 3 originais não podem ser excluídos. Clones e novos têm cópia própria dos golpes: mudar um não muda o outro.</small></div>
 <div class="pn" id="ed"><small>Selecione um lutador.</small></div></main>
+<script src="sfbuild.js"></script>
 <script>
-const MAX=8, ORIG=3; let G=null, sel=0;
+const MAX=8, ORIG=3; let G=null, sel=0; const ARTS={}; let BASE=null, BASEJ=null;
 const $=id=>document.getElementById(id);
 const TR=[["jump_vy","Força do pulo"],["walk_ticks","Passo do andar (quadros)"],["walk_adj","Ajuste de velocidade"],["fb_alt_hi","Altura da magia (alta)"],["fb_alt_lo","Altura da magia (baixa)"],["fb_sfx","Som da magia"],["hp_close_hk","HP de perto = HK de perto (0/1)"],["walk_pingpong","Andar vai e volta (0/1)"],["moveset","Especiais (0 = estilo Ryu, 1 = Sagat)"],["walk_fwd","Velocidade andando para frente"],["walk_back","Velocidade andando para trás"],["jump_vx","Velocidade do pulo para o lado"],["grav_up","Gravidade subindo (menor = pula mais alto)"],["grav_dn","Gravidade descendo"],["fb_spd","Magia fraca: velocidade"],["fb_dmg","Magia fraca: dano"],["fb_spd_s","Magia média: velocidade"],["fb_dmg_s","Magia média: dano"],["fb_spd_ex","Magia reforçada (EX): velocidade"],["fb_dmg_ex","Magia reforçada (EX): dano"],["fb_spd_sup","Super: velocidade"],["fb_dmg_sup","Super: dano"]];
 const MV=[["dmg","Dano"],["stun","Stun"],["hgt","Altura"],["flags","Flags"],["hitstop","Hitstop"],["snd_swing","Som do golpe"],["snd_hit","Som do impacto"]];
@@ -37,10 +41,14 @@ function refresh(){
   G.fighters.forEach((f,i)=>{const b=document.createElement('button');b.className='it'+(i==sel?' on':'');
     const t=f.traits;b.innerHTML=f.name+'<br><small>'+(t.clone_of?'clone de '+t.clone_of:i<ORIG?'original':'novo')+'</small>';
     b.onclick=()=>{sel=i;refresh()};L.appendChild(b)});
-  ['clonar','novo','salvar'].forEach(k=>$(k).disabled=false);$('rem').disabled=sel<ORIG;
+  ['clonar','novo','salvar','arte','rom','jogar'].forEach(k=>$(k).disabled=false);$('rem').disabled=sel<ORIG;
   const f=G.fighters[sel],e=$('ed');e.innerHTML='';
   const nm=document.createElement('label');nm.innerHTML='<b>Nome</b>';const ni=document.createElement('input');ni.className='n';ni.value=f.name;
   ni.onchange=()=>{f.name=ni.value.trim()||f.name;refresh()};nm.appendChild(ni);e.appendChild(nm);
+  const ar=document.createElement('label');ar.innerHTML='<b>Arte (SF Pixel)</b>';const as=document.createElement('select');
+  as.innerHTML='<option value="">— a do lutador de origem —</option>'+Object.keys(ARTS).concat(f.traits.art&&!ARTS[f.traits.art]?[f.traits.art]:[]).map(n=>'<option'+(n===f.traits.art?' selected':'')+'>'+n+'</option>').join('');
+  as.onchange=()=>{if(as.value)f.traits.art=as.value;else delete f.traits.art;refresh()};ar.appendChild(as);e.appendChild(ar);
+  if(f.traits.art&&!ARTS[f.traits.art])e.insertAdjacentHTML('beforeend','<p><small style="color:#c22">Carregue o arquivo '+f.traits.art+' (botão Carregar arte) antes de gerar a ROM.</small></p>');
   e.insertAdjacentHTML('beforeend','<h3>Características</h3>');const g=document.createElement('div');g.className='g';
   TR.forEach(([k,n])=>{const l=document.createElement('label');l.textContent=n;const i=document.createElement('input');i.type='number';i.value=f.traits[k];
     i.onchange=()=>{f.traits[k]=+i.value};l.appendChild(i);g.appendChild(l)});e.appendChild(g);
@@ -65,5 +73,19 @@ $('novo').onclick=()=>{const m=prompt('Modelo (digite o número): '+G.fighters.m
   const i=+m;if(!G.fighters[i]){msg('Modelo inválido.');return}const n=prompt('Nome do novo lutador:','Novo lutador');if(n)clonar(i,n)};
 $('rem').onclick=()=>{if(sel<ORIG)return;const i=sel;if(G.fighters.some(f=>f.traits.frames_from===i)){msg('Outro lutador usa a arte deste.');return}
   if(!confirm('Excluir '+G.fighters[i].name+'?'))return;G.fighters.splice(i,1);G.fighters.forEach(f=>{if(f.traits.frames_from>i)f.traits.frames_from--});sel=0;refresh()};
+$('arte').onclick=()=>$('arqArte').click();
+$('arqArte').onchange=async e=>{for(const f of e.target.files){try{const o=JSON.parse(await f.text());if(o.format!=='sf-fighter')throw 0;ARTS[f.name]=o;}catch(x){msg(f.name+' não é um arquivo exportado do SF Pixel.');return}}msg(Object.keys(ARTS).length+' arquivo(s) de arte carregado(s). Escolha a arte no lutador.');refresh()};
+async function motor(){
+  if(BASE&&BASEJ)return true;
+  try{BASE=new Uint8Array(await (await fetch('../engine/base.sfc')).arrayBuffer());BASEJ=await (await fetch('../engine/base.json')).json();return true}
+  catch(x){msg('Não achei a ROM-motor sozinho (abra pelo servidor local). Escolha engine/base.sfc; o base.json tem que estar junto no servidor.');return false}
+}
+async function gerar(){
+  if(!await motor())return null;
+  try{const r=SFBuild.build(BASE,BASEJ,G,ARTS);msg('ROM gerada ('+G.fighters.length+' lutadores).');return r}catch(x){msg('Erro ao gerar: '+x.message);return null}
+}
+$('rom').onclick=async()=>{const r=await gerar();if(!r)return;const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([r],{type:'application/octet-stream'}));a.download='jogo.sfc';a.click()};
+$('jogar').onclick=async()=>{const r=await gerar();if(!r)return;const w=window.open('../tester/jogar.html','sfjogo');
+  const h=e=>{if(e.data&&e.data.type==='sf-player-ready'&&e.source===w){w.postMessage({type:'sf-rom',rom:r.buffer},'*');window.removeEventListener('message',h)}};window.addEventListener('message',h)};
 $('salvar').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(G,null,2)],{type:'application/json'}));a.download='game.json';a.click();msg('game.json baixado: coloque na pasta project/ e gere a ROM.')};
 </script></body></html>
