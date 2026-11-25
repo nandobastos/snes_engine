@@ -1078,6 +1078,62 @@ async function exportSF() {
   download(new Blob([JSON.stringify(out)], { type: "application/json" }), fileBase() + ".sffighter.json");
   msg(`Exportado: ${out.tags.length} animações (${fileBase()}.sffighter.json).`);
 }
+
+/* ---------------------------------------------------- abrir um lutador do jogo (Ryu, Sagat, DonLee) direto da ROM-motor
+ * Le engine/base.sfc + engine/base.json (mesmo servidor) e monta o documento com quadros, paleta, tags e caixas (= tools/para_sfpixel.py). */
+let GAMEROM = null;
+async function gameRom() {
+  if (GAMEROM) return GAMEROM;
+  const rom = new Uint8Array(await (await fetch("../engine/base.sfc")).arrayBuffer()), base = await (await fetch("../engine/base.json")).json();
+  return (GAMEROM = { rom, base });
+}
+function fighterFromRom(G, fi) {
+  const R = G.rom, B = G.base, rd = (o) => R[o] | (R[o + 1] << 8), PO = 16 * 0x8000, FAST = 0x90, H = PO;
+  const off = (a, b) => PO + (b - FAST) * 0x8000 + (a - 0x8000), h = (i) => rd(H + 2 * i), s8 = (v) => (v > 127 ? v - 256 : v);
+  const nf = h(6), np = h(7), A = {};
+  B.arrays.forEach(([n, sz], k) => { const o = off(rd(H + h(10) + 4 * k), rd(H + h(10) + 4 * k + 2)), c = n.startsWith("pp_") ? np : nf, v = []; for (let i = 0; i < c; i++) v.push(sz === 1 ? R[o + i] : rd(o + 2 * i)); A[n] = v; });
+  const chunkAt = (k) => off(rd(H + h(9) + 4 * k), R[H + h(9) + 4 * k + 2]);
+  const palName = ["ryu.pal", "sagat.pal", "boxer.pal"][fi], ai = B.assets.indexOf(palName), ae = H + h(11) + 8 * ai, po = off(rd(ae), rd(ae + 2));
+  const pal = []; for (let i = 0; i < 16; i++) pal.push(i ? rd(po + 2 * i) : 0);
+  const FX = new Set(["fireball", "fireball_hit", "fireball_fx", "spark", "shadow"]), lay = B.layout.filter((l) => !FX.has(l[0])), base = B.fighter_bases[fi];
+  const idx = []; lay.forEach(([, f0, c]) => { for (let i = 0; i < c; i++) idx.push(base + f0 + i); });
+  const L = Math.max(...idx.map((k) => A.pf_ax[k])), Rr = Math.max(...idx.map((k) => A.pf_w[k] - A.pf_ax[k])), T = Math.max(...idx.map((k) => A.pf_h[k]));
+  const W = Math.ceil((Math.max(L, Rr) * 2 + 8) / 8) * 8, HH = Math.ceil((T + 8) / 8) * 8, AX = W >> 1, GY = HH - 4;
+  const d = newDoc(W, HH, ["Ryu", "Sagat", "DonLee"][fi]);
+  d.pal = pal; d.frames = []; d.tags = []; d.layers = boxLayers(); d.cels = d.layers.map(() => []);
+  const piece = (o, k, n) => { const r = k >> 3, c = k & 7, nr = Math.min(8, n - r * 8), row0 = o + r * 2 * 8 * 64, px = new Uint8Array(256);
+    for (let half = 0; half < 2; half++) for (let side = 0; side < 2; side++) { const q = row0 + half * nr * 64 + c * 64 + side * 32;
+      for (let y = 0; y < 8; y++) { const p0 = R[q + 2 * y], p1 = R[q + 2 * y + 1], p2 = R[q + 16 + 2 * y], p3 = R[q + 17 + 2 * y];
+        for (let x = 0; x < 8; x++) { const b = 0x80 >> x; px[(half * 8 + y) * 16 + side * 8 + x] = (p0 & b ? 1 : 0) | (p1 & b ? 2 : 0) | (p2 & b ? 4 : 0) | (p3 & b ? 8 : 0); } } }
+    return px; };
+  lay.forEach(([anim, f0, cnt]) => {
+    const ks = []; for (let i = 0; i < cnt; i++) ks.push(base + f0 + i);
+    while (ks.length > 1 && ["pf_chunk", "pf_off", "pf_count"].every((n) => A[n][ks[ks.length - 1]] === A[n][ks[ks.length - 2]])) ks.pop();
+    const t0 = d.frames.length;
+    ks.forEach((k) => {
+      const body = new Uint8Array(W * HH), ax = A.pf_ax[k], hh = A.pf_h[k], n = A.pf_count[k], oy = GY - hh, go = chunkAt(A.pf_chunk[k]) + A.pf_off[k];
+      for (let j = 0; j < n; j++) { const dx = s8(A.pp_dx[A.pf_first[k] + j]), dy = A.pp_dy[A.pf_first[k] + j], px = piece(go, j, n);
+        for (let yy = 0; yy < 16; yy++) for (let xx = 0; xx < 16; xx++) { const v = px[yy * 16 + xx], X = AX + dx - 64 + xx, Y = oy + dy + yy; if (v && X >= 0 && Y >= 0 && X < W && Y < HH) body[Y * W + X] = v; } }
+      const bx = (pre) => { const c = new Uint8Array(W * HH); if (A[pre][k]) { const x0 = s8(A[pre + "x0"][k]), x1 = s8(A[pre + "x1"][k]), y0 = A[pre + "y0"][k], y1 = A[pre + "y1"][k];
+        for (let Y = GY - y1; Y < GY - y0; Y++) for (let X = AX + x0; X <= AX + x1; X++) if (X >= 0 && Y >= 0 && X < W && Y < HH) c[Y * W + X] = 1; } return c; };
+      const an = new Uint8Array(W * HH); an[(GY - 1) * W + AX - 1] = an[(GY - 1) * W + AX] = 1;
+      [body, bx("pf_hb"), bx("pf_hb2"), bx("pf_hu"), an].forEach((c, li) => d.cels[li].push(c));
+      d.frames.push({ d: 100 });
+    });
+    d.tags.push({ name: anim, from: t0, to: d.frames.length - 1, loop: ["idle", "walk", "walkb", "victory", "tatsu"].includes(anim) ? "loop" : "once" });
+  });
+  return d;
+}
+function openGameFighterDialog() {
+  modal(`<h3>Abrir lutador do jogo</h3>
+    <div class="hint" style="padding:0">Abre o lutador com todos os quadros, a paleta, as tags e as caixas, pronto para editar e exportar de volta. (Precisa abrir o SF Pixel pelo servidor, junto com a pasta engine/.)</div>
+    <div class="btns"><button data-gf="0">Ryu</button><button data-gf="1">Sagat</button><button data-gf="2">DonLee</button><button id="gf-c">Cancelar</button></div>`);
+  $("#gf-c").onclick = closeModal;
+  document.querySelectorAll("[data-gf]").forEach((b) => b.onclick = async () => {
+    try { const G = await gameRom(); const d = fighterFromRom(G, +b.dataset.gf); closeModal(); loadDoc(d); msg(`${d.name}: ${d.frames.length} quadros em ${d.tags.length} animações.`); }
+    catch (e) { closeModal(); msg("Não consegui ler engine/base.sfc (abra o SF Pixel pelo servidor da SF Engine)."); }
+  });
+}
 function download(blob, name) { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }
 function fileBase() { return (doc.name || "sprite").replace(/[^a-z0-9_-]/gi, "_"); }
 function saveSgpx() { dropFloat(); download(new Blob([JSON.stringify(serialize())], { type: "application/json" }), fileBase() + ".sgpx"); msg("Salvo: " + fileBase() + ".sgpx"); }
@@ -1568,7 +1624,7 @@ const CMD = {
   newdoc: newDialog, trim: trimCanvas, crop: cropToSel, rot180: () => rotateCanvas(180), rot90: () => rotateCanvas(90), rot270: () => rotateCanvas(270),
   spritesize: spriteSizeDialog, dup: duplicateSprite, fromsel: spriteFromSel, fillsel: () => fillSel(false), strokesel: () => fillSel(true), replace: replaceColorDialog,
   shl: () => shiftCel(-1, 0), shr: () => shiftCel(1, 0), shu: () => shiftCel(0, -1), shd: () => shiftCel(0, 1), timeline: toggleTimeline, fullscreen: fullScreen, theme: () => { applyTheme(document.documentElement.getAttribute("data-theme") === "claro" ? "escuro" : "claro"); render(); },
-  newfighter: newFighterDialog, newbox: newBoxLayer, allframes: exportAllFrames, delframes: delFrames, newmap: () => MAP.newDialog(), importscene: () => importImage("scene"),
+  newfighter: newFighterDialog, gamefighter: openGameFighterDialog, newbox: newBoxLayer, allframes: exportAllFrames, delframes: delFrames, newmap: () => MAP.newDialog(), importscene: () => importImage("scene"),
   importplane: () => (doc.kind === "map" ? importImage("sceneplane") : msg("Abra ou crie um cenário primeiro.")),
   optimize: () => (doc.kind === "map" ? MAP.optimize() : msg("Só para cenários.")), mapresize: () => (doc.kind === "map" ? MAP.resizeDialog() : msg("Só para cenários.")), md: exportSF, closetab: () => closeTab(tabIx), newtag: newTag, transform: startTransform, reduce: reduceTo15, delslot: () => deleteSlot(fg), dropunused: dropUnused,
   nexttab: () => switchTab((tabIx + 1) % tabs.length), prevtab: () => switchTab((tabIx + tabs.length - 1) % tabs.length), open: () => $("#file-open").click(), save: saveDoc, saveas: saveAs, savesgpx: saveSgpx, sheet: exportSheet, framepng: exportFrame, pal: exportPal,
@@ -1591,7 +1647,7 @@ const SPRITE_ONLY = ["trim", "crop", "rot180", "rot90", "rot270", "spritesize", 
   "play", "first", "last", "prev", "next", "onion", "newframe", "newempty", "delframe", "frameleft", "frameright", "frameprops", "newtag", "newlayer", "dellayer", "layerup", "layerdown", "merge", "rename"];
 SPRITE_ONLY.forEach((k) => { const f = CMD[k]; CMD[k] = (...a) => (doc.kind === "map" ? msg("Esse comando é para sprites; isto é um cenário.") : f(...a)); });
 const MENUS = {
-  file: [["Novo sprite…", "newdoc", "Ctrl+N"], ["Novo lutador para a SF Engine…", "newfighter", ""], ["Abrir… (.sgpx = com caixas, .aseprite)", "open", "Ctrl+O"], ["Salvar", "save", "Ctrl+S"], ["Salvar como… (.sgpx guarda as caixas)", "saveas", "Ctrl+Shift+S"], ["Fechar aba", "closetab", "Ctrl+W"], "-", ["Importar imagem no quadro…", "importframe", "Ctrl+I"], ["Importar folha de sprites…", "importsheet", ""], "-", ["Exportar para a SF Engine (.json)…", "md", "Ctrl+Shift+M"], ["Exportar folha PNG (tudo)", "sheet", "Ctrl+Shift+E"], ["Exportar quadro PNG", "framepng", ""], ["Exportar todos os quadros (PNGs separados)", "allframes", "Ctrl+Alt+E"], ["Exportar paleta (.h)", "pal", ""]],
+  file: [["Novo sprite…", "newdoc", "Ctrl+N"], ["Novo lutador para a SF Engine…", "newfighter", ""], ["Abrir lutador do jogo (Ryu, Sagat, DonLee)…", "gamefighter", ""], ["Abrir… (.sgpx = com caixas, .aseprite)", "open", "Ctrl+O"], ["Salvar", "save", "Ctrl+S"], ["Salvar como… (.sgpx guarda as caixas)", "saveas", "Ctrl+Shift+S"], ["Fechar aba", "closetab", "Ctrl+W"], "-", ["Importar imagem no quadro…", "importframe", "Ctrl+I"], ["Importar folha de sprites…", "importsheet", ""], "-", ["Exportar para a SF Engine (.json)…", "md", "Ctrl+Shift+M"], ["Exportar folha PNG (tudo)", "sheet", "Ctrl+Shift+E"], ["Exportar quadro PNG", "framepng", ""], ["Exportar todos os quadros (PNGs separados)", "allframes", "Ctrl+Alt+E"], ["Exportar paleta (.h)", "pal", ""]],
   edit: [["Desfazer", "undo", "Ctrl+Z"], ["Refazer", "redo", "Ctrl+Y"], "-", ["Recortar", "cut", "Ctrl+X"], ["Copiar", "copy", "Ctrl+C"], ["Colar", "paste", "Ctrl+V"], ["Apagar", "clear", "Delete"], "-", ["Selecionar tudo", "selall", "Ctrl+A"], ["Tirar seleção", "desel", "Ctrl+D"], "-", ["Espelhar horizontal", "fliph", "Shift+H"], ["Espelhar vertical", "flipv", "Shift+V"], "-",
     ["Transformar (redimensionar) seleção", "transform", "Ctrl+T"], ["Preencher seleção", "fillsel", "F"], ["Contornar seleção", "strokesel", "S"], ["Trocar cor…", "replace", "Shift+R"], "-",
     ["Deslocar camada ←", "shl", "Ctrl+Alt+←"], ["Deslocar camada →", "shr", "Ctrl+Alt+→"], ["Deslocar camada ↑", "shu", "Ctrl+Alt+↑"], ["Deslocar camada ↓", "shd", "Ctrl+Alt+↓"], "-",

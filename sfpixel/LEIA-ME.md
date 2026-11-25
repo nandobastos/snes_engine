@@ -15,3 +15,8 @@ Abra `index.html` no navegador (não precisa instalar nada). É o SG Pixel adapt
 Animações que a arte não tem usam o quadro do Ryu (o lutador continua funcionando). Testado com um lutador de teste: aparece na seleção e luta com a arte e as caixas do SF Pixel.
 
 Pendente: prévia com o emulador, retrato e magia próprios.
+
+## Editar os lutadores do jogo
+Arquivo → **Abrir lutador do jogo** (Ryu, Sagat ou DonLee): abre com todos os quadros, a paleta, as tags e as caixas, lidos da ROM-motor.
+Edite e exporte de volta (`.sffighter.json`). Testado: abrir o DonLee e exportar sem mudar nada dá exatamente os mesmos 131 quadros no jogo
+(gráficos, pedaços e caixas). Também existe `tools/para_sfpixel.py` (mesma coisa em Python, gera `project/arte/*.sgpx`).
