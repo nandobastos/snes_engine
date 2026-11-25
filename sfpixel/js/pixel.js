@@ -36,6 +36,12 @@ function ramps() {
   return out;
 }
 const SNES_RAMPS = ramps();
+{
+  const hx = (h) => { const n = parseInt(h.slice(1), 16); return keyOf(n >> 16, (n >> 8) & 255, n & 255); };
+  SNES_RAMPS.unshift(["Nintendo", ["#0D0C0C", "#A5A2A2", "#E5E5E5", "#FFFFFF", "#DD2020"].map(hx)], ["Lavanda", ["#E6DFF2", "#C7B7E0", "#A78FC6", "#7A5C9B", "#50365F"].map(hx)]);
+}
+function applyTheme(t) { try { if (t) localStorage.setItem("sfpixel-theme", t); else t = localStorage.getItem("sfpixel-theme"); } catch (e) { /* sem armazenamento */ } document.documentElement.setAttribute("data-theme", t === "roxo" ? "roxo" : "nintendo"); }
+applyTheme();
 
 /* ================================================================== documento */
 let doc = null;
@@ -1559,7 +1565,8 @@ function ask(title, fields, ok) {
 const CMD = {
   newdoc: newDialog, trim: trimCanvas, crop: cropToSel, rot180: () => rotateCanvas(180), rot90: () => rotateCanvas(90), rot270: () => rotateCanvas(270),
   spritesize: spriteSizeDialog, dup: duplicateSprite, fromsel: spriteFromSel, fillsel: () => fillSel(false), strokesel: () => fillSel(true), replace: replaceColorDialog,
-  shl: () => shiftCel(-1, 0), shr: () => shiftCel(1, 0), shu: () => shiftCel(0, -1), shd: () => shiftCel(0, 1), timeline: toggleTimeline, fullscreen: fullScreen, newfighter: newFighterDialog, newbox: newBoxLayer, allframes: exportAllFrames, delframes: delFrames, newmap: () => MAP.newDialog(), importscene: () => importImage("scene"),
+  shl: () => shiftCel(-1, 0), shr: () => shiftCel(1, 0), shu: () => shiftCel(0, -1), shd: () => shiftCel(0, 1), timeline: toggleTimeline, fullscreen: fullScreen, theme: () => { applyTheme(document.documentElement.getAttribute("data-theme") === "roxo" ? "nintendo" : "roxo"); render(); },
+  newfighter: newFighterDialog, newbox: newBoxLayer, allframes: exportAllFrames, delframes: delFrames, newmap: () => MAP.newDialog(), importscene: () => importImage("scene"),
   importplane: () => (doc.kind === "map" ? importImage("sceneplane") : msg("Abra ou crie um cenário primeiro.")),
   optimize: () => (doc.kind === "map" ? MAP.optimize() : msg("Só para cenários.")), mapresize: () => (doc.kind === "map" ? MAP.resizeDialog() : msg("Só para cenários.")), md: exportSF, closetab: () => closeTab(tabIx), newtag: newTag, transform: startTransform, reduce: reduceTo15, delslot: () => deleteSlot(fg), dropunused: dropUnused,
   nexttab: () => switchTab((tabIx + 1) % tabs.length), prevtab: () => switchTab((tabIx + tabs.length - 1) % tabs.length), open: () => $("#file-open").click(), save: saveDoc, saveas: saveAs, savesgpx: saveSgpx, sheet: exportSheet, framepng: exportFrame, pal: exportPal,
@@ -1591,7 +1598,7 @@ const MENUS = {
     ["Recortar na seleção", "crop", ""], ["Aparar (encolher até a arte)", "trim", "Ctrl+Shift+T"], "-", ["Espelhar todos os quadros", "fliphall", ""], "-", ["Trocar dois slots da paleta…", "swap", ""], ["Reduzir para 15 cores", "reduce", ""], ["Excluir o slot da cor de frente", "delslot", "Delete na paleta"], ["Remover cores sem uso", "dropunused", ""], ["Paleta padrão", "defpal", ""]],
   frame: [["Novo quadro", "newframe", "Alt+N"], ["Novo quadro vazio", "newempty", "Alt+B"], ["Apagar quadro", "delframe", "Alt+Delete"], "-", ["Mover para a esquerda", "frameleft", "Alt+,"], ["Mover para a direita", "frameright", "Alt+."], ["Propriedades do quadro…", "frameprops", "P"], ["Nova tag nos quadros marcados", "newtag", "Alt+T"], "-", ["Tocar animação", "play", "Enter"], ["Quadro anterior", "prev", ","], ["Próximo quadro", "next", "."], ["Primeiro quadro", "first", "Home"], ["Último quadro", "last", "End"]],
   layer: [["Nova camada", "newlayer", "Shift+N"], ["Nova camada de caixa (hitbox, hurtbox…)", "newbox", ""], ["Apagar camada", "dellayer", ""], ["Renomear…", "rename", "F2"], "-", ["Subir camada", "layerup", ""], ["Descer camada", "layerdown", ""], ["Juntar com a de baixo", "merge", "Ctrl+E"]],
-  view: [["Janela de prévia", "preview", "F7"], ["Papel de cebola", "onion", "F3"], ["Linha do tempo", "timeline", "Tab"], ["Tela cheia", "fullscreen", "F11"], "-", ["Grade de tiles 8×8", "tiles", "Ctrl+'"], ["Grade de pixels", "grid", "Ctrl+Shift+'"], ["Pedaços 16×16 do SNES", "split", "F4"], "-", ["Caber na tela", "fit", "Ctrl+0"], ["Zoom 100%", "zoom100", "Ctrl+1"]],
+  view: [["Trocar tema (Nintendo / Roxo lavanda)", "theme", ""], ["Janela de prévia", "preview", "F7"], ["Papel de cebola", "onion", "F3"], ["Linha do tempo", "timeline", "Tab"], ["Tela cheia", "fullscreen", "F11"], "-", ["Grade de tiles 8×8", "tiles", "Ctrl+'"], ["Grade de pixels", "grid", "Ctrl+Shift+'"], ["Pedaços 16×16 do SNES", "split", "F4"], "-", ["Caber na tela", "fit", "Ctrl+0"], ["Zoom 100%", "zoom100", "Ctrl+1"]],
   mapx: [["Novo cenário…", "newmap", "Ctrl+Shift+N"], ["Importar imagem como cenário (nova aba)…", "importscene", ""], ["Importar imagem no plano atual…", "importplane", ""], "-", ["Otimizar tiles (junta iguais e espelhados)", "optimize", ""], ["Tamanho do mapa…", "mapresize", ""], "-", ["Exportar cenário para Mega Drive", "md", "Ctrl+Shift+M"]],
   help: [["Atalhos do teclado", "keys", "F1"], ["Sobre", "about", ""]],
 };
