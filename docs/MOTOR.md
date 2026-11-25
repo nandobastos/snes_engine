@@ -31,3 +31,9 @@ Na luta aleatoria DonLee x DonLee (tests/equiv.py, semente 7) 1 dos 11 prints (q
 1 quadro adiantada/atrasada; no quadro 99 ja volta a ser identico e os registros finais sao iguais. Ryu e Sagat: 0 diferencas.
 Suspeita: pequena variacao de tempo do quadro (CPU) pelos novos tracos; investigar com PROFILING=1 antes de fechar a etapa 1.
 Tracos 18-21 (retrato, retrato alt., paleta do game over, 1o oponente do arcade) sao copiados para a RAM no boot (ftc[]).
+
+## Criar / clonar lutador (editor/lutadores.html e tools/lutadores.py)
+Clone = copia profunda de golpes e tracos no game.json (independente do original). A arte comeca emprestada: traco `frames_from`
+(indice do lutador dono dos quadros), `face_idx` (retrato), `pal_asset`. A tela de selecao mostra os lutadores do pack (ate 8; celulas
+extras ficam cinza). Pendente: arte propria (SG Pixel -> quadros novos no pack), retrato e paleta proprios, e o estagio por lutador.
+Testado: Ryu clonado como 4o lutador aparece na selecao e luta.

@@ -65,10 +65,11 @@ u16 prof_dummy;
 #define PROF(v)
 #endif
 enum { TRK_MOVESET, TRK_FRAME_BASE, TRK_FX_BASE, TRK_JUMP_VY, TRK_WALK_ADJ, TRK_WALK_TICKS, TRK_FB_PAL, TRK_FB_ALT_HI, TRK_FB_ALT_LO,
-       TRK_PAL_ASSET, TRK_PAL_ALT, TRK_DIRSWAP, TRK_FBPAL_ASSET, TRK_FBPAL_OFF1, TRK_FBPAL_OFF2, TRK_FB_SFX, TRK_HP_CLOSE_HK, TRK_PINGPONG, TRK_FACE_PAL, TRK_FACE_ALT, TRK_GAMEOVER_FP, TRK_ARCADE_OPP };
+       TRK_PAL_ASSET, TRK_PAL_ALT, TRK_DIRSWAP, TRK_FBPAL_ASSET, TRK_FBPAL_OFF1, TRK_FBPAL_OFF2, TRK_FB_SFX, TRK_HP_CLOSE_HK, TRK_PINGPONG, TRK_FACE_PAL, TRK_FACE_ALT, TRK_GAMEOVER_FP, TRK_ARCADE_OPP, TRK_FACE_IDX };
 u16 pk_trait(u8 ch, u8 k);
+u16 pk_h[16], pk_dir[25];   // cabecalho do pack e diretorio das tabelas de quadros
 u8 pk_i, pk_j;
-u8 ftc[4 * 8];   // tracos das telas (retrato, game over, 1o oponente) de ate 8 lutadores, lidos do pack uma vez no boot
+u8 ftc[5 * 8];   // tracos das telas (retrato, game over, 1o oponente) de ate 8 lutadores, lidos do pack uma vez no boot
 #define FTC(ch, k) ftc[((k) - TRK_FACE_PAL) * 8 + (ch)]
 u8 game_screen; // 0 menus, 1 selecao, 2 VS, 3 luta (usado pelos testes)
 u8 sel_char[2];  // personagens escolhidos na selecao (P1, P2)
@@ -397,13 +398,13 @@ void select_build(void)
     {
         cell_xy(i, &x, &y);
         pal = 4; // cinza (desabilitado)
-        if (i == 0)
-            pal = 2; // Ryu colorido
-        if (i == 1)
-            pal = 5; // Sagat colorido
-        if (i == 2)
-            pal = 7; // Boxer (avatar de teste)
-        face_put(x, y, pal, 0, i < 3 ? i : 0);
+        t = 0;
+        if (i < pk_h[3])
+        {
+            pal = FTC(i, TRK_FACE_PAL); // retrato colorido do lutador i (do pack)
+            t = FTC(i, TRK_FACE_IDX);
+        }
+        face_put(x, y, pal, 0, t);
     }
     t = fx_text(fx_block_select(), 1, 0, 1, map3, VRAM_BG3_GFX);
     fx_text(fx_block_back(), 26, 0, t, map3, VRAM_BG3_GFX);
@@ -471,7 +472,7 @@ u8 select_versus(void)
                     vcell[p] = (vcell[p] + 7) & 7;
                 else if (d & (KEY_UP | KEY_DOWN))
                     vcell[p] ^= 4;
-                if ((d & KEY_B) && vcell[p] < 3)
+                if ((d & KEY_B) && vcell[p] < pk_h[3])
                 {
                     play_sfx(SFX_OK);
                     vdone[p] = 1;
@@ -528,7 +529,7 @@ u8 select_run(void)
             sel_cell = (sel_cell + 7) & 7;
         else if (pad_down & (KEY_UP | KEY_DOWN))
             sel_cell ^= 4;
-        if ((pad_down & KEY_B) && sel_cell < 3)
+        if ((pad_down & KEY_B) && sel_cell < pk_h[3])
         {
             play_sfx(SFX_OK); // confirmou
             sel_char[p] = sel_cell;
@@ -572,11 +573,11 @@ void vs_run(void)
     faces_load();
     set_color(0, 0x2000);
     // P1 olhando para a direita, P2 para a esquerda; mesmo personagem dos dois lados: o P2 usa a paleta alternativa
-    face_put(4, 9, FTC(sel_char[0], TRK_FACE_PAL), 1, sel_char[0]);
+    face_put(4, 9, FTC(sel_char[0], TRK_FACE_PAL), 1, FTC(sel_char[0], TRK_FACE_IDX));
     if (sel_char[0] == sel_char[1])
-        face_put(21, 9, FTC(sel_char[1], TRK_FACE_ALT), 0, sel_char[1]);
+        face_put(21, 9, FTC(sel_char[1], TRK_FACE_ALT), 0, FTC(sel_char[1], TRK_FACE_IDX));
     else
-        face_put(21, 9, FTC(sel_char[1], TRK_FACE_PAL), 0, sel_char[1]);
+        face_put(21, 9, FTC(sel_char[1], TRK_FACE_PAL), 0, FTC(sel_char[1], TRK_FACE_IDX));
     fx_text(fx_block_vs(), 10, 0, 1, map3, VRAM_BG3_GFX);
     dmaCopyVram((u8 *)map1, VRAM_BG1_MAP, 2048);
     dmaCopyVram((u8 *)map3, VRAM_BG3_MAP, 2048);
@@ -722,7 +723,6 @@ extern s8 pf_hbx0[], pf_hbx1[], pf_hux0[], pf_hux1[], pf_hb2x0[], pf_hb2x1[];
 extern u16 pf_off[], pf_first[];
 extern u16 smap[];   // mapa do cenario (CPU: o espelho da 2a tela)
 // (as tabelas acima ficam em res/sfram.asm, banco $7F; tamanhos PF_N, PP_N, NCHUNK em res/ryu.h)
-u16 pk_h[16], pk_dir[25];   // cabecalho do pack e diretorio das tabelas de quadros
 u16 pk_o;
 void sf_copy(void);
 
@@ -783,7 +783,7 @@ void pk_boot(void)
     pk_dst = (u16)&asset_tab;
     pk_get(pk_h[11], AS_COUNT * 8);
     for (pk_i = 0; pk_i < pk_h[3]; pk_i++)
-        for (pk_j = TRK_FACE_PAL; pk_j <= TRK_ARCADE_OPP; pk_j++)
+        for (pk_j = TRK_FACE_PAL; pk_j <= TRK_FACE_IDX; pk_j++)
             ftc[(pk_j - TRK_FACE_PAL) * 8 + pk_i] = pk_trait(pk_i, pk_j);
 }
 
@@ -4898,7 +4898,7 @@ void p1_face_screen(void)
     screen_base();
     faces_load();
     set_color(0, 0);
-    face_put(12, 3, FTC(sel_char[0], TRK_FACE_PAL), 0, sel_char[0]);
+    face_put(12, 3, FTC(sel_char[0], TRK_FACE_PAL), 0, FTC(sel_char[0], TRK_FACE_IDX));
     dmaCopyVram((u8 *)map1, VRAM_BG1_MAP, 2048);
 }
 

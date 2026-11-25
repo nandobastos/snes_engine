@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lutadores - SF Engine</title>
+<style>
+:root{--bg:#14161c;--pn:#1e222b;--ln:#343a48;--tx:#e8eaf0;--mu:#9aa3b5;--ac:#ffb020}
+@media (prefers-color-scheme:light){:root{--bg:#f3f4f7;--pn:#fff;--ln:#cfd3dc;--tx:#1b1e26;--mu:#5b6475;--ac:#b86a00}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px system-ui,sans-serif}
+header{padding:12px 16px;border-bottom:1px solid var(--ln);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+h1{font-size:18px;margin:0 8px 0 0}main{display:grid;grid-template-columns:240px 1fr;gap:12px;padding:12px 16px}
+@media(max-width:700px){main{grid-template-columns:1fr}}
+.pn{background:var(--pn);border:1px solid var(--ln);border-radius:8px;padding:10px}
+button{background:var(--pn);color:var(--tx);border:1px solid var(--ln);border-radius:6px;padding:6px 10px;cursor:pointer;font:inherit}
+button.p{background:var(--ac);color:#000;border-color:var(--ac)}button:disabled{opacity:.4}
+.it{display:block;width:100%;text-align:left;margin-bottom:6px}.it.on{border-color:var(--ac)}
+small{color:var(--mu)}table{border-collapse:collapse;width:100%;overflow-x:auto;display:block}
+td,th{border-bottom:1px solid var(--ln);padding:3px 4px;text-align:left;font-weight:normal}th{color:var(--mu);font-size:12px}
+input{background:var(--bg);color:var(--tx);border:1px solid var(--ln);border-radius:4px;padding:3px 5px;width:62px;font:inherit}
+input.n{width:200px}.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px 12px}
+label{display:flex;justify-content:space-between;gap:6px;align-items:center}#msg{color:var(--mu)}
+</style></head><body>
+<header><h1>Lutadores</h1>
+<input type="file" id="arq" accept=".json" hidden>
+<button id="abrir">Abrir game.json</button>
+<button id="clonar" disabled>Clonar</button><button id="novo" disabled>Novo (a partir de um modelo)</button>
+<button id="rem" disabled>Excluir</button><button class="p" id="salvar" disabled>Salvar game.json</button>
+<span id="msg">Abra o arquivo project/game.json do seu projeto.</span></header>
+<main><div class="pn"><div id="lista"></div><small>Os 3 originais não podem ser excluídos. Clones e novos têm cópia própria dos golpes: mudar um não muda o outro.</small></div>
+<div class="pn" id="ed"><small>Selecione um lutador.</small></div></main>
+<script>
+const MAX=8, ORIG=3; let G=null, sel=0;
+const $=id=>document.getElementById(id);
+const TR=[["jump_vy","Força do pulo"],["walk_ticks","Passo do andar (quadros)"],["walk_adj","Ajuste de velocidade"],["fb_alt_hi","Altura da magia (alta)"],["fb_alt_lo","Altura da magia (baixa)"],["fb_sfx","Som da magia"],["hp_close_hk","HP de perto = HK de perto (0/1)"],["walk_pingpong","Andar vai e volta (0/1)"],["moveset","Especiais (0 = estilo Ryu, 1 = Sagat)"]];
+const MV=[["dmg","Dano"],["stun","Stun"],["hgt","Altura"],["flags","Flags"],["hitstop","Hitstop"],["snd_swing","Som do golpe"],["snd_hit","Som do impacto"]];
+function msg(t){$('msg').textContent=t}
+function refresh(){
+  const L=$('lista');L.innerHTML='';
+  G.fighters.forEach((f,i)=>{const b=document.createElement('button');b.className='it'+(i==sel?' on':'');
+    const t=f.traits;b.innerHTML=f.name+'<br><small>'+(t.clone_of?'clone de '+t.clone_of:i<ORIG?'original':'novo')+'</small>';
+    b.onclick=()=>{sel=i;refresh()};L.appendChild(b)});
+  ['clonar','novo','salvar'].forEach(k=>$(k).disabled=false);$('rem').disabled=sel<ORIG;
+  const f=G.fighters[sel],e=$('ed');e.innerHTML='';
+  const nm=document.createElement('label');nm.innerHTML='<b>Nome</b>';const ni=document.createElement('input');ni.className='n';ni.value=f.name;
+  ni.onchange=()=>{f.name=ni.value.trim()||f.name;refresh()};nm.appendChild(ni);e.appendChild(nm);
+  e.insertAdjacentHTML('beforeend','<h3>Características</h3>');const g=document.createElement('div');g.className='g';
+  TR.forEach(([k,n])=>{const l=document.createElement('label');l.textContent=n;const i=document.createElement('input');i.type='number';i.value=f.traits[k];
+    i.onchange=()=>{f.traits[k]=+i.value};l.appendChild(i);g.appendChild(l)});e.appendChild(g);
+  e.insertAdjacentHTML('beforeend','<h3>Golpes</h3>');
+  const t=document.createElement('table');t.innerHTML='<tr><th>Golpe</th>'+MV.map(m=>'<th>'+m[1]+'</th>').join('')+'<th>Duração dos quadros (8)</th></tr>';
+  G.atk_names.forEach(a=>{const m=f.moves[a];const r=t.insertRow();r.insertCell().textContent=a;
+    MV.forEach(([k])=>{const c=r.insertCell(),i=document.createElement('input');i.type='number';i.value=m[k];i.onchange=()=>{m[k]=+i.value};c.appendChild(i)});
+    const c=r.insertCell(),i=document.createElement('input');i.style.width='140px';i.value=m.dur.join(',');
+    i.onchange=()=>{const v=i.value.split(',').map(x=>+x.trim());while(v.length<8)v.push(0);m.dur=v.slice(0,8)};c.appendChild(i)});
+  e.appendChild(t);
+  e.insertAdjacentHTML('beforeend','<p><small>A arte (quadros, retrato, paleta) começa igual à do lutador de origem; troque pela arte própria desenhando no SG Pixel.</small></p>');
+}
+function nome(base){let n=base,k=2;while(G.fighters.some(f=>f.name.toLowerCase()==n.toLowerCase()))n=base+' '+k++;return n}
+function clonar(i,nm){if(G.fighters.length>=MAX){msg('Limite de '+MAX+' lutadores.');return}
+  const s=G.fighters[i],c=JSON.parse(JSON.stringify(s));c.name=nome(nm||s.name+' (cópia)');
+  if(c.traits.frames_from===undefined)c.traits.frames_from=i;c.traits.clone_of=s.name;
+  G.fighters.push(c);sel=G.fighters.length-1;refresh();msg('Criado '+c.name+'. Lembre de salvar.')}
+$('abrir').onclick=()=>$('arq').click();
+$('arq').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{G=JSON.parse(await f.text());sel=0;refresh();msg(f.name+' aberto: '+G.fighters.length+' lutadores.')}catch(x){msg('Arquivo inválido.')}};
+$('clonar').onclick=()=>clonar(sel);
+$('novo').onclick=()=>{const m=prompt('Modelo (digite o número): '+G.fighters.map((f,i)=>i+'='+f.name).join('  '),'0');if(m===null)return;
+  const i=+m;if(!G.fighters[i]){msg('Modelo inválido.');return}const n=prompt('Nome do novo lutador:','Novo lutador');if(n)clonar(i,n)};
+$('rem').onclick=()=>{if(sel<ORIG)return;const i=sel;if(G.fighters.some(f=>f.traits.frames_from===i)){msg('Outro lutador usa a arte deste.');return}
+  if(!confirm('Excluir '+G.fighters[i].name+'?'))return;G.fighters.splice(i,1);G.fighters.forEach(f=>{if(f.traits.frames_from>i)f.traits.frames_from--});sel=0;refresh()};
+$('salvar').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(G,null,2)],{type:'application/json'}));a.download='game.json';a.click();msg('game.json baixado: coloque na pasta project/ e gere a ROM.')};
+</script></body></html>
