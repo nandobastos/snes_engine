@@ -59,3 +59,9 @@ Testado: estagio convertido aparece na luta quando o lutador e o P2; ROM do nave
 hud_hp_row, hud_win_row, hud_sp_row (linhas de tiles), rounds_to_win (1 ou 2) e hud_pal (12 cores do HUD).
 No pack: bloco de 4 palavras em pk_h[13] (lido no boot) e o asset hud.pal reescrito com as cores. Padrao = o jogo original.
 Testado: barras movidas, cores trocadas e 1 round funcionam; ROM do navegador = Python; originais identicos.
+
+## Tamanho maximo de lutador (referencia: Big Bear, Fatal Fury Special do SNES)
+Medido com o mesmo corte 16x16 da engine nos 78 quadros da folha: media 20 pedacos, maximo 26; so 5 quadros passam de 24
+e perderiam 3 a 82 pixels de borda (o mais vazio sai). Ou seja: um lutador do tamanho do Big Bear (~100x120, ate 154 de altura
+esticado) ja cabe no limite atual de 24 pedacos; basta ajustar essas poses no SF Pixel (o custo aparece em cada quadro).
+Por isso nao foi preciso mudar a VRAM/OAM dos lutadores. Modelo "grande" do SF Pixel: 104x160.

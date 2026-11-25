@@ -1091,7 +1091,7 @@ const FIGHTER_ANIMS = [["idle", 4, "loop"], ["walk", 5, "loop"], ["walkb", 5, "l
   ["mp", 3, "once"], ["hp", 5, "once"], ["mk", 5, "once"], ["hk", 5, "once"], ["hpc", 5, "once"], ["hkc", 3, "once"], ["mkc", 5, "once"], ["mpc", 3, "once"], ["cmp", 3, "once"], ["chp", 4, "once"], ["cmk", 3, "once"], ["chk", 5, "once"],
   ["jp", 3, "once"], ["jk", 3, "once"], ["jdk", 3, "once"], ["jhk", 3, "once"], ["hadouken", 4, "once"], ["shoryu", 6, "once"], ["tatsu", 6, "loop"], ["throw", 5, "once"], ["thrown", 4, "once"], ["rise", 2, "once"],
   ["hit_head", 3, "once"], ["hit_body", 4, "once"], ["hit_crouch", 2, "once"], ["fall", 3, "once"], ["ko", 1, "once"], ["victory", 4, "loop"], ["fireball", 1, "loop"], ["fireball_hit", 1, "once"], ["fireball_fx", 4, "loop"], ["spark", 3, "once"], ["shadow", 2, "loop"], ["retrato", 1, "once"]];
-const SGE_SIZES = [[64, 96, "médio (Ryu, Sagat, DonLee)"], [48, 80, "pequeno / ágil"], [96, 112, "grande (precisa de mais pedaços: ainda não cabe na engine)"]];
+const SGE_SIZES = [[64, 96, "médio (Ryu, Sagat, DonLee)"], [48, 80, "pequeno / ágil"], [104, 160, "grande (Big Bear): cabe; cuidado com poses esticadas, máx. 24 pedaços"]];
 function boxLayers() { return [{ name: "Corpo", vis: true, lock: false }, { name: "Hitbox", kind: "hitbox", vis: true, lock: false }, { name: "Hitbox 2", kind: "hitbox2", vis: true, lock: false }, { name: "Hurtbox", kind: "hurtbox", vis: true, lock: false }, { name: "Âncora", kind: "anchor", vis: true, lock: false }]; }
 function newFighterDialog() {
   modal(`<h3>Novo lutador para a SF Engine</h3>
