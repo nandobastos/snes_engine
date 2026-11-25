@@ -44,6 +44,7 @@
     });
     return hdr.concat(data);
   }
+  const DEFAULT_FLOW = {"start": "vs", "nodes": [{"id": "vs", "type": "vs", "next": ["fight", null, null], "x": 20, "y": 40}, {"id": "fight", "type": "fight", "next": ["victory", "continue", "quit"], "x": 220, "y": 40}, {"id": "victory", "type": "victory", "next": ["next", null, null], "x": 420, "y": 20}, {"id": "next", "type": "next", "next": ["vs", "ending", null], "param": 2, "x": 420, "y": 140}, {"id": "ending", "type": "ending", "next": ["title", null, null], "x": 620, "y": 140}, {"id": "continue", "type": "continue", "next": ["select", "title", null], "x": 220, "y": 200}, {"id": "title", "type": "title", "next": [null, null, null], "x": 620, "y": 300}, {"id": "quit", "type": "select", "param": 1, "next": [null, null, null], "x": 20, "y": 200}, {"id": "select", "type": "select", "param": 0, "next": [null, null, null], "x": 420, "y": 300}]};   // fluxo padrao do Arcade (= DEFAULT_FLOW do sfpack.py)
   const slugOf = (n) => n.toLowerCase().replace(/[^a-z0-9]/g, (c) => (/[\p{L}\p{N}]/u.test(c) ? c : "_"));
 
   function build(rom, base, game, arts, stages) {
@@ -159,7 +160,7 @@
     });
     offs.forEach((o, i) => w16(out, tab + 2 * i, o));
     const ofsFl = out.length;   // fluxo das telas do Arcade (= flow_block do sfpack.py)
-    { const FT = { vs: 0, fight: 1, victory: 2, continue: 3, ending: 4, next: 5, select: 6, title: 7 }, fl = game.flow, nodes = fl ? fl.nodes : [], ids = {};
+    { const FT = { vs: 0, fight: 1, victory: 2, continue: 3, ending: 4, next: 5, select: 6, title: 7 }, fl = game.flow && game.flow.nodes && game.flow.nodes.length ? game.flow : DEFAULT_FLOW, nodes = fl.nodes, ids = {};
       if (nodes.length > 32) throw new Error("Fluxo com mais de 32 telas");
       nodes.forEach((n, i) => (ids[n.id] = i));
       const st = fl && ids[fl.start] !== undefined ? ids[fl.start] : 0, blk = [nodes.length, st];
@@ -206,6 +207,6 @@
     w16(res, 0x7FDC, s ^ 0xFFFF); w16(res, 0x7FDE, s);
     return res;
   }
-  root.SFBuild = { build };
+  root.SFBuild = { build, DEFAULT_FLOW };
   if (typeof module !== "undefined") module.exports = root.SFBuild;
 })(typeof window !== "undefined" ? window : globalThis);

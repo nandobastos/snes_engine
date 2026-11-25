@@ -59,9 +59,14 @@ def quote_block(text):
 FLOW_T = {"vs": 0, "fight": 1, "victory": 2, "continue": 3, "ending": 4, "next": 5, "select": 6, "title": 7}
 
 
+DEFAULT_FLOW = json.loads('{"start": "vs", "nodes": [{"id": "vs", "type": "vs", "next": ["fight", null, null], "x": 20, "y": 40}, {"id": "fight", "type": "fight", "next": ["victory", "continue", "quit"], "x": 220, "y": 40}, {"id": "victory", "type": "victory", "next": ["next", null, null], "x": 420, "y": 20}, {"id": "next", "type": "next", "next": ["vs", "ending", null], "param": 2, "x": 420, "y": 140}, {"id": "ending", "type": "ending", "next": ["title", null, null], "x": 620, "y": 140}, {"id": "continue", "type": "continue", "next": ["select", "title", null], "x": 220, "y": 200}, {"id": "title", "type": "title", "next": [null, null, null], "x": 620, "y": 300}, {"id": "quit", "type": "select", "param": 1, "next": [null, null, null], "x": 20, "y": 200}, {"id": "select", "type": "select", "param": 0, "next": [null, null, null], "x": 420, "y": 300}]}')
+
+
 def flow_block(fl):
     """fluxo das telas (editor/telas.html) -> [n, inicio] + 32 nos de 8 bytes (tipo, saida 1-3, parametro)"""
-    nodes = fl["nodes"] if fl else []
+    if not fl or not fl.get("nodes"):
+        fl = DEFAULT_FLOW   # projeto sem fluxo: o padrao (o mesmo do editor)
+    nodes = fl["nodes"]
     ids = {n["id"]: i for i, n in enumerate(nodes)}
     assert len(nodes) <= 32, "fluxo com mais de 32 telas"
     out = bytearray([len(nodes), ids.get(fl["start"], 0) if fl else 0])

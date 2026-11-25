@@ -15,6 +15,8 @@ td,th{border-bottom:1px solid var(--ln);padding:3px 4px;text-align:left;font-wei
 input{background:var(--bg);color:var(--tx);border:1px solid var(--ln);border-radius:4px;padding:3px 5px;width:62px;font:inherit}
 input.n{width:200px}.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px 12px}
 div.cmd{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 0}div.cmd b{flex:1 1 260px;font-weight:normal}div.cmd .seq{min-width:120px;font-size:18px;letter-spacing:2px}div.cmd .ks button{padding:3px 7px;margin:1px}
+.flow{display:grid;grid-template-columns:1fr 270px;gap:10px}.flow-canvas{overflow:auto;max-height:76vh;background:var(--bg);border:1px solid var(--ln);border-radius:8px}.flow-side label{display:block}.flow-side select,.flow-side input{width:100%;margin-top:4px}@media(max-width:800px){.flow{grid-template-columns:1fr}}
+textarea{width:100%;background:var(--in);color:var(--tx);border:1px solid var(--ln);border-radius:4px;font:inherit;padding:4px}
 label{display:flex;justify-content:space-between;gap:6px;align-items:center}#msg{color:var(--mu)}
 </style>
 <link rel="stylesheet" href="tema.css"><script src="tema.js"></script></head><body>
@@ -22,7 +24,7 @@ label{display:flex;justify-content:space-between;gap:6px;align-items:center}#msg
 <input type="file" id="arq" accept=".json" hidden>
 <button id="abrir">Abrir game.json</button>
 <button id="clonar" disabled>Clonar</button><button id="novo" disabled>Novo (a partir de um modelo)</button>
-<button id="rem" disabled>Excluir</button><button id="regras" disabled>Regras e HUD</button><button class="p" id="salvar" disabled>Salvar game.json</button>
+<button id="rem" disabled>Excluir</button><button id="regras" disabled>Regras e HUD</button><button id="telas" disabled>Telas (fluxo)</button><button class="p" id="salvar" disabled>Salvar game.json</button>
 <input type="file" id="arqArte" accept=".json" multiple hidden><button id="arte" disabled>Carregar arte (SF Pixel)</button>
 <button id="rom" disabled>Gerar ROM (.sfc)</button><button class="p" id="jogar" disabled>Jogar</button>
 <input type="file" id="arqBase" accept=".sfc" hidden><input type="file" id="arqImg" accept="image/*" hidden><input type="file" id="arqStg" accept=".json" multiple hidden>
@@ -31,6 +33,7 @@ label{display:flex;justify-content:space-between;gap:6px;align-items:center}#msg
 <div class="pn" id="ed"><small>Selecione um lutador.</small></div></main>
 <script src="sfbuild.js"></script>
 <script src="sfstage.js"></script>
+<script src="telas.js"></script>
 <script>
 const TOK=[['↓',14,2],['↘',14,10],['→',14,8],['↗',15,9],['↑',15,1],['↖',15,5],['←',14,4],['↙',14,6],['→*',12,8],['←*',12,4]];
 const tok=([m,v])=>{const t=TOK.find(x=>x[1]===m&&x[2]===v);return t?t[0]:m+'/'+v};
@@ -46,7 +49,7 @@ function refresh(){
   G.fighters.forEach((f,i)=>{const b=document.createElement('button');b.className='it'+(i==sel?' on':'');
     const t=f.traits;b.innerHTML=f.name+'<br><small>'+(t.clone_of?'clone de '+t.clone_of:i<ORIG?'original':'novo')+'</small>';
     b.onclick=()=>{sel=i;refresh()};L.appendChild(b)});
-  ['clonar','novo','salvar','arte','rom','jogar','regras'].forEach(k=>$(k).disabled=false);$('rem').disabled=sel<ORIG;
+  ['clonar','novo','salvar','arte','rom','jogar','regras','telas'].forEach(k=>$(k).disabled=false);$('rem').disabled=sel<ORIG;
   const f=G.fighters[sel],e=$('ed');e.innerHTML='';
   const nm=document.createElement('label');nm.innerHTML='<b>Nome</b>';const ni=document.createElement('input');ni.className='n';ni.value=f.name;
   ni.onchange=()=>{f.name=ni.value.trim()||f.name;refresh()};nm.appendChild(ni);e.appendChild(nm);
@@ -62,6 +65,8 @@ function refresh(){
     e.insertAdjacentHTML('beforeend','<small>'+STAGES[f.traits.stage].tiles+' tiles de 512.</small>')}
   else if(f.traits.stage)e.insertAdjacentHTML('beforeend','<p><small style="color:#c22">Carregue o arquivo '+f.traits.stage+' antes de gerar a ROM.</small></p>');
   $('stNew').onclick=()=>$('arqImg').click();$('stLoad').onclick=()=>$('arqStg').click();
+  e.insertAdjacentHTML('beforeend','<h3>Frase de vitória</h3>');const qa=document.createElement('textarea');qa.maxLength=112;qa.rows=2;qa.value=f.win_quote||'';
+  qa.placeholder='Ex.: Meus punhos são de ferro! (até 4 linhas de 28 letras)';qa.oninput=()=>{f.win_quote=qa.value};e.appendChild(qa);
   e.insertAdjacentHTML('beforeend','<h3>Características</h3>');const g=document.createElement('div');g.className='g';
   TR.forEach(([k,n])=>{const l=document.createElement('label');l.textContent=n;const i=document.createElement('input');i.type='number';i.value=f.traits[k];
     i.onchange=()=>{f.traits[k]=+i.value};l.appendChild(i);g.appendChild(l)});e.appendChild(g);
@@ -116,6 +121,8 @@ $('regras').onclick=()=>{
   e.appendChild(g);
   e.insertAdjacentHTML('beforeend','<p><small>As linhas contam de cima (cada linha = 8 px; a tela tem 28). As cores viram as do SNES (32 tons por canal). Clique em Jogar para ver.</small></p>');
 };
+$('telas').onclick=()=>{if(!G.flow||!G.flow.nodes||!G.flow.nodes.length)G.flow=JSON.parse(JSON.stringify(SFBuild.DEFAULT_FLOW));
+  document.querySelectorAll('#lista .it').forEach(b=>b.classList.remove('on'));SFTelas.open(G,$('ed'),()=>msg('Fluxo alterado: salve o game.json e clique em Jogar para testar.'))};
 $('arte').onclick=()=>$('arqArte').click();
 $('arqArte').onchange=async e=>{for(const f of e.target.files){try{const o=JSON.parse(await f.text());if(o.format!=='sf-fighter')throw 0;ARTS[f.name]=o;}catch(x){msg(f.name+' não é um arquivo exportado do SF Pixel.');return}}msg(Object.keys(ARTS).length+' arquivo(s) de arte carregado(s). Escolha a arte no lutador.');refresh()};
 async function motor(){
