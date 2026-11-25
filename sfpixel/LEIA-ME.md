@@ -25,3 +25,9 @@ Edite e exporte de volta (`.sffighter.json`). Testado: abrir o DonLee e exportar
 Copie no Aseprite (Ctrl+C) e cole no SF Pixel (Ctrl+V): a arte entra flutuando, com as cores convertidas para as do SNES.
 Cores novas ocupam slots livres da paleta; passando de 15, as que sobram viram a mais parecida (a mensagem avisa).
 Se a imagem vier sem transparência, a cor dos cantos vira transparente. Arraste para posicionar e aperte Enter.
+
+## Trocar cores ao virar de lado (espelho)
+Sprite → **Trocar cores ao virar de lado**: escreva os pares de slots que trocam quando o lutador olha para o outro lado
+(o DonLee usa `2-3, 5-6`: luva vermelha ⇄ azul e os detalhes do short). O botão ⇋ da prévia mostra o lutador espelhado com a troca.
+No jogo a troca acontece sozinha a cada virada. Testado: o DonLee aberto do jogo já vem com 2-3, 5-6, e a arte exportada vira
+exatamente igual ao original.

@@ -737,6 +737,7 @@ def build_ryu():
     art_bases = {}
     art_pals = []
     art_faces = {}
+    art_swap = {}
     import base64
     import json as _j
     _gj = os.path.join(os.path.dirname(ROOT), "project", "game.json")
@@ -809,7 +810,15 @@ def build_ryu():
         pal = pal[:16]
         words = b"".join(w_.to_bytes(2, "little") for w_ in pal)
         slug = "".join(ch if ch.isalnum() else "_" for ch in _f["name"].lower())
-        save_bin("art_%s.pal" % slug, words + words)    # P1 e P2 (mesma paleta)
+        sw = [q for q in data.get("mirror_swap", []) if 0 < q[0] < 16 and 0 < q[1] < 16]
+        if sw:   # troca de cores ao virar de lado: 2a paleta = a mesma com os pares trocados (a engine escolhe pelo lado: dirswap)
+            p2 = pal[:]
+            for a_, b_ in sw:
+                p2[a_], p2[b_] = pal[b_], pal[a_]
+            art_swap[_f["name"]] = 1
+            save_bin("art_%s.pal" % slug, words + b"".join(w_.to_bytes(2, "little") for w_ in p2))
+        else:
+            save_bin("art_%s.pal" % slug, words + words)    # P1 e P2 (mesma paleta)
         art_pals.append("art_%s.pal" % slug)
         PACK_ASSETS.append("art_%s.pal" % slug)
         outputs.setdefault("ryu", []).append("art_%s.pal" % slug)
@@ -893,7 +902,7 @@ def build_ryu():
             ra.write("%s dsb %d\n" % (n_, (PP_MAX if n_.startswith("pp_") else PF_MAX) * sz_))
         ra.write("chunk_tab dsb %d\nsmap dsb 2048\n.ENDS\n.BASE $80\n" % (4 * NCHUNK_MAX))
     import json as _json
-    _json.dump(dict(layout=[[a_, first[a_], len(l_)] for a_, l_ in anims], chunk_sizes=[len(c_) for c_ in chunks], fighter_bases=[0, ryu_n, boxer_off], art_bases=art_bases, art_faces=art_faces, art_pals={n: PACK_ASSETS.index('art_%s.pal' % ''.join(ch if ch.isalnum() else '_' for ch in n.lower())) for n in art_bases}, nframes=len(table), npieces=len(dx), arrays=[dict(name=n, size=sz, data=d) for n, sz, d in arrays],
+    _json.dump(dict(layout=[[a_, first[a_], len(l_)] for a_, l_ in anims], chunk_sizes=[len(c_) for c_ in chunks], fighter_bases=[0, ryu_n, boxer_off], art_bases=art_bases, art_faces=art_faces, art_swap=art_swap, art_pals={n: PACK_ASSETS.index('art_%s.pal' % ''.join(ch if ch.isalnum() else '_' for ch in n.lower())) for n in art_bases}, nframes=len(table), npieces=len(dx), arrays=[dict(name=n, size=sz, data=d) for n, sz, d in arrays],
                     chunks=["ryu_%d.bin" % i for i in range(len(chunks))]), open(os.path.join(RES, "frames.json"), "w"))
     maxp = max(fr["n"] for fr in table)
     if DUMP is not None:

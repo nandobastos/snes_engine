@@ -50,7 +50,7 @@
     const frames = [];   // quadros novos: {pf valores, pcs: [[dx, dy]]}
     const fromBase = (k) => { const f = {}; PF.forEach((n) => (f[n] = A[n][k])); f.pcs = []; for (let j = 0; j < A.pf_count[k]; j++) f.pcs.push([A.pp_dx[A.pf_first[k] + j], A.pp_dy[A.pf_first[k] + j]]); return f; };
     const first = {}; base.layout.forEach(([n, f]) => (first[n] = f));
-    const artBases = {}, artPals = {}, artFaces = {};
+    const artBases = {}, artPals = {}, artFaces = {}, artSwap = {};
     let total = nf0;
     game.fighters.forEach((F) => {
       const file = F.traits.art;
@@ -94,8 +94,13 @@
       }
       const pal = (data.pal || []).map((v) => v | 0).concat(new Array(16).fill(0)).slice(0, 16), w = [];
       pal.forEach((v) => w.push(v & 255, (v >> 8) & 255));
-      const name = "art_" + slugOf(F.name) + ".pal";
-      artPals[F.name] = assets.length; assets.push(name); adata.push(w.concat(w));
+      const name = "art_" + slugOf(F.name) + ".pal", sw = (data.mirror_swap || []).filter((q) => q[0] > 0 && q[0] < 16 && q[1] > 0 && q[1] < 16);
+      let w2 = w;
+      if (sw.length) {   // troca de cores ao virar de lado: 2a paleta com os pares trocados
+        const p2 = pal.slice(); sw.forEach(([a, b]) => { p2[a] = pal[b]; p2[b] = pal[a]; });
+        w2 = []; p2.forEach((v) => w2.push(v & 255, (v >> 8) & 255)); artSwap[F.name] = 1;
+      }
+      artPals[F.name] = assets.length; assets.push(name); adata.push(w.concat(w2));
     });
     done.push(cur);
     frames.forEach((f) => { PF.forEach((n) => { if (n !== "pf_first") A[n].push(f[n]); }); A.pf_first.push(A.pp_dx.length); f.pcs.forEach(([x, y]) => { A.pp_dx.push(x); A.pp_dy.push(y); }); });
@@ -118,6 +123,7 @@
         artPals[f.name] !== undefined ? artPals[f.name] : t.pal_asset, t.pal_alt_off, t.dirswap, t.fbpal_asset, t.fbpal_off1, t.fbpal_off2, t.fb_sfx,
         t.hp_close_hk, t.walk_pingpong, t.face_pal, t.face_pal_alt, t.gameover_fp, t.arcade_opp, t.face_idx, t.walk_fwd, t.walk_back, t.jump_vx,
         t.grav_up, t.grav_dn, t.fb_spd, t.fb_dmg, t.fb_spd_s, t.fb_dmg_s, t.fb_spd_ex, t.fb_dmg_ex, t.fb_spd_sup, t.fb_dmg_sup].map((v, i, a) => {
+        if (artBases[f.name] !== undefined && (i === 10 || i === 11)) return i === 10 ? 0 : (artSwap[f.name] ? 1 : 0);
         const j = artFaces[f.name];   // retrato proprio: rosto 3+j, paleta 3 ou 6 (P2 igual), game over le a paleta 7+j
         if (j === undefined) return v;
         return i === 18 || i === 19 ? [3, 6][j] : i === 20 ? 7 + j : i === 22 ? 3 + j : v;

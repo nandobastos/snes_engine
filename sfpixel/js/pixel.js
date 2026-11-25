@@ -993,8 +993,11 @@ function drawPreviewFrame(f) {
   const z = pvZoom || fit, w = doc.w * z, h = doc.h * z, x = Math.round((W - w) / 2), y = Math.round((H - h) / 2);
   pvg.imageSmoothingEnabled = false; pvg.fillStyle = "#1b1c20"; pvg.fillRect(0, 0, W, H);
   pvg.fillStyle = LIGHT() ? "#d0cece" : "#2f3138"; pvg.fillRect(x, y, w, h);
-  off.width = doc.w; off.height = doc.h; og.putImageData(toImageData(composite(Math.min(f ?? pvFrame, doc.frames.length - 1))), 0, 0);
-  pvg.drawImage(off, x, y, w, h);
+  off.width = doc.w; off.height = doc.h;
+  let idx = composite(Math.min(f ?? pvFrame, doc.frames.length - 1));
+  if (pvMirror && doc.mirrorSwap && doc.mirrorSwap.length) { const m = {}; doc.mirrorSwap.forEach(([a, b]) => { m[a] = b; m[b] = a; }); idx = idx.map((v) => (m[v] !== undefined ? m[v] : v)); }
+  og.putImageData(toImageData(idx), 0, 0);
+  if (pvMirror) { pvg.save(); pvg.translate(x + w, y); pvg.scale(-1, 1); pvg.drawImage(off, 0, 0, w, h); pvg.restore(); } else pvg.drawImage(off, x, y, w, h);
   document.getElementById("pv-z").textContent = `${z}x${pvZoom ? "" : " (encaixado)"} · roda = zoom`;
 }
 function pvTick() {
@@ -1074,11 +1077,11 @@ function renderReport() {
 /* ================================================================== arquivos */
 function b64(u8) { let s = ""; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); }
 function unb64(s) { const b = atob(s), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
-function serialize(d = doc) { if (d.kind === "map") return MAP.serialize(d); return { format: "sfpixel", version: 3, name: d.name, w: d.w, h: d.h, pal: d.pal, loop: d.loop, tags: d.tags, layers: d.layers, frames: d.frames, cels: d.cels.map((r) => r.map(b64)), sgengine: d.sgengine || null }; }
+function serialize(d = doc) { if (d.kind === "map") return MAP.serialize(d); return { format: "sfpixel", version: 3, name: d.name, w: d.w, h: d.h, pal: d.pal, loop: d.loop, tags: d.tags, layers: d.layers, frames: d.frames, mirrorSwap: d.mirrorSwap || [], cels: d.cels.map((r) => r.map(b64)), sgengine: d.sgengine || null }; }
 function deserialize(o) {
   if (o.format !== "sfpixel" && o.format !== "sgpixel") throw new Error("Arquivo não é do SF Pixel");
   if (o.kind === "map") return MAP.deserialize(o);
-  return { name: o.name, w: o.w, h: o.h, pal: o.pal, loop: o.loop || "loop", tags: o.tags || [], layers: o.layers.map((l) => ({ lock: false, ...l })), frames: o.frames, cels: o.cels.map((r) => r.map(unb64)), sgengine: o.sgengine || null };
+  return { name: o.name, w: o.w, h: o.h, pal: o.pal, loop: o.loop || "loop", tags: o.tags || [], layers: o.layers.map((l) => ({ lock: false, ...l })), frames: o.frames, mirrorSwap: o.mirrorSwap || [], cels: o.cels.map((r) => r.map(unb64)), sgengine: o.sgengine || null };
 }
 /* ---------------------------------------------------- lutador para a SG Engine
  * Cria o documento ja com uma tag por animacao que a engine usa (nome igual), na quantidade de quadros sugerida.
@@ -1117,7 +1120,7 @@ async function exportSF() {
   dropFloat();
   const n = usedSlots().size;
   if (n > 15) { alert(`O lutador usa ${n} cores: o limite é 15 + transparente.`); return; }
-  const out = { format: "sf-fighter", version: 1, name: doc.name, pal: Array.from({ length: 16 }, (_, i) => (i ? doc.pal[i] || 0 : 0)), tags: [] };
+  const out = { format: "sf-fighter", version: 1, mirror_swap: (doc.mirrorSwap || []).filter((q) => q[0] > 0 && q[1] > 0 && q[0] < 16 && q[1] < 16), name: doc.name, pal: Array.from({ length: 16 }, (_, i) => (i ? doc.pal[i] || 0 : 0)), tags: [] };
   doc.tags.forEach((t) => {
     const frames = [];
     for (let f = t.from; f <= t.to; f++) {
@@ -1167,12 +1170,14 @@ function fighterFromRom(G, fi) {
   const chunkAt = (k) => off(rd(H + h(9) + 4 * k), R[H + h(9) + 4 * k + 2]);
   const palName = ["ryu.pal", "sagat.pal", "boxer.pal"][fi], ai = B.assets.indexOf(palName), ae = H + h(11) + 8 * ai, po = off(rd(ae), rd(ae + 2));
   const pal = []; for (let i = 0; i < 16; i++) pal.push(i ? rd(po + 2 * i) : 0);
+  const pal2 = []; for (let i = 0; i < 16; i++) pal2.push(i ? rd(po + 32 + 2 * i) : 0);
+  const swaps = []; if (fi === 2) for (let a = 1; a < 16; a++) for (let b = a + 1; b < 16; b++) if (pal[a] !== pal[b] && pal2[a] === pal[b] && pal2[b] === pal[a]) swaps.push([a, b]);
   const FX = new Set(["fireball", "fireball_hit", "fireball_fx", "spark", "shadow"]), lay = B.layout.filter((l) => !FX.has(l[0])), base = B.fighter_bases[fi];
   const idx = []; lay.forEach(([, f0, c]) => { for (let i = 0; i < c; i++) idx.push(base + f0 + i); });
   const L = Math.max(...idx.map((k) => A.pf_ax[k])), Rr = Math.max(...idx.map((k) => A.pf_w[k] - A.pf_ax[k])), T = Math.max(...idx.map((k) => A.pf_h[k]));
   const W = Math.ceil((Math.max(L, Rr) * 2 + 8) / 8) * 8, HH = Math.ceil((T + 8) / 8) * 8, AX = W >> 1, GY = HH - 4;
   const d = newDoc(W, HH, ["Ryu", "Sagat", "DonLee"][fi]);
-  d.pal = pal; d.frames = []; d.tags = []; d.layers = boxLayers(); d.cels = d.layers.map(() => []);
+  d.pal = pal; d.mirrorSwap = swaps; d.frames = []; d.tags = []; d.layers = boxLayers(); d.cels = d.layers.map(() => []);
   const piece = (o, k, n) => { const r = k >> 3, c = k & 7, nr = Math.min(8, n - r * 8), row0 = o + r * 2 * 8 * 64, px = new Uint8Array(256);
     for (let half = 0; half < 2; half++) for (let side = 0; side < 2; side++) { const q = row0 + half * nr * 64 + c * 64 + side * 32;
       for (let y = 0; y < 8; y++) { const p0 = R[q + 2 * y], p1 = R[q + 2 * y + 1], p2 = R[q + 16 + 2 * y], p3 = R[q + 17 + 2 * y];
@@ -1196,6 +1201,17 @@ function fighterFromRom(G, fi) {
   });
   return d;
 }
+/* troca de cores ao virar (espelho): pares de slots que trocam quando o lutador olha para o outro lado (ex.: luvas vermelha/azul do DonLee) */
+function mirrorSwapDialog() {
+  const cur = (doc.mirrorSwap || []).map((q) => q.join("-")).join(", ");
+  ask("Trocar cores ao virar de lado", [["Pares de slots (ex.: 2-3, 5-6)", "pairs", cur]], (v) => {
+    const pairs = String(v.pairs || "").split(/[,;\s]+/).filter(Boolean).map((t) => t.split("-").map(Number)).filter((q) => q.length === 2 && q.every((n) => n >= 1 && n <= 15) && q[0] !== q[1]);
+    push(); doc.mirrorSwap = pairs; renderReport(); drawPreviewFrame();
+    msg(pairs.length ? `Ao virar de lado: ${pairs.map((q) => `slot ${q[0]} ⇄ slot ${q[1]}`).join(", ")}. Use ⇋ na prévia para ver.` : "Sem troca de cores ao virar.");
+  });
+}
+let pvMirror = false;
+document.getElementById("pv-mirror").onclick = () => CMD.pvmirror();
 function openGameFighterDialog() {
   modal(`<h3>Abrir lutador do jogo</h3>
     <div class="hint" style="padding:0">Abre o lutador com todos os quadros, a paleta, as tags e as caixas, pronto para editar e exportar de volta. (Precisa abrir o SF Pixel pelo servidor, junto com a pasta engine/.)</div>
@@ -1696,7 +1712,7 @@ const CMD = {
   newdoc: newDialog, trim: trimCanvas, crop: cropToSel, rot180: () => rotateCanvas(180), rot90: () => rotateCanvas(90), rot270: () => rotateCanvas(270),
   spritesize: spriteSizeDialog, dup: duplicateSprite, fromsel: spriteFromSel, fillsel: () => fillSel(false), strokesel: () => fillSel(true), replace: replaceColorDialog,
   shl: () => shiftCel(-1, 0), shr: () => shiftCel(1, 0), shu: () => shiftCel(0, -1), shd: () => shiftCel(0, 1), timeline: toggleTimeline, fullscreen: fullScreen, theme: () => { applyTheme(document.documentElement.getAttribute("data-theme") === "claro" ? "escuro" : "claro"); render(); },
-  newfighter: newFighterDialog, gamefighter: openGameFighterDialog, newbox: newBoxLayer, allframes: exportAllFrames, delframes: delFrames, newmap: () => MAP.newDialog(), importscene: () => importImage("scene"),
+  newfighter: newFighterDialog, mirrorswap: mirrorSwapDialog, pvmirror: () => { pvMirror = !pvMirror; drawPreviewFrame(); msg(pvMirror ? "Prévia espelhada (como no outro lado da tela)." : "Prévia normal."); }, gamefighter: openGameFighterDialog, newbox: newBoxLayer, allframes: exportAllFrames, delframes: delFrames, newmap: () => MAP.newDialog(), importscene: () => importImage("scene"),
   importplane: () => (doc.kind === "map" ? importImage("sceneplane") : msg("Abra ou crie um cenário primeiro.")),
   optimize: () => (doc.kind === "map" ? MAP.optimize() : msg("Só para cenários.")), mapresize: () => (doc.kind === "map" ? MAP.resizeDialog() : msg("Só para cenários.")), md: exportSF, closetab: () => closeTab(tabIx), newtag: newTag, transform: startTransform, reduce: reduceTo15, delslot: () => deleteSlot(fg), dropunused: dropUnused,
   nexttab: () => switchTab((tabIx + 1) % tabs.length), prevtab: () => switchTab((tabIx + tabs.length - 1) % tabs.length), open: () => $("#file-open").click(), save: saveDoc, saveas: saveAs, savesgpx: saveSgpx, sheet: exportSheet, framepng: exportFrame, pal: exportPal,
@@ -1725,10 +1741,10 @@ const MENUS = {
     ["Deslocar camada ←", "shl", "Ctrl+Alt+←"], ["Deslocar camada →", "shr", "Ctrl+Alt+→"], ["Deslocar camada ↑", "shu", "Ctrl+Alt+↑"], ["Deslocar camada ↓", "shd", "Ctrl+Alt+↓"], "-",
     ["Sprite novo com a seleção", "fromsel", "Ctrl+Alt+N"]],
   sprite: [["Duplicar sprite", "dup", ""], "-", ["Tamanho do sprite (escala)…", "spritesize", "Ctrl+Alt+I"], ["Tamanho do canvas…", "resize", "C"], ["Girar canvas 180°", "rot180", ""], ["Girar canvas 90° horário", "rot90", ""], ["Girar canvas 90° anti-horário", "rot270", ""], "-",
-    ["Recortar na seleção", "crop", ""], ["Aparar (encolher até a arte)", "trim", "Ctrl+Shift+T"], "-", ["Espelhar todos os quadros", "fliphall", ""], "-", ["Trocar dois slots da paleta…", "swap", ""], ["Reduzir para 15 cores", "reduce", ""], ["Excluir o slot da cor de frente", "delslot", "Delete na paleta"], ["Remover cores sem uso", "dropunused", ""], ["Paleta padrão", "defpal", ""]],
+    ["Recortar na seleção", "crop", ""], ["Aparar (encolher até a arte)", "trim", "Ctrl+Shift+T"], "-", ["Espelhar todos os quadros", "fliphall", ""], "-", ["Trocar dois slots da paleta…", "swap", ""], ["Reduzir para 15 cores", "reduce", ""], ["Excluir o slot da cor de frente", "delslot", "Delete na paleta"], ["Remover cores sem uso", "dropunused", ""], ["Paleta padrão", "defpal", ""], "-", ["Trocar cores ao virar de lado (espelho)…", "mirrorswap", ""]],
   frame: [["Novo quadro", "newframe", "Alt+N"], ["Novo quadro vazio", "newempty", "Alt+B"], ["Apagar quadro", "delframe", "Alt+Delete"], "-", ["Mover para a esquerda", "frameleft", "Alt+,"], ["Mover para a direita", "frameright", "Alt+."], ["Propriedades do quadro…", "frameprops", "P"], ["Nova tag nos quadros marcados", "newtag", "Alt+T"], "-", ["Tocar animação", "play", "Enter"], ["Quadro anterior", "prev", ","], ["Próximo quadro", "next", "."], ["Primeiro quadro", "first", "Home"], ["Último quadro", "last", "End"]],
   layer: [["Nova camada", "newlayer", "Shift+N"], ["Nova camada de caixa (hitbox, hurtbox…)", "newbox", ""], ["Apagar camada", "dellayer", ""], ["Renomear…", "rename", "F2"], "-", ["Subir camada", "layerup", ""], ["Descer camada", "layerdown", ""], ["Juntar com a de baixo", "merge", "Ctrl+E"]],
-  view: [["Trocar tema (escuro / claro)", "theme", ""], ["Janela de prévia", "preview", "F7"], ["Papel de cebola", "onion", "F3"], ["Linha do tempo", "timeline", "Tab"], ["Tela cheia", "fullscreen", "F11"], "-", ["Grade de tiles 8×8", "tiles", "Ctrl+'"], ["Grade de pixels", "grid", "Ctrl+Shift+'"], ["Pedaços 16×16 do SNES", "split", "F4"], "-", ["Caber na tela", "fit", "Ctrl+0"], ["Zoom 100%", "zoom100", "Ctrl+1"]],
+  view: [["Trocar tema (escuro / claro)", "theme", ""], ["Prévia espelhada (com a troca de cores)", "pvmirror", ""], ["Janela de prévia", "preview", "F7"], ["Papel de cebola", "onion", "F3"], ["Linha do tempo", "timeline", "Tab"], ["Tela cheia", "fullscreen", "F11"], "-", ["Grade de tiles 8×8", "tiles", "Ctrl+'"], ["Grade de pixels", "grid", "Ctrl+Shift+'"], ["Pedaços 16×16 do SNES", "split", "F4"], "-", ["Caber na tela", "fit", "Ctrl+0"], ["Zoom 100%", "zoom100", "Ctrl+1"]],
   mapx: [["Novo cenário…", "newmap", "Ctrl+Shift+N"], ["Importar imagem como cenário (nova aba)…", "importscene", ""], ["Importar imagem no plano atual…", "importplane", ""], "-", ["Otimizar tiles (junta iguais e espelhados)", "optimize", ""], ["Tamanho do mapa…", "mapresize", ""], "-", ["Exportar cenário para Mega Drive", "md", "Ctrl+Shift+M"]],
   help: [["Atalhos do teclado", "keys", "F1"], ["Sobre", "about", ""]],
 };
