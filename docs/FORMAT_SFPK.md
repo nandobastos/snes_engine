@@ -47,3 +47,5 @@ Peças: `s8 dx, u8 dy` por peça 16x16 (máx. 24 por quadro hoje). Gráficos: 4b
 moveset, frame_base, fx_base, jump_vy, walk_adj, walk_ticks, fb_pal, fb_alt_hi, fb_alt_lo, pal_asset, pal_alt_off, dirswap,
 fbpal_asset, fbpal_off1, fbpal_off2, fb_sfx, hp_close_hk, walk_pingpong, 0, 0. Substituem os antigos "if (Sagat)" / "if (Boxer)" do codigo.
 Na parte critica do vblank use copias em u8 (ex.: fdsw): TR() custa CPU e atrasou uma troca de paleta em 1 quadro.
+Tracos agora sao 28 palavras: ... 18 face_pal, 19 face_pal_alt, 20 gameover_fp, 21 arcade_opp, 22 face_idx, 23 walk_fwd, 24 walk_back, 25 jump_vx, 26 grav_up, 27 grav_dn
+(fisica do lutador; o editor de lutadores mostra todos). Testado: clone com walk_fwd 30 anda ~2,4x mais rapido que o Ryu (12).

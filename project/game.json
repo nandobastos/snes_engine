@@ -408,7 +408,12 @@
         "face_pal_alt": 3,
         "gameover_fp": 0,
         "arcade_opp": 1,
-        "face_idx": 0
+        "face_idx": 0,
+        "walk_fwd": 12,
+        "walk_back": 10,
+        "jump_vx": 15,
+        "grav_up": 10,
+        "grav_dn": 11
       }
     },
     {
@@ -798,7 +803,12 @@
         "face_pal_alt": 6,
         "gameover_fp": 3,
         "arcade_opp": 0,
-        "face_idx": 1
+        "face_idx": 1,
+        "walk_fwd": 12,
+        "walk_back": 10,
+        "jump_vx": 15,
+        "grav_up": 10,
+        "grav_dn": 11
       }
     },
     {
@@ -1188,7 +1198,12 @@
         "face_pal_alt": 1,
         "gameover_fp": 5,
         "arcade_opp": 0,
-        "face_idx": 2
+        "face_idx": 2,
+        "walk_fwd": 12,
+        "walk_back": 10,
+        "jump_vx": 15,
+        "grav_up": 10,
+        "grav_dn": 11
       }
     }
   ]

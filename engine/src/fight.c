@@ -65,7 +65,7 @@ u16 prof_dummy;
 #define PROF(v)
 #endif
 enum { TRK_MOVESET, TRK_FRAME_BASE, TRK_FX_BASE, TRK_JUMP_VY, TRK_WALK_ADJ, TRK_WALK_TICKS, TRK_FB_PAL, TRK_FB_ALT_HI, TRK_FB_ALT_LO,
-       TRK_PAL_ASSET, TRK_PAL_ALT, TRK_DIRSWAP, TRK_FBPAL_ASSET, TRK_FBPAL_OFF1, TRK_FBPAL_OFF2, TRK_FB_SFX, TRK_HP_CLOSE_HK, TRK_PINGPONG, TRK_FACE_PAL, TRK_FACE_ALT, TRK_GAMEOVER_FP, TRK_ARCADE_OPP, TRK_FACE_IDX };
+       TRK_PAL_ASSET, TRK_PAL_ALT, TRK_DIRSWAP, TRK_FBPAL_ASSET, TRK_FBPAL_OFF1, TRK_FBPAL_OFF2, TRK_FB_SFX, TRK_HP_CLOSE_HK, TRK_PINGPONG, TRK_FACE_PAL, TRK_FACE_ALT, TRK_GAMEOVER_FP, TRK_ARCADE_OPP, TRK_FACE_IDX, TRK_WALK_FWD, TRK_WALK_BACK, TRK_JUMP_VX, TRK_GRAV_UP, TRK_GRAV_DN };
 u16 pk_trait(u8 ch, u8 k);
 u16 pk_h[16], pk_dir[25];   // cabecalho do pack e diretorio das tabelas de quadros
 u8 pk_i, pk_j;
@@ -711,8 +711,9 @@ u8 mv_dmg[2 * ATK_COUNT], mv_stun[2 * ATK_COUNT], mv_hgt[2 * ATK_COUNT], mv_flag
 u8 mv_hs[2 * ATK_COUNT], mv_sw[2 * ATK_COUNT], mv_sh[2 * ATK_COUNT];  // hitstop, som do golpe, som do impacto
 u8 mv_dur[2 * ATK_COUNT * 8];
 // ---- TRACOS do lutador (vem do pack, 20 palavras depois dos golpes; ver docs/FORMAT_SFPK.md): numeros que antes eram "if (Sagat)" no codigo
-u16 ftr[2 * 24];
-const u8 trb[2] = {0, 24};
+u16 ftr[2 * 28];
+const u8 trb[2] = {0, 28};
+s8 fwf[2], fwb[2], fjvx[2], fgup[2], fgdn[2];   // copias (por jogador) da fisica do lutador: lidas todo quadro, mais baratas que TR()
 #define TR(i, k) ftr[trb[i] + (k)]
 const u8 mvb[2] = {0, ATK_COUNT};
 const u8 mvb8[2] = {0, ATK_COUNT * 8};
@@ -853,7 +854,7 @@ void pk_load_moves(u8 p, u8 ch)
     pk_dst = (u16)&mv_dur[mvb8[p]];
     pk_get(pk_o + 7 * ATK_COUNT, ATK_COUNT * 8);
     pk_dst = (u16)&ftr[trb[p]];
-    pk_get(pk_o + 15 * ATK_COUNT, 48);   // tracos
+    pk_get(pk_o + 15 * ATK_COUNT, 56);   // tracos
 }
 
 const u8 atk_base[ATK_COUNT] = {A_MP, A_HP, A_MK, A_HK, A_CMP, A_CHP, A_CMK, A_CHK, A_JP, A_JK, A_JDK,
@@ -2146,7 +2147,7 @@ void start_jump(u8 i, s8 dir)
 {
     fstate[i] = ST_JUMP;
     fvy[i] = TR(i, TRK_JUMP_VY);   // forca do pulo (Sagat: o quadro encolhido sobe 28 px, Ryu 15: pulo mais baixo para os pes chegarem na mesma altura)
-    fvx[i] = dir * JUMP_VX;
+    fvx[i] = dir * fjvx[i];
     fjump_t[i] = 0;
     fatk[i] = NOATK;
     fhit[i] = 0;
@@ -2810,9 +2811,9 @@ void jump_update(u8 i, u16 keys, u16 down)
         fx[i] += fvx[i];
         fh[i] += fvy[i];
         if (fvy[i] > 0)
-            fvy[i] -= GRAV_UP;
+            fvy[i] -= fgup[i];
         else
-            fvy[i] -= GRAV_DN;
+            fvy[i] -= fgdn[i];
         fjump_t[i]++;
         fidx[i] = 1;
         if (fh[i] <= 0 && fvy[i] < 0)
@@ -2828,9 +2829,9 @@ void jump_update(u8 i, u16 keys, u16 down)
     fx[i] += fvx[i];
     fh[i] += fvy[i];
     if (fvy[i] > 0)
-        fvy[i] -= GRAV_UP;
+        fvy[i] -= fgup[i];
     else
-        fvy[i] -= GRAV_DN;
+        fvy[i] -= fgdn[i];
     fjump_t[i]++;
     id = fatk[i];
     if (fjump_t[i] < 11 && fvx[i] == 0 && id == NOATK)
@@ -2838,12 +2839,12 @@ void jump_update(u8 i, u16 keys, u16 down)
         // quem aperta a direcao um pouco depois de cima ainda faz o pulo diagonal
         if (keys & KEY_LEFT)
         {
-            fvx[i] = -JUMP_VX;
+            fvx[i] = -fjvx[i];
             play_anim(i, A_FJUMP, A_FJUMP_N, 255);
         }
         else if (keys & KEY_RIGHT)
         {
-            fvx[i] = JUMP_VX;
+            fvx[i] = fjvx[i];
             play_anim(i, A_FJUMP, A_FJUMP_N, 255);
         }
     }
@@ -3241,9 +3242,9 @@ void fighter_update(u8 i, u16 keys, u16 down)
             fwd = 1;
         if (dx == -1 && fdir[i] == 1)
             fwd = 1;
-        spd = WALK_BACK;
+        spd = fwb[i];
         if (fwd)
-            spd = WALK_FWD;
+            spd = fwf[i];
         c = TR(i, TRK_WALK_TICKS);          // duracao de cada quadro do andar
         spd += (s16)TR(i, TRK_WALK_ADJ);    // Sagat: passos pesados (mais devagar)
         fx[i] += dx * spd;
@@ -4506,6 +4507,11 @@ u8 fight_run(void)
         fgfx[i] = sel_char[i];
         pk_load_moves(i, fgfx[i]); // golpes e tracos do lutador (do pack)
         fdsw[i] = TR(i, TRK_DIRSWAP);
+        fwf[i] = TR(i, TRK_WALK_FWD);
+        fwb[i] = TR(i, TRK_WALK_BACK);
+        fjvx[i] = TR(i, TRK_JUMP_VX);
+        fgup[i] = TR(i, TRK_GRAV_UP);
+        fgdn[i] = TR(i, TRK_GRAV_DN);
         fpal_a[i] = TR(i, TRK_PAL_ASSET);
         pk_asset(fpal_a[i], 0, 32);
         fsw_src[i << 1] = pk_src;

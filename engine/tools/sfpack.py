@@ -36,8 +36,8 @@ def build(proj, fr, res_dir):   # traits do lutador (docs/FORMAT_SFPK.md): depoi
         bases = fr["fighter_bases"]
         words = [t["moveset"], fr.get("art_bases", {}).get(f["name"], bases[t.get("frames_from", fs.index(f))]), bases[t["fireball_from"]], t["jump_vy"], t["walk_adj"] & 0xFFFF, t["walk_ticks"], t["fb_pal"],
                  t["fb_alt_hi"], t["fb_alt_lo"], fr.get("art_pals", {}).get(f["name"], t["pal_asset"]), t["pal_alt_off"], t["dirswap"], t["fbpal_asset"], t["fbpal_off1"],
-                 t["fbpal_off2"], t["fb_sfx"], t["hp_close_hk"], t["walk_pingpong"], t["face_pal"], t["face_pal_alt"], t["gameover_fp"], t["arcade_opp"], t["face_idx"], 0]
-        out += b"".join(struct.pack("<H", w) for w in words)      # traits: 20 palavras (ver TRK_* em engine/src/fight.c)
+                 t["fbpal_off2"], t["fb_sfx"], t["hp_close_hk"], t["walk_pingpong"], t["face_pal"], t["face_pal_alt"], t["gameover_fp"], t["arcade_opp"], t["face_idx"], t["walk_fwd"], t["walk_back"], t["jump_vx"], t["grav_up"], t["grav_dn"]]
+        out += b"".join(struct.pack("<H", w) for w in words)      # traits: 28 palavras (ver TRK_* em engine/src/fight.c)
     for i, o in enumerate(offs):
         struct.pack_into("<H", out, tab + 2 * i, o)
     # tabela de blocos de graficos (endereco, banco)

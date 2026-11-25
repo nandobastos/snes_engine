@@ -29,7 +29,7 @@ label{display:flex;justify-content:space-between;gap:6px;align-items:center}#msg
 <script>
 const MAX=8, ORIG=3; let G=null, sel=0;
 const $=id=>document.getElementById(id);
-const TR=[["jump_vy","Força do pulo"],["walk_ticks","Passo do andar (quadros)"],["walk_adj","Ajuste de velocidade"],["fb_alt_hi","Altura da magia (alta)"],["fb_alt_lo","Altura da magia (baixa)"],["fb_sfx","Som da magia"],["hp_close_hk","HP de perto = HK de perto (0/1)"],["walk_pingpong","Andar vai e volta (0/1)"],["moveset","Especiais (0 = estilo Ryu, 1 = Sagat)"]];
+const TR=[["jump_vy","Força do pulo"],["walk_ticks","Passo do andar (quadros)"],["walk_adj","Ajuste de velocidade"],["fb_alt_hi","Altura da magia (alta)"],["fb_alt_lo","Altura da magia (baixa)"],["fb_sfx","Som da magia"],["hp_close_hk","HP de perto = HK de perto (0/1)"],["walk_pingpong","Andar vai e volta (0/1)"],["moveset","Especiais (0 = estilo Ryu, 1 = Sagat)"],["walk_fwd","Velocidade andando para frente"],["walk_back","Velocidade andando para trás"],["jump_vx","Velocidade do pulo para o lado"],["grav_up","Gravidade subindo (menor = pula mais alto)"],["grav_dn","Gravidade descendo"]];
 const MV=[["dmg","Dano"],["stun","Stun"],["hgt","Altura"],["flags","Flags"],["hitstop","Hitstop"],["snd_swing","Som do golpe"],["snd_hit","Som do impacto"]];
 function msg(t){$('msg').textContent=t}
 function refresh(){
