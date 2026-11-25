@@ -16,10 +16,67 @@ BANK = 0x8000
 FAST_BASE = 0x80 + PACK_FIRST     # banco do motor (FastROM) onde o pack comeca ($90)
 
 
+FONT8 = json.load(open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "font8.json")))
+
+
+def quote_block(text):
+    """frase de vitoria -> bloco de texto do fx_text (ate 4 linhas de 28 letras, centradas; fonte de engine/font8.json)"""
+    lines, cur = [], ""
+    for w in str(text).split():
+        while len(w) > 28:
+            if cur:
+                lines.append(cur)
+                cur = ""
+            lines.append(w[:28])
+            w = w[28:]
+        if len(cur) + (1 if cur else 0) + len(w) <= 28:
+            cur = (cur + " " + w) if cur else w
+        else:
+            lines.append(cur)
+            cur = w
+    if cur:
+        lines.append(cur)
+    lines = lines[:4]
+    hdr, data = bytearray([len(lines)]), bytearray()
+    for ln in lines:
+        tw = len(ln) * 8
+        left = max(0, (256 - tw) // 2)
+        xt, pad = left // 8, left % 8
+        w8 = (pad + tw + 1 + 7) // 8
+        rows = [0] * 16
+        for i, ch in enumerate(ln):
+            g = FONT8.get(ch, FONT8["?"])
+            for y in range(16):
+                rows[y] |= g[y] << (w8 * 8 - 8 - pad - i * 8)
+        hdr += bytes([w8, 2, xt, xt * 8 + pad])
+        for ty in range(2):
+            for tx in range(w8):
+                for y in range(8):
+                    data.append((rows[ty * 8 + y] >> (w8 * 8 - 8 - tx * 8)) & 255)
+    return bytes(hdr + data)
+
+
+FLOW_T = {"vs": 0, "fight": 1, "victory": 2, "continue": 3, "ending": 4, "next": 5, "select": 6, "title": 7}
+
+
+def flow_block(fl):
+    """fluxo das telas (editor/telas.html) -> [n, inicio] + 32 nos de 8 bytes (tipo, saida 1-3, parametro)"""
+    nodes = fl["nodes"] if fl else []
+    ids = {n["id"]: i for i, n in enumerate(nodes)}
+    assert len(nodes) <= 32, "fluxo com mais de 32 telas"
+    out = bytearray([len(nodes), ids.get(fl["start"], 0) if fl else 0])
+    for n in nodes:
+        nx = [ids.get(x, ids.get(fl["start"], 0)) if x else 0 for x in (n.get("next") or [None] * 3)[:3]]
+        nx += [0] * (3 - len(nx))
+        out += bytes([FLOW_T[n["type"]]] + nx + [n.get("param", 0) & 255, 0, 0, 0])
+    return bytes(out + b"\0" * (2 + 32 * 8 - len(out)))
+
+
 def build(proj, fr, res_dir):   # traits do lutador (docs/FORMAT_SFPK.md): depois dos golpes
     atk = proj["atk_names"]
     n = len(atk)
     fs = proj["fighters"]
+    n_as = len(json.load(open(os.path.join(res_dir, "assets.json"))))   # frases de vitoria: assets depois dos do mkfight
     out = bytearray(32)
     out[0:4] = b"SFPK"
     # golpes
@@ -39,7 +96,7 @@ def build(proj, fr, res_dir):   # traits do lutador (docs/FORMAT_SFPK.md): depoi
                  t["fb_alt_hi"], t["fb_alt_lo"], fr.get("art_pals", {}).get(f["name"], t["pal_asset"]), t["pal_alt_off"], t["dirswap"], t["fbpal_asset"], t["fbpal_off1"],
                  t["fbpal_off2"], t["fb_sfx"], t["hp_close_hk"], t["walk_pingpong"], t["face_pal"], t["face_pal_alt"], t["gameover_fp"], t["arcade_opp"], t["face_idx"], t["walk_fwd"], t["walk_back"], t["jump_vx"], t["grav_up"], t["grav_dn"],
                  t["fb_spd"], t["fb_dmg"], t["fb_spd_s"], t["fb_dmg_s"], t["fb_spd_ex"], t["fb_dmg_ex"], t["fb_spd_sup"], t["fb_dmg_sup"],
-                 t.get("stage_bin", 0), t.get("stage_map", 1), t.get("stage_pal", 2), 0]
+                 t.get("stage_bin", 0), t.get("stage_map", 1), t.get("stage_pal", 2), n_as + fs.index(f)]
         if f["name"] in fr.get("art_stages", {}):   # estagio proprio (.sfstage.json): ids dos 3 assets
             words[36], words[37], words[38] = fr["art_stages"][f["name"]]
         if f["name"] in fr.get("art_bases", {}):    # arte do SF Pixel: troca de cores ao virar so se a arte pedir (mirror_swap)
@@ -54,6 +111,8 @@ def build(proj, fr, res_dir):   # traits do lutador (docs/FORMAT_SFPK.md): depoi
             out += bytes(row + [0] * (16 - len(row)))      # traits: 40 palavras (ver TRK_* em engine/src/fight.c)
     for i, o in enumerate(offs):
         struct.pack_into("<H", out, tab + 2 * i, o)
+    ofs_fl = len(out)   # fluxo das telas do Arcade (pk_h[14]): [n, inicio] + 32 nos de 8 bytes
+    out += flow_block(proj.get("flow"))
     gm = proj.get("game", {})
     ofs_gs = len(out)   # bloco do jogo (pk_h[13]): linhas do HUD e rounds para vencer
     out += struct.pack("<HHHH", gm.get("hud_hp_row", 4), gm.get("hud_win_row", 5), gm.get("hud_sp_row", 23), gm.get("rounds_to_win", 2))
@@ -87,11 +146,13 @@ def build(proj, fr, res_dir):   # traits do lutador (docs/FORMAT_SFPK.md): depoi
         out += struct.pack("<HH", 0x8000 + (p_ % BANK), FAST_BASE + p_ // BANK)
     # assets (cenario, retratos, HUD, paletas): tabela de (endereco, banco, tamanho) e dados depois dos blocos de graficos, sem cruzar bancos
     assets = json.load(open(os.path.join(res_dir, "assets.json")))
+    quotes = [quote_block(f.get("win_quote", "")) for f in fs]
+    assets += ["quote_%d" % i for i in range(len(fs))]
     ofs_as = len(out)
     out += b"\0" * (8 * len(assets))
     assert len(out) <= BANK, "banco 0 do pack passou de 32 KB (%d)" % len(out)
     struct.pack_into("<HHHHHHHH", out, 4, 3, len(fs), n, tab, fr["nframes"], fr["npieces"], len(chunks), ofs_ct)
-    struct.pack_into("<HHHH", out, 20, ofs_dir, ofs_as, len(assets), ofs_gs)
+    struct.pack_into("<HHHHH", out, 20, ofs_dir, ofs_as, len(assets), ofs_gs, ofs_fl)
     pack = bytearray(b"\xff" * (PACK_BANKS * BANK))
     pack[:len(out)] = out
     for p_, b in zip(tplace, tabs):
@@ -100,7 +161,7 @@ def build(proj, fr, res_dir):   # traits do lutador (docs/FORMAT_SFPK.md): depoi
         pack[(gfx0 + k) * BANK:(gfx0 + k) * BANK + len(c)] = c
     pos = (gfx0 + len(chunks)) * BANK
     for i, name in enumerate(assets):
-        d = open(os.path.join(res_dir, name), "rb").read()
+        d = quotes[int(name[6:])] if name.startswith("quote_") else open(os.path.join(res_dir, name), "rb").read()
         if name == "hud.pal" and proj.get("game", {}).get("hud_pal"):   # cores do HUD (editor: Regras e HUD)
             d = b"".join(struct.pack("<H", w & 0x7FFF) for w in proj["game"]["hud_pal"][:len(d) // 2])
         assert len(d) <= BANK, name

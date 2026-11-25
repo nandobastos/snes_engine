@@ -66,11 +66,14 @@ u16 prof_dummy;
 #endif
 enum { TRK_MOVESET, TRK_FRAME_BASE, TRK_FX_BASE, TRK_JUMP_VY, TRK_WALK_ADJ, TRK_WALK_TICKS, TRK_FB_PAL, TRK_FB_ALT_HI, TRK_FB_ALT_LO,
        TRK_PAL_ASSET, TRK_PAL_ALT, TRK_DIRSWAP, TRK_FBPAL_ASSET, TRK_FBPAL_OFF1, TRK_FBPAL_OFF2, TRK_FB_SFX, TRK_HP_CLOSE_HK, TRK_PINGPONG, TRK_FACE_PAL, TRK_FACE_ALT, TRK_GAMEOVER_FP, TRK_ARCADE_OPP, TRK_FACE_IDX, TRK_WALK_FWD, TRK_WALK_BACK, TRK_JUMP_VX, TRK_GRAV_UP, TRK_GRAV_DN,
-       TRK_FB_SPD, TRK_FB_DMG, TRK_FB_SPD_S, TRK_FB_DMG_S, TRK_FB_SPD_EX, TRK_FB_DMG_EX, TRK_FB_SPD_SUP, TRK_FB_DMG_SUP, TRK_STAGE_BIN, TRK_STAGE_MAP, TRK_STAGE_PAL };
+       TRK_FB_SPD, TRK_FB_DMG, TRK_FB_SPD_S, TRK_FB_DMG_S, TRK_FB_SPD_EX, TRK_FB_DMG_EX, TRK_FB_SPD_SUP, TRK_FB_DMG_SUP, TRK_STAGE_BIN, TRK_STAGE_MAP, TRK_STAGE_PAL, TRK_QUOTE };
 u16 pk_trait(u8 ch, u8 k);
 u16 pk_h[16], pk_dir[50];   // cabecalho do pack e diretorio das tabelas de quadros
 u8 pk_i, pk_j;
 u16 pk_gs[4];
+// fluxo do Arcade (pack, pk_h[14]): [quantidade, no inicial] e nos de 8 bytes: tipo, saida 1, saida 2, saida 3, parametro
+enum { FL_VS, FL_FIGHT, FL_VICTORY, FL_CONTINUE, FL_ENDING, FL_NEXT, FL_SELECT, FL_TITLE };
+u8 flow[2 + 32 * 8];
 u8 ftc[5 * 8];   // tracos das telas (retrato, game over, 1o oponente) de ate 8 lutadores, lidos do pack uma vez no boot
 #define FTC(ch, k) ftc[((k) - TRK_FACE_PAL) * 8 + (ch)]
 u8 game_screen; // 0 menus, 1 selecao, 2 VS, 3 luta (usado pelos testes)
@@ -810,6 +813,8 @@ void pk_boot(void)
     hud_win = pk_gs[1];
     hud_sp = pk_gs[2];
     rounds_win = pk_gs[3];
+    pk_dst = (u16)&flow;
+    pk_get(pk_h[14], 2 + 32 * 8);   // fluxo das telas do Arcade (editor/telas.html)
     for (pk_i = 0; pk_i < pk_h[3]; pk_i++)
         for (pk_j = TRK_FACE_PAL; pk_j <= TRK_FACE_IDX; pk_j++)
             ftc[(pk_j - TRK_FACE_PAL) * 8 + pk_i] = pk_trait(pk_i, pk_j);
@@ -4894,7 +4899,8 @@ u8 fight_run(void)
         }
         if (hud_dirty)
         {
-            dmaCopyVram((u8 *)&map3[HUD_HP << 5], VRAM_BG3_MAP + (HUD_HP << 5), 128); // barras (linha 2) e bolinhas (linha 3)
+            dmaCopyVram((u8 *)&map3[HUD_HP << 5], VRAM_BG3_MAP + (HUD_HP << 5), 64);   // barras
+            dmaCopyVram((u8 *)&map3[HUD_WIN << 5], VRAM_BG3_MAP + (HUD_WIN << 5), 64); // bolinhas de round (linha propria: Regras e HUD)
             hud_dirty = 0;
         }
         if (hud2_dirty)
@@ -5032,39 +5038,103 @@ void ending_run(void)
     menu_fade = 1;
 }
 
-// Arcade depois da escolha do P1. Devolve 1 = escolher de novo (continue / START na luta), 0 = titulo
+// VITORIA: rosto do vencedor (jogador w) e a frase de vitoria dele (asset do pack, montado pelo sfpack/sfbuild)
+void victory_run(u8 w)
+{
+    u16 t;
+    game_screen = 6;
+    pk_load_moves(w, sel_char[w]); // tracos do vencedor (a frase), mesmo se a tela vier fora da luta no fluxo
+    sfx_set_menu();
+    screen_base();
+    faces_load();
+    set_color(0, 0);
+    face_put(12, 3, FTC(sel_char[w], TRK_FACE_PAL), 0, FTC(sel_char[w], TRK_FACE_IDX));
+    dmaCopyVram((u8 *)map1, VRAM_BG1_MAP, 2048);
+    pk_dst = (u16)&smap;      // (o mapa do cenario no banco $7F nao e usado fora da luta)
+    pk_db = 1;
+    pk_ram(TR(w, TRK_QUOTE), 0);
+    pk_db = 0;
+    fx_text((u8 *)smap, 16, 0, 1, map3, VRAM_BG3_GFX);
+    dmaCopyVram((u8 *)map3, VRAM_BG3_MAP, 2048);
+    setBrightness(15);
+    reveal_screen();
+    for (t = 0; t < 300; t++)
+    {
+        fx_frame();
+        if (t > 40 && (pad_down & (KEY_B | KEY_START)))
+            break;
+    }
+    for (t = 60; t > 0; t--)
+    {
+        fx_frame();
+        setBrightness((t - 1) >> 2);
+    }
+    menu_fade = 1;
+}
+
+// Arcade depois da escolha do P1: segue o fluxo de telas do pack. Devolve 1 = escolher de novo, 0 = titulo
 u8 arcade_run(void)
 {
-    u8 r;
+    u8 nd = flow[1], r, t;
+    u16 k;
     while (1)
     {
-        sel_char[1] = sel_char[0];
-        if (arc_stage == 0)
+        k = 2 + (nd << 3);
+        t = flow[k];
+        if (t == FL_VS)
         {
-            sel_char[1] = FTC(sel_char[0], TRK_ARCADE_OPP); // 1o oponente (Ryu <-> Sagat; o DonLee enfrenta o Ryu)
+            sel_char[1] = sel_char[0];
+            if (arc_stage == 0)
+                sel_char[1] = FTC(sel_char[0], TRK_ARCADE_OPP); // 1o oponente (Ryu <-> Sagat; o DonLee enfrenta o Ryu)
+            vs_run();
+            nd = flow[k + 1];
         }
-        vs_run();
-        r = fight_run();
-        if (r == 0)
+        else if (t == FL_FIGHT)
         {
-            arc_stage = 0;
-            return 1;
+            r = fight_run();
+            if (r == 0)
+                nd = flow[k + 3];   // START: saiu da luta
+            else if (r == 1)
+                nd = flow[k + 1];   // venceu
+            else
+                nd = flow[k + 2];   // perdeu
         }
-        if (r == 1)
+        else if (t == FL_VICTORY)
+        {
+            victory_run(0);
+            nd = flow[k + 1];
+        }
+        else if (t == FL_CONTINUE)
+        {
+            if (continue_run())
+                nd = flow[k + 1];
+            else
+                nd = flow[k + 2];
+        }
+        else if (t == FL_ENDING)
+        {
+            ending_run();
+            nd = flow[k + 1];
+        }
+        else if (t == FL_NEXT)
         {
             arc_stage++;
-            if (arc_stage >= ARC_N)
-            {
-                ending_run();
-                arc_stage = 0;
-                return 0;
-            }
-            continue;
+            if (arc_stage >= flow[k + 4])
+                nd = flow[k + 2];   // acabaram os oponentes
+            else
+                nd = flow[k + 1];
         }
-        if (continue_run())
-            return 1;  // mesma fase, pode trocar de lutador
-        arc_stage = 0;
-        return 0;
+        else if (t == FL_SELECT)
+        {
+            if (flow[k + 4])
+                arc_stage = 0;
+            return 1;
+        }
+        else
+        {
+            arc_stage = 0;
+            return 0;
+        }
     }
 }
 

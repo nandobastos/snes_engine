@@ -25,6 +25,25 @@
     }
     return out;
   }
+  function quoteBlock(text, F) {   // frase de vitoria -> bloco do fx_text (= quote_block do engine/tools/sfpack.py)
+    const lines = []; let cur = "";
+    String(text || "").split(/\s+/).filter(Boolean).forEach((w0) => {
+      let w = w0;
+      while (w.length > 28) { if (cur) { lines.push(cur); cur = ""; } lines.push(w.slice(0, 28)); w = w.slice(28); }
+      if (cur.length + (cur ? 1 : 0) + w.length <= 28) cur = cur ? cur + " " + w : w; else { lines.push(cur); cur = w; }
+    });
+    if (cur) lines.push(cur);
+    const L = lines.slice(0, 4), hdr = [L.length], data = [];
+    L.forEach((ln) => {
+      const chars = Array.from(ln), tw = chars.length * 8, left = Math.max(0, (256 - tw) >> 1), xt = left >> 3, pad = left & 7, w8 = (pad + tw + 1 + 7) >> 3;
+      const rows = []; for (let y = 0; y < 16; y++) rows.push(new Array(w8 + 1).fill(0));
+      chars.forEach((ch, i) => { const g = F[ch] || F["?"], x0 = pad + i * 8, b = x0 >> 3, sh = x0 & 7;
+        for (let y = 0; y < 16; y++) { rows[y][b] |= g[y] >> sh; rows[y][b + 1] |= (g[y] << (8 - sh)) & 255; } });
+      hdr.push(w8, 2, xt, xt * 8 + pad);
+      for (let ty = 0; ty < 2; ty++) for (let tx = 0; tx < w8; tx++) for (let y = 0; y < 8; y++) data.push(rows[ty * 8 + y][tx]);
+    });
+    return hdr.concat(data);
+  }
   const slugOf = (n) => n.toLowerCase().replace(/[^a-z0-9]/g, (c) => (/[\p{L}\p{N}]/u.test(c) ? c : "_"));
 
   function build(rom, base, game, arts, stages) {
@@ -43,7 +62,7 @@
     });
     const chunks = base.chunk_sizes.map((sz, k) => { const o = romOff(rd16(H + ofsct + 4 * k), R[H + ofsct + 4 * k + 2]); return Array.from(R.subarray(o, o + sz)); });
     const assets = base.assets.slice(), adata = [];
-    for (let i = 0; i < nas; i++) { const e = H + ofsas + 8 * i, o = romOff(rd16(e), rd16(e + 2)); adata.push(Array.from(R.subarray(o, o + rd16(e + 4)))); }
+    for (let i = 0; i < base.assets.length; i++) { const e = H + ofsas + 8 * i, o = romOff(rd16(e), rd16(e + 2)); adata.push(Array.from(R.subarray(o, o + rd16(e + 4)))); }
     // ---- lutadores com arte propria (o mesmo bloco do engine/tools/mkfight.py)
     const done = chunks.slice(0, -1);
     let cur = chunks[chunks.length - 1].slice();
@@ -128,7 +147,7 @@
       [t.moveset, fb, bases[t.fireball_from], t.jump_vy, t.walk_adj & 0xFFFF, t.walk_ticks, t.fb_pal, t.fb_alt_hi, t.fb_alt_lo,
         artPals[f.name] !== undefined ? artPals[f.name] : t.pal_asset, t.pal_alt_off, t.dirswap, t.fbpal_asset, t.fbpal_off1, t.fbpal_off2, t.fb_sfx,
         t.hp_close_hk, t.walk_pingpong, t.face_pal, t.face_pal_alt, t.gameover_fp, t.arcade_opp, t.face_idx, t.walk_fwd, t.walk_back, t.jump_vx,
-        t.grav_up, t.grav_dn, t.fb_spd, t.fb_dmg, t.fb_spd_s, t.fb_dmg_s, t.fb_spd_ex, t.fb_dmg_ex, t.fb_spd_sup, t.fb_dmg_sup, t.stage_bin !== undefined ? t.stage_bin : 0, t.stage_map !== undefined ? t.stage_map : 1, t.stage_pal !== undefined ? t.stage_pal : 2, 0].map((v, i, a) => {
+        t.grav_up, t.grav_dn, t.fb_spd, t.fb_dmg, t.fb_spd_s, t.fb_dmg_s, t.fb_spd_ex, t.fb_dmg_ex, t.fb_spd_sup, t.fb_dmg_sup, t.stage_bin !== undefined ? t.stage_bin : 0, t.stage_map !== undefined ? t.stage_map : 1, t.stage_pal !== undefined ? t.stage_pal : 2, assets.length + fi].map((v, i, a) => {
         if (artStages[f.name] && i >= 36 && i <= 38) return artStages[f.name][i - 36];
         if (artBases[f.name] !== undefined && (i === 10 || i === 11)) return i === 10 ? 0 : (artSwap[f.name] ? 1 : 0);
         const j = artFaces[f.name];   // retrato proprio: rosto 3+j, paleta 3 ou 6 (P2 igual), game over le a paleta 7+j
@@ -139,6 +158,15 @@
       cm.forEach((st) => { const row = [st.length]; st.slice().reverse().forEach(([m, v]) => row.push(m & 255, v & 255)); if (row.length > 16) throw new Error("Comando com mais de 7 passos (" + f.name + ")"); while (row.length < 16) row.push(0); row.forEach((b) => out.push(b)); });
     });
     offs.forEach((o, i) => w16(out, tab + 2 * i, o));
+    const ofsFl = out.length;   // fluxo das telas do Arcade (= flow_block do sfpack.py)
+    { const FT = { vs: 0, fight: 1, victory: 2, continue: 3, ending: 4, next: 5, select: 6, title: 7 }, fl = game.flow, nodes = fl ? fl.nodes : [], ids = {};
+      if (nodes.length > 32) throw new Error("Fluxo com mais de 32 telas");
+      nodes.forEach((n, i) => (ids[n.id] = i));
+      const st = fl && ids[fl.start] !== undefined ? ids[fl.start] : 0, blk = [nodes.length, st];
+      nodes.forEach((n) => { const nx = (n.next || [null, null, null]).slice(0, 3); while (nx.length < 3) nx.push(null);
+        blk.push(FT[n.type], ...nx.map((x) => (x ? (ids[x] !== undefined ? ids[x] : st) : 0)), (n.param || 0) & 255, 0, 0, 0); });
+      while (blk.length < 2 + 32 * 8) blk.push(0);
+      blk.forEach((b) => out.push(b)); }
     const gm = game.game || {}, ofsGs = out.length, dv = (v, d) => (v === undefined ? d : v);   // bloco do jogo: HUD e rounds
     [dv(gm.hud_hp_row, 4), dv(gm.hud_win_row, 5), dv(gm.hud_sp_row, 23), dv(gm.rounds_to_win, 2)].forEach(p16);
     const tabs = base.arrays.map(([name, size]) => { const b = []; A[name].forEach((v) => { if (size === 1) b.push(v & 255); else b.push(v & 255, (v >> 8) & 255); }); if (b.length > BANK) throw new Error("tabela grande demais: " + name); return b; });
@@ -150,11 +178,12 @@
     while (out.length % 2) out.push(0);
     const ofsDir = out.length;
     tplace.forEach((p) => { p16(0x8000 + (p % BANK)); p16(FAST + Math.floor(p / BANK)); });
+    fs.forEach((f, i) => { assets.push("quote_" + i); adata.push(quoteBlock(f.win_quote, base.font8)); });   // frases de vitoria
     const ofsAs = out.length;
     assets.forEach(() => { for (let i = 0; i < 8; i++) out.push(0); });
     if (out.length > BANK) throw new Error("banco 0 do pack passou de 32 KB");
     [3, fs.length, atk.length, tab, A.pf_chunk.length, A.pp_dx.length, done.length, ofsCt].forEach((v, i) => w16(out, 4 + 2 * i, v));
-    [ofsDir, ofsAs, assets.length, ofsGs].forEach((v, i) => w16(out, 20 + 2 * i, v));
+    [ofsDir, ofsAs, assets.length, ofsGs, ofsFl].forEach((v, i) => w16(out, 20 + 2 * i, v));
     const pack = new Uint8Array(PACK_BANKS * BANK).fill(0xFF);
     pack.set(out, 0);
     tplace.forEach((p, i) => pack.set(tabs[i], p));

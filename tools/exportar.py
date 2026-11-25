@@ -27,7 +27,8 @@ def main():
         assert not fr.get("art_bases"), "gere a base sem lutadores com arte propria (so os 3 originais)"
         base = dict(layout=fr["layout"], chunk_sizes=fr["chunk_sizes"], fighter_bases=fr["fighter_bases"], nframes=fr["nframes"],
                     npieces=fr["npieces"], arrays=[[a["name"], a["size"]] for a in fr["arrays"]],
-                    assets=json.load(open(os.path.join(ENG, "res", "assets.json"))))
+                    assets=json.load(open(os.path.join(ENG, "res", "assets.json"))),
+                    font8=json.load(open(os.path.join(ENG, "font8.json"))))
         json.dump(base, open(os.path.join(ENG, "base.json"), "w"))
         shutil.copy(os.path.join(ENG, "fight.sfc"), os.path.join(ENG, "base.sfc"))
         print("engine/base.sfc e engine/base.json atualizadas (o exportador do navegador usa as duas)")

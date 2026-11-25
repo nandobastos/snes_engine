@@ -72,3 +72,11 @@ do primeiro ao ultimo (direcao relativa: 1 cima 2 baixo 4 tras 8 frente). No pac
 (n, depois (mascara, valor) do ultimo ao primeiro: o formato da antiga mot_tab). O motor copia para mot_ram (80 bytes por
 jogador) e o motion_id (src/drawobj.asm) le a linha do jogador. Testado: padrao = original; clone com magia em <- -> + soco
 solta a magia assim e a meia-lua deixa de soltar.
+
+## Fluxo de telas (Arcade) e tela de vitoria
+game.json "flow": {start, nodes:[{id, type, next:[saida1, saida2, saida3], param, x, y}]}. Tipos: vs, fight (saidas: venceu,
+perdeu, saiu com START), victory, continue (continuar, game over), ending, next (proximo oponente: tem mais, acabou; param =
+quantas lutas), select (param 1 = recomeca do 1o oponente), title. No pack: pk_h[14] -> [n, inicio] + 32 nos de 8 bytes; o
+arcade_run interpreta. Padrao: VS -> luta -> vitoria -> proximo (2 lutas) -> final; perdeu -> continue -> selecao / titulo.
+Vitoria: rosto do vencedor + frase (fighters[].win_quote, ate 4 linhas de 28 letras, fonte engine/font8.json; asset quote_i,
+traco 39). Testado: vitoria com a frase, continue 9..0 e START -> selecao; ROM do navegador = Python; Practice identico.

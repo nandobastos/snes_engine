@@ -505,7 +505,8 @@
             8
           ]
         ]
-      ]
+      ],
+      "win_quote": "O verdadeiro combate está dentro de você. Levante-se e treine mais!"
     },
     {
       "name": "Sagat",
@@ -991,7 +992,8 @@
             8
           ]
         ]
-      ]
+      ],
+      "win_quote": "Você não é páreo para o rei do Muay Thai. Volte quando tiver força!"
     },
     {
       "name": "DonLee",
@@ -1477,7 +1479,8 @@
             8
           ]
         ]
-      ]
+      ],
+      "win_quote": "Meus punhos são de ferro! Ninguém fica de pé contra mim!"
     }
   ],
   "game": {
@@ -1498,6 +1501,113 @@
       32767,
       32588,
       14498
+    ]
+  },
+  "flow": {
+    "start": "vs",
+    "nodes": [
+      {
+        "id": "vs",
+        "type": "vs",
+        "next": [
+          "fight",
+          null,
+          null
+        ],
+        "x": 60,
+        "y": 60
+      },
+      {
+        "id": "fight",
+        "type": "fight",
+        "next": [
+          "victory",
+          "continue",
+          "quit"
+        ],
+        "x": 280,
+        "y": 60
+      },
+      {
+        "id": "victory",
+        "type": "victory",
+        "next": [
+          "next",
+          null,
+          null
+        ],
+        "x": 520,
+        "y": 20
+      },
+      {
+        "id": "next",
+        "type": "next",
+        "next": [
+          "vs",
+          "ending",
+          null
+        ],
+        "param": 2,
+        "x": 520,
+        "y": 170
+      },
+      {
+        "id": "ending",
+        "type": "ending",
+        "next": [
+          "title",
+          null,
+          null
+        ],
+        "x": 760,
+        "y": 170
+      },
+      {
+        "id": "continue",
+        "type": "continue",
+        "next": [
+          "select",
+          "title",
+          null
+        ],
+        "x": 280,
+        "y": 260
+      },
+      {
+        "id": "title",
+        "type": "title",
+        "next": [
+          null,
+          null,
+          null
+        ],
+        "x": 760,
+        "y": 330
+      },
+      {
+        "id": "quit",
+        "type": "select",
+        "param": 1,
+        "next": [
+          null,
+          null,
+          null
+        ],
+        "x": 60,
+        "y": 260
+      },
+      {
+        "id": "select",
+        "type": "select",
+        "param": 0,
+        "next": [
+          null,
+          null,
+          null
+        ],
+        "x": 520,
+        "y": 360
+      }
     ]
   }
 }
