@@ -264,6 +264,7 @@ ANIMS = [          # indices dos quadros na folha (veja o contato: python3 tools
     ("shadow", [-1, -2]),
 ]
 RYU_PAL_COLORS = 15
+PF_MAX, PP_MAX, NCHUNK_MAX = 1152, 15360, 48   # limites da RAM $7F para as tabelas de quadros (ate ~8 lutadores)
 CHUNK = 0x7000                 # tamanho maximo de cada bloco de graficos na ROM (<= 32 KB, com folga)
 
 
@@ -879,9 +880,11 @@ def build_ryu():
     with open(os.path.join(RES, "sfram.asm"), "w") as ra:
         ra.write("; gerado por tools/mkfight.py: tabelas de quadros na RAM do banco $7F (as variaveis do C so cabem ate $7E:7FFF; de $8000 em diante ficam as da PVSnesLib)\n")
         ra.write(".BASE $00\n.RAMSECTION \"sf_frames\" BANK $7F SLOT 3\n")
+        # tamanhos MAXIMOS (nao os do projeto): a ROM-motor serve para qualquer pack (o exportador so troca o pack)
+        assert len(table) <= PF_MAX and len(dx) <= PP_MAX and len(chunks) <= NCHUNK_MAX, (len(table), len(dx), len(chunks))
         for n_, sz_, d_ in arrays:
-            ra.write("%s dsb %d\n" % (n_, len(d_) * sz_))
-        ra.write("chunk_tab dsb %d\nsmap dsb 2048\n.ENDS\n.BASE $80\n" % (4 * len(chunks)))
+            ra.write("%s dsb %d\n" % (n_, (PP_MAX if n_.startswith("pp_") else PF_MAX) * sz_))
+        ra.write("chunk_tab dsb %d\nsmap dsb 2048\n.ENDS\n.BASE $80\n" % (4 * NCHUNK_MAX))
     import json as _json
     _json.dump(dict(fighter_bases=[0, ryu_n, boxer_off], art_bases=art_bases, art_pals={n: PACK_ASSETS.index('art_%s.pal' % ''.join(ch if ch.isalnum() else '_' for ch in n.lower())) for n in art_bases}, nframes=len(table), npieces=len(dx), arrays=[dict(name=n, size=sz, data=d) for n, sz, d in arrays],
                     chunks=["ryu_%d.bin" % i for i in range(len(chunks))]), open(os.path.join(RES, "frames.json"), "w"))

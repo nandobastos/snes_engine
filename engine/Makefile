@@ -8,7 +8,7 @@ export ROMTITLE := STREET COMBAT
 export CARTRIDGETYPE := 02
 export SRAMSIZE := 01
 # 1 MB (textos dos 9 idiomas + sprites do Ryu)
-# 2 MB: o jogo ocupa os bancos 0-31 e o PACK de dados (tools/sfpack.py) os bancos 32-63 (arquivo 0x100000)
+# 2 MB: o jogo ocupa os bancos 0-15 e o PACK de dados (tools/sfpack.py) os bancos 16-63 (arquivo 0x80000)
 export ROMSIZE := 0B
 export ROMBANKS := 64
 # FastROM: o codigo e as tabelas na ROM rodam a 3,58 MHz (SlowROM = 2,68 MHz): ~33% mais rapido em tudo

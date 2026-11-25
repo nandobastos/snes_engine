@@ -68,7 +68,7 @@ enum { TRK_MOVESET, TRK_FRAME_BASE, TRK_FX_BASE, TRK_JUMP_VY, TRK_WALK_ADJ, TRK_
        TRK_PAL_ASSET, TRK_PAL_ALT, TRK_DIRSWAP, TRK_FBPAL_ASSET, TRK_FBPAL_OFF1, TRK_FBPAL_OFF2, TRK_FB_SFX, TRK_HP_CLOSE_HK, TRK_PINGPONG, TRK_FACE_PAL, TRK_FACE_ALT, TRK_GAMEOVER_FP, TRK_ARCADE_OPP, TRK_FACE_IDX, TRK_WALK_FWD, TRK_WALK_BACK, TRK_JUMP_VX, TRK_GRAV_UP, TRK_GRAV_DN,
        TRK_FB_SPD, TRK_FB_DMG, TRK_FB_SPD_S, TRK_FB_DMG_S, TRK_FB_SPD_EX, TRK_FB_DMG_EX, TRK_FB_SPD_SUP, TRK_FB_DMG_SUP };
 u16 pk_trait(u8 ch, u8 k);
-u16 pk_h[16], pk_dir[25];   // cabecalho do pack e diretorio das tabelas de quadros
+u16 pk_h[16], pk_dir[50];   // cabecalho do pack e diretorio das tabelas de quadros
 u8 pk_i, pk_j;
 u8 ftc[5 * 8];   // tracos das telas (retrato, game over, 1o oponente) de ate 8 lutadores, lidos do pack uma vez no boot
 #define FTC(ch, k) ftc[((k) - TRK_FACE_PAL) * 8 + (ch)]
@@ -731,51 +731,52 @@ void sf_copy(void);
 
 // copia n bytes do pack (deslocamento off, ate 32 KB) para a RAM em pk_dst (o chamador poe o destino em pk_dst: passar o endereco como
 // argumento empilhava 4 bytes no tcc-816 e embaralhava os outros argumentos)
+#define PK_BANK0 0x90
 void pk_get(u16 off, u16 n)
 {
     pk_src = 0x8000 + off;
-    pk_bank = 0xA0;      // o pack comeca no banco $A0 (arquivo 0x100000; $20 e o mesmo banco em SlowROM)
+    pk_bank = PK_BANK0;  // o pack comeca no banco $90 (arquivo 0x80000; ver tools/sfpack.py PACK_FIRST)
     pk_n = n;
     sf_copy();
 }
 
 // copia as tabelas de quadros e a tabela de blocos de graficos do pack para a RAM (uma vez por luta; a tela esta coberta)
-#define PKA(arr, size) pk_dst = (u16)&arr; pk_get(pk_dir[k++], size)   // (arr em $7F: pk_db = 1)
+#define PKA(arr, size) pk_dst = (u16)&arr; pk_src = pk_dir[k]; pk_bank = pk_dir[k + 1]; pk_n = size; sf_copy(); k += 2   // tabela k (endereco, banco) no pack; arr em $7F: pk_db = 1
 void pk_load_frames(void)
 {
     u8 k = 0;
     pk_dst = (u16)&pk_h;
     pk_get(0, 32);
     pk_dst = (u16)&pk_dir;
-    pk_get(pk_h[10], 50);
+    pk_get(pk_h[10], 100);
     pk_db = 1;
     pk_dst = (u16)&chunk_tab;
-    pk_get(pk_h[9], NCHUNK * 4);
-    PKA(pf_chunk, PF_N);
-    PKA(pf_off, PF_N * 2);
-    PKA(pf_count, PF_N);
-    PKA(pf_w, PF_N);
-    PKA(pf_h, PF_N);
-    PKA(pf_ax, PF_N);
-    PKA(pf_belt, PF_N);
-    PKA(pf_hb, PF_N);
-    PKA(pf_hbx0, PF_N);
-    PKA(pf_hbx1, PF_N);
-    PKA(pf_hby0, PF_N);
-    PKA(pf_hby1, PF_N);
-    PKA(pf_hu, PF_N);
-    PKA(pf_hux0, PF_N);
-    PKA(pf_hux1, PF_N);
-    PKA(pf_huy0, PF_N);
-    PKA(pf_huy1, PF_N);
-    PKA(pf_hb2, PF_N);
-    PKA(pf_hb2x0, PF_N);
-    PKA(pf_hb2x1, PF_N);
-    PKA(pf_hb2y0, PF_N);
-    PKA(pf_hb2y1, PF_N);
-    PKA(pf_first, PF_N * 2);
-    PKA(pp_dx, PP_N);
-    PKA(pp_dy, PP_N);
+    pk_get(pk_h[9], pk_h[8] * 4);
+    PKA(pf_chunk, pk_h[6]);
+    PKA(pf_off, pk_h[6] * 2);
+    PKA(pf_count, pk_h[6]);
+    PKA(pf_w, pk_h[6]);
+    PKA(pf_h, pk_h[6]);
+    PKA(pf_ax, pk_h[6]);
+    PKA(pf_belt, pk_h[6]);
+    PKA(pf_hb, pk_h[6]);
+    PKA(pf_hbx0, pk_h[6]);
+    PKA(pf_hbx1, pk_h[6]);
+    PKA(pf_hby0, pk_h[6]);
+    PKA(pf_hby1, pk_h[6]);
+    PKA(pf_hu, pk_h[6]);
+    PKA(pf_hux0, pk_h[6]);
+    PKA(pf_hux1, pk_h[6]);
+    PKA(pf_huy0, pk_h[6]);
+    PKA(pf_huy1, pk_h[6]);
+    PKA(pf_hb2, pk_h[6]);
+    PKA(pf_hb2x0, pk_h[6]);
+    PKA(pf_hb2x1, pk_h[6]);
+    PKA(pf_hb2y0, pk_h[6]);
+    PKA(pf_hb2y1, pk_h[6]);
+    PKA(pf_first, pk_h[6] * 2);
+    PKA(pp_dx, pk_h[7]);
+    PKA(pp_dy, pk_h[7]);
     pk_db = 0;
 }
 

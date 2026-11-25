@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
 """Monta o pack da engine (formato SFPK v2, ver docs/FORMAT_SFPK.md) a partir do projeto JSON e das tabelas de quadros.
 uso: python3 tools/sfpack.py ../project/game.json res/frames.json res/pack.bin res/pack.asm  (le tambem res/assets.json)
-- pack.bin: ate 1 MB (32 bancos de 32 KB); o motor le a partir do banco $A0 (arquivo 0x100000 da ROM).
-- pack.asm: poe o pack nos bancos 32..63 da ROM (o editor, no navegador, so troca esses bytes na ROM-motor).
-Banco 0 do pack = cabecalho, golpes, tabela de blocos de graficos e tabelas de quadros (tem que caber em 32 KB: o motor le sem cruzar bancos);
-bancos 1..N = um bloco de graficos (ate 28 KB) cada, comecando no inicio do banco."""
+- pack.bin: ate 1,5 MB (48 bancos de 32 KB); o motor le a partir do banco $90 (arquivo 0x80000 da ROM).
+- pack.asm: poe o pack nos bancos 16..63 da ROM (o editor, no navegador, so troca esses bytes na ROM-motor).
+Banco 0 do pack = cabecalho, golpes/tracos, tabela de blocos de graficos, diretorio das tabelas de quadros e tabela de assets (32 KB);
+bancos 1..T = tabelas de quadros; depois um bloco de graficos (ate 28 KB) por banco; depois os assets. (SFPK v3)"""
 import json
 import os
 import struct
 import sys
 
-PACK_BANKS = 32
+PACK_FIRST = 16     # banco da ROM onde o pack comeca (arquivo 0x80000); o jogo fixo fica nos bancos 0-15
+PACK_BANKS = 48     # 1,5 MB de pack
 BANK = 0x8000
-FAST_BASE = 0xA0     # banco do motor (FastROM) onde o pack comeca
+FAST_BASE = 0x80 + PACK_FIRST     # banco do motor (FastROM) onde o pack comeca ($90)
 
 
 def build(proj, fr, res_dir):   # traits do lutador (docs/FORMAT_SFPK.md): depois dos golpes
@@ -43,34 +44,46 @@ def build(proj, fr, res_dir):   # traits do lutador (docs/FORMAT_SFPK.md): depoi
         struct.pack_into("<H", out, tab + 2 * i, o)
     # tabela de blocos de graficos (endereco, banco)
     chunks = [open(os.path.join(res_dir, c), "rb").read() for c in fr["chunks"]]
+    # tabelas de quadros: nos bancos 1..T (cada tabela inteira num banco); o diretorio (endereco, banco) fica no banco 0
+    arrays = fr["arrays"]
+    tabs = []
+    for a in arrays:
+        d = a["data"]
+        b = bytes(v & 255 for v in d) if a["size"] == 1 else b"".join(struct.pack("<H", v) for v in d)
+        assert len(b) <= BANK, a["name"]
+        tabs.append(b)
+    tpos, tplace = BANK, []
+    for b in tabs:
+        if (tpos % BANK) + len(b) > BANK:
+            tpos = (tpos // BANK + 1) * BANK
+        tplace.append(tpos)
+        tpos += len(b)
+        tpos = (tpos + 1) & ~1
+    tbanks = tpos // BANK + (1 if tpos % BANK else 0) - 1     # bancos usados pelas tabelas
+    gfx0 = 1 + tbanks                                          # primeiro banco dos blocos de graficos
     ofs_ct = len(out)
     for k, c in enumerate(chunks):
         assert len(c) <= BANK
-        out += struct.pack("<HBB", 0x8000, FAST_BASE + 1 + k, 0)
-    # tabelas de quadros
+        out += struct.pack("<HBB", 0x8000, FAST_BASE + gfx0 + k, 0)
     while len(out) % 2:
         out += b"\0"
-    arrays = fr["arrays"]
     ofs_dir = len(out)
-    out += b"\0" * (2 * len(arrays))
-    for i, a in enumerate(arrays):
-        struct.pack_into("<H", out, ofs_dir + 2 * i, len(out))
-        d = a["data"]
-        out += bytes(v & 255 for v in d) if a["size"] == 1 else b"".join(struct.pack("<H", v) for v in d)
-        while len(out) % 2:
-            out += b"\0"
+    for p_ in tplace:
+        out += struct.pack("<HH", 0x8000 + (p_ % BANK), FAST_BASE + p_ // BANK)
     # assets (cenario, retratos, HUD, paletas): tabela de (endereco, banco, tamanho) e dados depois dos blocos de graficos, sem cruzar bancos
     assets = json.load(open(os.path.join(res_dir, "assets.json")))
     ofs_as = len(out)
     out += b"\0" * (8 * len(assets))
     assert len(out) <= BANK, "banco 0 do pack passou de 32 KB (%d)" % len(out)
-    struct.pack_into("<HHHHHHHH", out, 4, 2, len(fs), n, tab, fr["nframes"], fr["npieces"], len(chunks), ofs_ct)
+    struct.pack_into("<HHHHHHHH", out, 4, 3, len(fs), n, tab, fr["nframes"], fr["npieces"], len(chunks), ofs_ct)
     struct.pack_into("<HHH", out, 20, ofs_dir, ofs_as, len(assets))
     pack = bytearray(b"\xff" * (PACK_BANKS * BANK))
     pack[:len(out)] = out
+    for p_, b in zip(tplace, tabs):
+        pack[p_:p_ + len(b)] = b
     for k, c in enumerate(chunks):
-        pack[(1 + k) * BANK:(1 + k) * BANK + len(c)] = c
-    pos = (1 + len(chunks)) * BANK
+        pack[(gfx0 + k) * BANK:(gfx0 + k) * BANK + len(c)] = c
+    pos = (gfx0 + len(chunks)) * BANK
     for i, name in enumerate(assets):
         d = open(os.path.join(res_dir, name), "rb").read()
         assert len(d) <= BANK, name
@@ -90,9 +103,9 @@ def main():
     pack, used0, nch, nb = build(proj, fr, os.path.dirname(sys.argv[2]))
     open(sys.argv[3], "wb").write(pack)
     with open(sys.argv[4], "w") as f:
-        f.write("; gerado por tools/sfpack.py: o pack nos bancos 32..63 (arquivo 0x100000 da ROM)\n")
+        f.write("; gerado por tools/sfpack.py: o pack nos bancos %d..%d (arquivo 0x%X da ROM)\n" % (PACK_FIRST, PACK_FIRST + PACK_BANKS - 1, PACK_FIRST * BANK))
         for b in range(PACK_BANKS):
-            f.write('.BANK %d SLOT 0\n.ORG $0000\n.SECTION "sfpack_%d" FORCE\n.incbin "res/pack.bin" SKIP %d READ %d\n.ENDS\n' % (32 + b, b, b * BANK, BANK))
+            f.write('.BANK %d SLOT 0\n.ORG $0000\n.SECTION "sfpack_%d" FORCE\n.incbin "res/pack.bin" SKIP %d READ %d\n.ENDS\n' % (PACK_FIRST + b, b, b * BANK, BANK))
     print("pack: banco 0 com %d bytes, %d blocos de graficos, %d bancos usados de %d" % (used0, nch, nb, PACK_BANKS))
 
 

@@ -49,3 +49,15 @@ fbpal_asset, fbpal_off1, fbpal_off2, fb_sfx, hp_close_hk, walk_pingpong, 0, 0. S
 Na parte critica do vblank use copias em u8 (ex.: fdsw): TR() custa CPU e atrasou uma troca de paleta em 1 quadro.
 Tracos agora sao 28 palavras: ... 18 face_pal, 19 face_pal_alt, 20 gameover_fp, 21 arcade_opp, 22 face_idx, 23 walk_fwd, 24 walk_back, 25 jump_vx, 26 grav_up, 27 grav_dn
 (fisica do lutador; o editor de lutadores mostra todos). Testado: clone com walk_fwd 30 anda ~2,4x mais rapido que o Ryu (12).
+
+## SFPK v3 (atual)
+- O pack fica nos bancos 16..63 da ROM (arquivo 0x80000, banco FastROM $90): 1,5 MB. O jogo fixo usa os bancos 0..15.
+- Banco 0 do pack: cabecalho (versao 3), golpes+tracos dos lutadores, tabela de blocos de graficos, diretorio das tabelas de quadros
+  (25 x [endereco u16, banco u16]) e tabela de assets.
+- Bancos 1..T: as 25 tabelas de quadros (cada uma inteira num banco). Depois: um bloco de graficos por banco; depois os assets.
+- Quantidades vem do cabecalho (quadros pk_h[6], pedacos pk_h[7], blocos pk_h[8], assets pk_h[12]); a RAM $7F reserva o maximo
+  (1152 quadros, 15360 pedacos, 48 blocos: ~8 lutadores). Assim a ROM-motor (engine/base.sfc) serve para qualquer projeto.
+
+## Exportar sem compilar
+`python3 tools/exportar.py [saida.sfc]`: roda mkfight + sfpack e troca o pack na engine/base.sfc (precisa so de Python + Pillow).
+Testado: o .sfc exportado e identico ao do `make`; com um lutador novo (arte do SF Pixel) exportado sem compilar, ele aparece e luta.
