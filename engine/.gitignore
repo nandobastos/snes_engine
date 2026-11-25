@@ -1,0 +1,19 @@
+# gerados pelo build do PVSnesLib
+hdr.asm
+linkfile
+*.obj
+*.ps
+*.sym
+*.symfull
+*.log
+src/main.asm
+__pycache__/
+src/*.asm.tmp
+src/fight.asm
+src/menu.asm
+*.obj
+*.ps
+linkfile
+
+res/
+*.sfc

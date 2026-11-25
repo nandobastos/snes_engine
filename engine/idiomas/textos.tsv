@@ -1,0 +1,20 @@
+id	pt	es	en	ja
+arcade	Arcade Game	Arcade Game	Arcade Game	Arcade Game
+versus	Versus Mode	Versus Mode	Versus Mode	Versus Mode
+practice	Practice	Practice	Practice	Practice
+credits	Créditos	Créditos	Credits	クレジット
+options	Opções	Opciones	Options	オプション
+bgm	Volume BGM	Volumen BGM	BGM Volume	BGM音量
+sfx	Volume SFX	Volumen SFX	SFX Volume	SE音量
+language	Idioma	Idioma	Language	言語
+lp	SOCO FRACO	PUÑO DÉBIL	LIGHT PUNCH	弱パンチ
+hp	SOCO FORTE	PUÑO FUERTE	HEAVY PUNCH	強パンチ
+lk	CHUTE FRACO	PATADA DÉBIL	LIGHT KICK	弱キック
+hk	CHUTE FORTE	PATADA FUERTE	HEAVY KICK	強キック
+throw	ARREMESSO	AGARRE	THROW	投げ
+default_keys	Restaurar Padrão	Restaurar Predeterminado	Reset to Default	初期設定に戻す
+back	Voltar	Volver	Back	もどる
+remap_hint	Aperte o botão novo	Pulsa el botón nuevo	Press the new button	新しいボタンを押してね
+select	Escolha seu lutador	Elige tu luchador	Select your fighter	キャラクターせんたく
+back_hint	A: Voltar	A: Volver	A: Back	A: もどる
+ending	Parabéns! Você venceu todos os lutadores!	¡Felicidades! ¡Venciste a todos los luchadores!	Congratulations! You defeated every fighter!	おめでとう！ すべての ファイターに かった！

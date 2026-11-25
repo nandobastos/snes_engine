@@ -1,4 +1,11 @@
-# Formato do pack SFPK (rascunho v0)
+# Formato do pack SFPK
+
+## v1 (implementado: `tools/sfpack.py`, lido por `pk_load_moves` em `engine/src/fight.c`)
+Little-endian. `0` `char[4] "SFPK"`, `4` u16 versão (1), `6` u16 nº de lutadores, `8` u16 nº de golpes (19), `10` u16 ofs da tabela de lutadores (16), `12..15` reservado.
+Tabela: `u16 ofs` do bloco de cada lutador. Bloco do lutador (19 golpes, ordem em `project/game.json` → `atk_names`): `dmg[19] stun[19] hgt[19] flags[19] hitstop[19] snd_swing[19] snd_hit[19] dur[19*8]` (u8).
+O pack começa no arquivo 0x100000 da ROM (32 bancos de 32 KB). Cada tabela tem que caber num banco (a leitura não cruza bancos).
+
+## Rascunho dos campos que virão (v0)
 
 Tudo em **little-endian** (o SNES é 65816). Ofs = deslocamento a partir do início do pack. O editor cola o pack na ROM-motor num endereço fixo (a definir; o motor guarda o endereço no cabeçalho).
 Este rascunho foi tirado das estruturas que o `fight-snes` usa hoje (res/ryu.h, tabelas `atk_*` do fight.c).
