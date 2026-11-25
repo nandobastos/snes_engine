@@ -137,6 +137,8 @@
       }).forEach(p16);
     });
     offs.forEach((o, i) => w16(out, tab + 2 * i, o));
+    const gm = game.game || {}, ofsGs = out.length, dv = (v, d) => (v === undefined ? d : v);   // bloco do jogo: HUD e rounds
+    [dv(gm.hud_hp_row, 4), dv(gm.hud_win_row, 5), dv(gm.hud_sp_row, 23), dv(gm.rounds_to_win, 2)].forEach(p16);
     const tabs = base.arrays.map(([name, size]) => { const b = []; A[name].forEach((v) => { if (size === 1) b.push(v & 255); else b.push(v & 255, (v >> 8) & 255); }); if (b.length > BANK) throw new Error("tabela grande demais: " + name); return b; });
     let tpos = BANK; const tplace = [];
     tabs.forEach((b) => { if ((tpos % BANK) + b.length > BANK) tpos = (Math.floor(tpos / BANK) + 1) * BANK; tplace.push(tpos); tpos += b.length; tpos = (tpos + 1) & ~1; });
@@ -150,12 +152,13 @@
     assets.forEach(() => { for (let i = 0; i < 8; i++) out.push(0); });
     if (out.length > BANK) throw new Error("banco 0 do pack passou de 32 KB");
     [3, fs.length, atk.length, tab, A.pf_chunk.length, A.pp_dx.length, done.length, ofsCt].forEach((v, i) => w16(out, 4 + 2 * i, v));
-    [ofsDir, ofsAs, assets.length].forEach((v, i) => w16(out, 20 + 2 * i, v));
+    [ofsDir, ofsAs, assets.length, ofsGs].forEach((v, i) => w16(out, 20 + 2 * i, v));
     const pack = new Uint8Array(PACK_BANKS * BANK).fill(0xFF);
     pack.set(out, 0);
     tplace.forEach((p, i) => pack.set(tabs[i], p));
     done.forEach((c, k) => pack.set(c, (gfx0 + k) * BANK));
     let pos = (gfx0 + done.length) * BANK;
+    if (gm.hud_pal) { const hi = assets.indexOf("hud.pal"), n = adata[hi].length >> 1; adata[hi] = []; gm.hud_pal.slice(0, n).forEach((v) => adata[hi].push(v & 255, (v >> 8) & 127)); }
     adata.forEach((d, i) => {
       if (d.length > BANK) throw new Error("asset grande demais: " + assets[i]);
       if ((pos % BANK) + d.length > BANK) pos = (Math.floor(pos / BANK) + 1) * BANK;

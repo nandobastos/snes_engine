@@ -70,6 +70,7 @@ enum { TRK_MOVESET, TRK_FRAME_BASE, TRK_FX_BASE, TRK_JUMP_VY, TRK_WALK_ADJ, TRK_
 u16 pk_trait(u8 ch, u8 k);
 u16 pk_h[16], pk_dir[50];   // cabecalho do pack e diretorio das tabelas de quadros
 u8 pk_i, pk_j;
+u16 pk_gs[4];
 u8 ftc[5 * 8];   // tracos das telas (retrato, game over, 1o oponente) de ate 8 lutadores, lidos do pack uma vez no boot
 #define FTC(ch, k) ftc[((k) - TRK_FACE_PAL) * 8 + (ch)]
 u8 game_screen; // 0 menus, 1 selecao, 2 VS, 3 luta (usado pelos testes)
@@ -93,9 +94,11 @@ u16 obj_off[7];  // o mesmo por objeto desenhado (lutadores, bolas; sombras e fa
 #define SCENE_DY 21       // o cenario (BG1) sobe 21 linhas: os pes continuam no mesmo ponto do chao desenhado
 #define BAR_ON 17         // tarja de cima: linhas 0-16 apagadas
 #define BAR_OFF 204       // tarja de baixo: apagada a partir da linha 204 (area visivel = 187 linhas)
-#define HUD_HP 4          // linha de tiles da barra de vida (a area visivel comeca na linha 17 = tile 2)
-#define HUD_WIN 5         // bolinhas de round
-#define HUD_SP 23         // bolinhas e barra de super (linhas 23 e 24: rente ao fim da arena)
+// HUD e regras: vem do pack (bloco "jogo" do game.json; padrao 4, 5, 23 e 2 rounds)
+u8 hud_hp, hud_win, hud_sp, rounds_win;
+#define HUD_HP hud_hp     // linha de tiles da barra de vida (a area visivel comeca na linha 17 = tile 2)
+#define HUD_WIN hud_win   // bolinhas de round
+#define HUD_SP hud_sp     // bolinhas e barra de super (linhas 23 e 24: rente ao fim da arena)
 #define FRAME_VBLANKS 1 // 1 = 60 quadros/s (padrao), 2 = 30 quadros/s (2 passos de logica por quadro, desenha a metade)
 #define CAM_MAX 128 // arena de 384 px; a tela mostra 256
 #define VRAM_BG1_FMAP 0x5000 // mapa 64x32 do cenario da luta
@@ -799,6 +802,12 @@ void pk_boot(void)
     pk_get(0, 32);
     pk_dst = (u16)&asset_tab;
     pk_get(pk_h[11], pk_h[12] * 8);
+    pk_dst = (u16)&pk_gs;
+    pk_get(pk_h[13], 8);   // bloco do jogo: linhas do HUD e rounds para vencer
+    hud_hp = pk_gs[0];
+    hud_win = pk_gs[1];
+    hud_sp = pk_gs[2];
+    rounds_win = pk_gs[3];
     for (pk_i = 0; pk_i < pk_h[3]; pk_i++)
         for (pk_j = TRK_FACE_PAL; pk_j <= TRK_FACE_IDX; pk_j++)
             ftc[(pk_j - TRK_FACE_PAL) * 8 + pk_i] = pk_trait(pk_i, pk_j);
@@ -4216,7 +4225,7 @@ void fade_in(void)
 void draw_wins(void)
 {
     u8 j;
-    for (j = 0; j < 2; j++)
+    for (j = 0; j < rounds_win; j++)
     {
         map3[(HUD_WIN << 5) + 2 + j] = (37 + (rwins[0] > j)) | PRIO | 0x800;
         map3[(HUD_WIN << 5) + 29 - j] = (37 + (rwins[1] > j)) | PRIO | 0x800;
@@ -4480,9 +4489,9 @@ u8 round_step(void)
     }
     else if (rtimer >= 170)
     {
-        if (rwins[0] >= 2)
+        if (rwins[0] >= rounds_win)
             return 1;
-        if (rwins[1] >= 2)
+        if (rwins[1] >= rounds_win)
             return 2;
         return 3;
     }

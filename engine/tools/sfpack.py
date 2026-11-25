@@ -50,6 +50,9 @@ def build(proj, fr, res_dir):   # traits do lutador (docs/FORMAT_SFPK.md): depoi
         out += b"".join(struct.pack("<H", w) for w in words)      # traits: 40 palavras (ver TRK_* em engine/src/fight.c)
     for i, o in enumerate(offs):
         struct.pack_into("<H", out, tab + 2 * i, o)
+    gm = proj.get("game", {})
+    ofs_gs = len(out)   # bloco do jogo (pk_h[13]): linhas do HUD e rounds para vencer
+    out += struct.pack("<HHHH", gm.get("hud_hp_row", 4), gm.get("hud_win_row", 5), gm.get("hud_sp_row", 23), gm.get("rounds_to_win", 2))
     # tabela de blocos de graficos (endereco, banco)
     chunks = [open(os.path.join(res_dir, c), "rb").read() for c in fr["chunks"]]
     # tabelas de quadros: nos bancos 1..T (cada tabela inteira num banco); o diretorio (endereco, banco) fica no banco 0
@@ -84,7 +87,7 @@ def build(proj, fr, res_dir):   # traits do lutador (docs/FORMAT_SFPK.md): depoi
     out += b"\0" * (8 * len(assets))
     assert len(out) <= BANK, "banco 0 do pack passou de 32 KB (%d)" % len(out)
     struct.pack_into("<HHHHHHHH", out, 4, 3, len(fs), n, tab, fr["nframes"], fr["npieces"], len(chunks), ofs_ct)
-    struct.pack_into("<HHH", out, 20, ofs_dir, ofs_as, len(assets))
+    struct.pack_into("<HHHH", out, 20, ofs_dir, ofs_as, len(assets), ofs_gs)
     pack = bytearray(b"\xff" * (PACK_BANKS * BANK))
     pack[:len(out)] = out
     for p_, b in zip(tplace, tabs):
@@ -94,6 +97,8 @@ def build(proj, fr, res_dir):   # traits do lutador (docs/FORMAT_SFPK.md): depoi
     pos = (gfx0 + len(chunks)) * BANK
     for i, name in enumerate(assets):
         d = open(os.path.join(res_dir, name), "rb").read()
+        if name == "hud.pal" and proj.get("game", {}).get("hud_pal"):   # cores do HUD (editor: Regras e HUD)
+            d = b"".join(struct.pack("<H", w & 0x7FFF) for w in proj["game"]["hud_pal"][:len(d) // 2])
         assert len(d) <= BANK, name
         if (pos % BANK) + len(d) > BANK:
             pos = (pos // BANK + 1) * BANK

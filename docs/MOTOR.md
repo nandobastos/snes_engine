@@ -54,3 +54,8 @@ Tracos 36-38 = ids dos assets do cenario (tiles, mapa, paletas); a luta usa o es
 editor/sfstage.js converte qualquer imagem (256x224, encaixada pela largura, encostada embaixo) em 6 paletas de 15 cores e ate 512 tiles
 (k-means nos grupos de tiles e nas cores; tiles repetidos e espelhados viram um so). Resultado = .sfstage.json (traits.stage).
 Testado: estagio convertido aparece na luta quando o lutador e o P2; ROM do navegador = ROM do Python; lutadores originais identicos.
+
+## Regras e HUD (bloco "game" do game.json)
+hud_hp_row, hud_win_row, hud_sp_row (linhas de tiles), rounds_to_win (1 ou 2) e hud_pal (12 cores do HUD).
+No pack: bloco de 4 palavras em pk_h[13] (lido no boot) e o asset hud.pal reescrito com as cores. Padrao = o jogo original.
+Testado: barras movidas, cores trocadas e 1 round funcionam; ROM do navegador = Python; originais identicos.

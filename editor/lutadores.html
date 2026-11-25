@@ -22,7 +22,7 @@ label{display:flex;justify-content:space-between;gap:6px;align-items:center}#msg
 <input type="file" id="arq" accept=".json" hidden>
 <button id="abrir">Abrir game.json</button>
 <button id="clonar" disabled>Clonar</button><button id="novo" disabled>Novo (a partir de um modelo)</button>
-<button id="rem" disabled>Excluir</button><button class="p" id="salvar" disabled>Salvar game.json</button>
+<button id="rem" disabled>Excluir</button><button id="regras" disabled>Regras e HUD</button><button class="p" id="salvar" disabled>Salvar game.json</button>
 <input type="file" id="arqArte" accept=".json" multiple hidden><button id="arte" disabled>Carregar arte (SF Pixel)</button>
 <button id="rom" disabled>Gerar ROM (.sfc)</button><button class="p" id="jogar" disabled>Jogar</button>
 <input type="file" id="arqBase" accept=".sfc" hidden><input type="file" id="arqImg" accept="image/*" hidden><input type="file" id="arqStg" accept=".json" multiple hidden>
@@ -42,7 +42,7 @@ function refresh(){
   G.fighters.forEach((f,i)=>{const b=document.createElement('button');b.className='it'+(i==sel?' on':'');
     const t=f.traits;b.innerHTML=f.name+'<br><small>'+(t.clone_of?'clone de '+t.clone_of:i<ORIG?'original':'novo')+'</small>';
     b.onclick=()=>{sel=i;refresh()};L.appendChild(b)});
-  ['clonar','novo','salvar','arte','rom','jogar'].forEach(k=>$(k).disabled=false);$('rem').disabled=sel<ORIG;
+  ['clonar','novo','salvar','arte','rom','jogar','regras'].forEach(k=>$(k).disabled=false);$('rem').disabled=sel<ORIG;
   const f=G.fighters[sel],e=$('ed');e.innerHTML='';
   const nm=document.createElement('label');nm.innerHTML='<b>Nome</b>';const ni=document.createElement('input');ni.className='n';ni.value=f.name;
   ni.onchange=()=>{f.name=ni.value.trim()||f.name;refresh()};nm.appendChild(ni);e.appendChild(nm);
@@ -89,6 +89,21 @@ $('arqImg').onchange=async e=>{const fl=e.target.files[0];e.target.value='';if(!
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(st)],{type:'application/json'}));a.download=nm;a.click();
   msg('Estágio criado ('+st.tiles+' tiles). Baixei '+nm+': guarde na pasta project/ junto com o game.json.')};
 $('arqStg').onchange=async e=>{for(const f of e.target.files){try{const o=JSON.parse(await f.text());if(o.format!=='sf-stage')throw 0;STAGES[f.name]=o}catch(x){msg(f.name+' não é um estágio.');return}}e.target.value='';refresh();msg('Estágio(s) carregado(s).')};
+const HUDC=[[2,'Barra de vida'],[1,'Borda da barra de vida'],[3,'Fundo da barra de vida'],[10,'Barra de super'],[9,'Borda da barra de super'],[11,'Fundo da barra de super']];
+const w2hex=w=>'#'+[w&31,(w>>5)&31,(w>>10)&31].map(v=>Math.round(v*255/31).toString(16).padStart(2,'0')).join('');
+const hex2w=h=>{const n=parseInt(h.slice(1),16);return ((n>>19)&31)|(((n>>11)&31)<<5)|(((n>>3)&31)<<10)};
+$('regras').onclick=()=>{
+  const gm=G.game=G.game||{hud_hp_row:4,hud_win_row:5,hud_sp_row:23,rounds_to_win:2,hud_pal:[0,0x7fff,0x175f,0xc53,0,0,0,0,0,0x7fff,0x7f4c,0x38a2]};
+  document.querySelectorAll('#lista .it').forEach(b=>b.classList.remove('on'));
+  const e=$('ed');e.innerHTML='<h3>Regras e HUD (valem para o jogo todo)</h3>';const g=document.createElement('div');g.className='g';
+  [['rounds_to_win','Rounds para vencer (1 ou 2)',1,2],['hud_hp_row','Linha da barra de vida (2 a 24)',2,24],['hud_win_row','Linha das bolinhas de round (2 a 25)',2,25],['hud_sp_row','Linha da barra de super (2 a 24)',2,24]].forEach(([k,n,mi,ma])=>{
+    const l=document.createElement('label');l.textContent=n;const i=document.createElement('input');i.type='number';i.min=mi;i.max=ma;i.value=gm[k];
+    i.onchange=()=>{gm[k]=Math.max(mi,Math.min(ma,+i.value||mi));i.value=gm[k]};l.appendChild(i);g.appendChild(l)});
+  HUDC.forEach(([ix,n])=>{const l=document.createElement('label');l.textContent=n;const i=document.createElement('input');i.type='color';i.value=w2hex(gm.hud_pal[ix]);
+    i.oninput=()=>{gm.hud_pal[ix]=hex2w(i.value)};l.appendChild(i);g.appendChild(l)});
+  e.appendChild(g);
+  e.insertAdjacentHTML('beforeend','<p><small>As linhas contam de cima (cada linha = 8 px; a tela tem 28). As cores viram as do SNES (32 tons por canal). Clique em Jogar para ver.</small></p>');
+};
 $('arte').onclick=()=>$('arqArte').click();
 $('arqArte').onchange=async e=>{for(const f of e.target.files){try{const o=JSON.parse(await f.text());if(o.format!=='sf-fighter')throw 0;ARTS[f.name]=o;}catch(x){msg(f.name+' não é um arquivo exportado do SF Pixel.');return}}msg(Object.keys(ARTS).length+' arquivo(s) de arte carregado(s). Escolha a arte no lutador.');refresh()};
 async function motor(){
