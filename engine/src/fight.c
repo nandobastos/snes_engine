@@ -320,11 +320,29 @@ void face_put(u8 x, u8 y, u8 pal, u8 flip, u8 face)
         }
 }
 
+// ---- ASSETS do pack: cenario, retratos, HUD e paletas dos lutadores (ids na ordem de tools/mkfight.py: PACK_ASSETS). Tabela no pack: endereco,
+// banco, tamanho (u16 cada, 8 bytes por asset). Copia para a VRAM/CGRAM por DMA (sf_vram/sf_cgram) ou para a RAM (sf_copy).
+enum { AS_STAGE_BIN, AS_STAGE_MAP, AS_STAGE_PAL, AS_FACE_BIN, AS_FACE_PAL, AS_HUD_BIN, AS_HUD_PAL, AS_HUD2_BIN, AS_RYU_PAL, AS_SAGAT_PAL,
+       AS_BOXER_PAL, AS_COUNT };
+u16 pk_dst, pk_src, pk_bank, pk_n, pk_db;   // parametros do sf_copy (src/sfcopy.asm); pk_db: 0 = destino no banco $7E, 1 = $7F
+u16 asset_tab[AS_COUNT * 4];
+u16 fpal[7 * 16];   // paletas dos retratos (CPU: conversao para cinza)
+u16 pk_t;
+void sf_vram(void);
+void sf_cgram(void);
+
+void pk_boot(void);
+void pk_vram(u8 id, u16 vdst);
+void pk_cgram(u8 id, u16 off, u8 cdst, u16 n);
+void pk_ram(u8 id, u16 n);   // destino em pk_dst (nao passar o endereco como argumento: o tcc-816 empilha 4 bytes)
+
 void faces_load(void)
 {
-    dmaCopyVram(&face_bin, VRAM_BG1_GFX, (&face_bin_end - &face_bin));
-    dmaCopyCGram(&face_pal, 32, 6 * 16 * 2); // BG paletas 2 (Ryu), 3 (Ryu P2), 4 (cinza), 5 (Sagat), 6 (Sagat P2), 7 (Boxer)
-    dmaCopyCGram((u8 *)&face_pal + 6 * 32, 16, 32); // BG paleta 1: Boxer P2 (so nas telas de selecao/VS)
+    pk_vram(AS_FACE_BIN, VRAM_BG1_GFX);
+    pk_dst = (u16)&fpal;
+    pk_ram(AS_FACE_PAL, 7 * 32);
+    pk_cgram(AS_FACE_PAL, 0, 32, 6 * 16 * 2); // BG paletas 2 (Ryu), 3 (Ryu P2), 4 (cinza), 5 (Sagat), 6 (Sagat P2), 7 (Boxer)
+    pk_cgram(AS_FACE_PAL, 6 * 32, 16, 32); // BG paleta 1: Boxer P2 (so nas telas de selecao/VS)
 }
 
 //---------------------------------------------------------------------------------
@@ -688,20 +706,13 @@ const u8 mvb[2] = {0, ATK_COUNT};
 const u8 mvb8[2] = {0, ATK_COUNT * 8};
 // ---- tabelas dos QUADROS (hitbox, hurtbox, pedacos 16x16): vem do PACK (tools/sfpack.py) e sao copiadas para a RAM no inicio da luta
 // (pk_load_frames). A logica em C e o draw_obj/plan_frames em assembly (acesso longo, $7E:) leem estas tabelas pelo indice do quadro.
-u8 pf_chunk[PF_N];
-u16 pf_off[PF_N];
-u8 pf_count[PF_N], pf_w[PF_N], pf_h[PF_N], pf_ax[PF_N], pf_belt[PF_N], pf_hb[PF_N];
-s8 pf_hbx0[PF_N], pf_hbx1[PF_N];
-u8 pf_hby0[PF_N], pf_hby1[PF_N], pf_hu[PF_N];
-s8 pf_hux0[PF_N], pf_hux1[PF_N];
-u8 pf_huy0[PF_N], pf_huy1[PF_N], pf_hb2[PF_N];
-s8 pf_hb2x0[PF_N], pf_hb2x1[PF_N];
-u8 pf_hb2y0[PF_N], pf_hb2y1[PF_N];
-u16 pf_first[PF_N];
-u8 pp_dx[PP_N], pp_dy[PP_N];
-u8 chunk_tab[NCHUNK * 4];   // por bloco de graficos: endereco (u16), banco, 0
+extern u8 pf_chunk[], pf_count[], pf_w[], pf_h[], pf_ax[], pf_belt[], pf_hb[], pf_hby0[], pf_hby1[], pf_hu[], pf_huy0[], pf_huy1[], pf_hb2[];
+extern u8 pf_hb2y0[], pf_hb2y1[], pp_dx[], pp_dy[], chunk_tab[];   // chunk_tab: por bloco de graficos, endereco (u16), banco, 0
+extern s8 pf_hbx0[], pf_hbx1[], pf_hux0[], pf_hux1[], pf_hb2x0[], pf_hb2x1[];
+extern u16 pf_off[], pf_first[];
+extern u16 smap[];   // mapa do cenario (CPU: o espelho da 2a tela)
+// (as tabelas acima ficam em res/sfram.asm, banco $7F; tamanhos PF_N, PP_N, NCHUNK em res/ryu.h)
 u16 pk_h[16], pk_dir[25];   // cabecalho do pack e diretorio das tabelas de quadros
-u16 pk_dst, pk_src, pk_bank, pk_n;   // parametros do sf_copy (src/sfcopy.asm)
 u16 pk_o;
 void sf_copy(void);
 
@@ -716,7 +727,7 @@ void pk_get(u16 off, u16 n)
 }
 
 // copia as tabelas de quadros e a tabela de blocos de graficos do pack para a RAM (uma vez por luta; a tela esta coberta)
-#define PKA(arr, size) pk_dst = (u16)&arr; pk_get(pk_dir[k++], size)
+#define PKA(arr, size) pk_dst = (u16)&arr; pk_get(pk_dir[k++], size)   // (arr em $7F: pk_db = 1)
 void pk_load_frames(void)
 {
     u8 k = 0;
@@ -724,6 +735,7 @@ void pk_load_frames(void)
     pk_get(0, 32);
     pk_dst = (u16)&pk_dir;
     pk_get(pk_h[10], 50);
+    pk_db = 1;
     pk_dst = (u16)&chunk_tab;
     pk_get(pk_h[9], NCHUNK * 4);
     PKA(pf_chunk, PF_N);
@@ -751,6 +763,46 @@ void pk_load_frames(void)
     PKA(pf_first, PF_N * 2);
     PKA(pp_dx, PP_N);
     PKA(pp_dy, PP_N);
+    pk_db = 0;
+}
+
+void pk_boot(void)
+{
+    pk_dst = (u16)&pk_h;
+    pk_get(0, 32);
+    pk_dst = (u16)&asset_tab;
+    pk_get(pk_h[11], AS_COUNT * 8);
+}
+
+// aponta pk_src/pk_bank/pk_n para o asset id (a partir do byte off; n = 0: ate o fim)
+void pk_asset(u8 id, u16 off, u16 n)
+{
+    u8 k = id << 2;
+    pk_src = asset_tab[k] + off;
+    pk_bank = asset_tab[k + 1];
+    pk_n = n;
+    if (!n)
+        pk_n = asset_tab[k + 2] - off;
+}
+
+void pk_vram(u8 id, u16 vdst)
+{
+    pk_asset(id, 0, 0);
+    pk_dst = vdst;
+    sf_vram();
+}
+
+void pk_cgram(u8 id, u16 off, u8 cdst, u16 n)
+{
+    pk_asset(id, off, n);
+    pk_dst = cdst;
+    sf_cgram();
+}
+
+void pk_ram(u8 id, u16 n)
+{
+    pk_asset(id, 0, n);
+    sf_copy();
 }
 
 // carrega os golpes do lutador ch (indice no pack) para o jogador p
@@ -835,42 +887,46 @@ void fight_gfx_init(void)
 {
     u8 i, j, k;
     screen_base();
-    dmaCopyVram(&stage_bin, VRAM_BG1_GFX, (&stage_bin_end - &stage_bin));
+    pk_vram(AS_STAGE_BIN, VRAM_BG1_GFX);
+    pk_dst = (u16)&smap;
+    pk_db = 1;
+    pk_ram(AS_STAGE_MAP, 2048);
+    pk_db = 0;
     // cenario 64x32: a segunda tela e o espelho da primeira (sem emenda visivel)
     for (k = 0; k < 32; k++)
         for (j = 0; j < 32; j++)
-            map1[(k << 5) + 31 - j] = ((u16 *)&stage_map)[(k << 5) + j] ^ 0x4000;
+            map1[(k << 5) + 31 - j] = smap[(k << 5) + j] ^ 0x4000;
     bgSetMapPtr(0, VRAM_BG1_FMAP, SC_64x32);
-    dmaCopyVram(&stage_map, VRAM_BG1_FMAP, 2048);
+    dmaCopyVram((u8 *)smap, VRAM_BG1_FMAP, 2048);
     dmaCopyVram((u8 *)map1, VRAM_BG1_FMAP + 0x400, 2048);
-    dmaCopyCGram(&stage_pal, 32, 6 * 16 * 2); // BG paletas 2-7: cenario
-    dmaCopyVram(&hud_bin, VRAM_BG3_GFX, (&hud_bin_end - &hud_bin));
+    pk_cgram(AS_STAGE_PAL, 0, 32, 6 * 16 * 2); // BG paletas 2-7: cenario
+    pk_vram(AS_HUD_BIN, VRAM_BG3_GFX);
     bgSetGfxPtr(1, VRAM_BG2_GFX);
     bgSetMapPtr(1, VRAM_BG2_MAP, SC_32x32);
     bgSetScroll(1, 0, 0);
     vram_fill0(VRAM_BG2_MAP, 0x400);
-    dmaCopyVram(&hud2_bin, VRAM_BG2_GFX, (&hud2_bin_end - &hud2_bin));
+    pk_vram(AS_HUD2_BIN, VRAM_BG2_GFX);
     set_color(17, 0);          // BG2 paleta 1: cor 1 = preto
     set_color(18, 0x0C38);     // cor 2 = vermelho (dano pendente)
     REG_TM = 0x17;             // BG1, BG2, BG3, OBJ
     dmaCopyVram(&dbg_bin, VRAM_BG3_GFX + (DBG_TILE0 << 3), (&dbg_bin_end - &dbg_bin)); // contornos do debug
-    dmaCopyCGram(&hud_pal, 0, 24); // paleta 0 = barras de vida; paleta 2 (indice 8) = barra de super
+    pk_cgram(AS_HUD_PAL, 0, 0, 24); // paleta 0 = barras de vida; paleta 2 (indice 8) = barra de super
     set_color(5, 0x03E0);  // BG3 paleta 1 (debug): cor 1 = verde (hurtbox)
     set_color(6, 0x001F);  // cor 2 = vermelho (hitbox)
     set_color(7, 0x001F);  // cor 3 (hurtbox e hitbox no mesmo pixel) = vermelho
-    dmaCopyCGram(&ryu_pal, 128, 5 * 16 * 2); // OBJ paletas 0 (P1), 1 (P2), 2 (bola de fogo), 3 (sombra), 4 (faisca)
+    pk_cgram(AS_RYU_PAL, 0, 128, 5 * 16 * 2); // OBJ paletas 0 (P1), 1 (P2), 2 (bola de fogo), 3 (sombra), 4 (faisca)
     // paleta de cada lutador pelo personagem; o mesmo personagem dos dois lados: o P2 usa a alternativa
     for (i = 0; i < 2; i++)
     {
         k = (i == 1 && fgfx[0] == fgfx[1]) ? 32 : 0;
         if (fgfx[i] == CH_SAGAT)
-            dmaCopyCGram((u8 *)&sagat_pal + k, 128 + (i << 4), 32);
+            pk_cgram(AS_SAGAT_PAL, k, 128 + (i << 4), 32);
         else if (fgfx[i] == CH_BOXER)
-            dmaCopyCGram((u8 *)&boxer_pal, 128 + (i << 4), 32); // (o lado das luvas e ajustado no loop: bx_dir)
+            pk_cgram(AS_BOXER_PAL, 0, 128 + (i << 4), 32); // (o lado das luvas e ajustado no loop: bx_dir)
         else
-            dmaCopyCGram((u8 *)&ryu_pal + k, 128 + (i << 4), 32);
+            pk_cgram(AS_RYU_PAL, k, 128 + (i << 4), 32);
     }
-    dmaCopyCGram(&sagat_pal + 64, 208, 32); // OBJ paleta 5: Tiger Shot
+    pk_cgram(AS_SAGAT_PAL, 64, 208, 32); // OBJ paleta 5: Tiger Shot
     // OBJ paletas 6 (P1) e 7 (P2): magia especial do jogador (verde = super, vermelha = 2 socos), carregada no
     // vblank quando ele atira (cada jogador so tem uma magia na tela)
     pal_pend[0] = pal_pend[1] = 0;
@@ -4733,7 +4789,10 @@ u8 fight_run(void)
         for (i = 0; i < 2; i++)
             if (fgfx[i] == CH_BOXER && bx_dir[i] != fdir[i])
             {
-                dmaCopyCGram((u8 *)&boxer_pal + (fdir[i] ? 32 : 0), 128 + (i << 4), 32);
+                pk_t = 0;
+                if (fdir[i])
+                    pk_t = 32;
+                pk_cgram(AS_BOXER_PAL, pk_t, 128 + (i << 4), 32);
                 bx_dir[i] = fdir[i];
             }
         if (pal_pend[0] | pal_pend[1])
@@ -4742,9 +4801,19 @@ u8 fight_run(void)
                 if (pal_pend[i])
                 {
                     if (fchar[i])
-                        dmaCopyCGram(&sagat_pal + (pal_pend[i] == 1 ? 96 : 128), 224 + (i << 4), 32);
+                    {
+                        pk_t = 128;
+                        if (pal_pend[i] == 1)
+                            pk_t = 96;
+                        pk_cgram(AS_SAGAT_PAL, pk_t, 224 + (i << 4), 32);
+                    }
                     else
-                        dmaCopyCGram(&ryu_pal + (pal_pend[i] == 1 ? 160 : 192), 224 + (i << 4), 32);
+                    {
+                        pk_t = 192;
+                        if (pal_pend[i] == 1)
+                            pk_t = 160;
+                        pk_cgram(AS_RYU_PAL, pk_t, 224 + (i << 4), 32);
+                    }
                     pal_pend[i] = 0;
                 }
         }
@@ -4885,7 +4954,7 @@ u8 continue_run(void)
     else if (sel_char[0] == CH_BOXER)
         fp = 5;
     for (i = 0; i < 16; i++)
-        gbuf[i] = gray(((u16 *)&face_pal)[(fp << 4) + i]);
+        gbuf[i] = gray(fpal[(fp << 4) + i]);
     fx_frame();
     dmaCopyVram((u8 *)map3, VRAM_BG3_MAP, 2048);
     dmaCopyCGram((u8 *)gbuf, 32 + (fp << 4), 32);
@@ -4973,6 +5042,7 @@ int main(void)
 {
     u8 r;
     setScreenOff();
+    pk_boot();                 // cabecalho e tabela de assets do pack
     pad = pad_last = pad_down = 0;
     spcBoot();                 // liga o chip de som (leva alguns quadros)
     spcSetBank(&SOUNDBANK__);

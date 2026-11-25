@@ -803,6 +803,12 @@ def build_ryu():
               ("pf_hb2", 1, [1 if fr["hb2"] else 0 for fr in table]), ("pf_hb2x0", 1, hbv("hb2", 0)), ("pf_hb2x1", 1, hbv("hb2", 1)),
               ("pf_hb2y0", 1, hbv("hb2", 2)), ("pf_hb2y1", 1, hbv("hb2", 3)),
               ("pf_first", 2, firsts), ("pp_dx", 1, [v & 255 for v in dx]), ("pp_dy", 1, [v & 255 for v in dy])]
+    with open(os.path.join(RES, "sfram.asm"), "w") as ra:
+        ra.write("; gerado por tools/mkfight.py: tabelas de quadros na RAM do banco $7F (as variaveis do C so cabem ate $7E:7FFF; de $8000 em diante ficam as da PVSnesLib)\n")
+        ra.write(".BASE $00\n.RAMSECTION \"sf_frames\" BANK $7F SLOT 3\n")
+        for n_, sz_, d_ in arrays:
+            ra.write("%s dsb %d\n" % (n_, len(d_) * sz_))
+        ra.write("chunk_tab dsb %d\nsmap dsb 2048\n.ENDS\n.BASE $80\n" % (4 * len(chunks)))
     import json as _json
     _json.dump(dict(nframes=len(table), npieces=len(dx), arrays=[dict(name=n, size=sz, data=d) for n, sz, d in arrays],
                     chunks=["ryu_%d.bin" % i for i in range(len(chunks))]), open(os.path.join(RES, "frames.json"), "w"))
@@ -931,7 +937,17 @@ def build_dbg():
 
 
 # ================================================================ saida: data.asm / C
+# arquivos que vao para o PACK (e nao para a ROM fixa), na ordem dos ids AS_* de src/fight.c
+PACK_ASSETS = ["stage.bin", "stage.map", "stage.pal", "face.bin", "face.pal", "hud.bin", "hud.pal", "hud2.bin", "ryu.pal", "sagat.pal", "boxer.pal"]
+
+
 def write_outputs():
+    import json as _json
+    _json.dump(PACK_ASSETS, open(os.path.join(RES, "assets.json"), "w"))
+    for g in list(outputs):
+        outputs[g] = [fn for fn in outputs[g] if fn not in PACK_ASSETS]
+        if not outputs[g]:
+            del outputs[g]
     with open(os.path.join(RES, "fight.asm"), "w") as f:
         f.write("; gerado por tools/mkfight.py\n")
         for group, files in outputs.items():

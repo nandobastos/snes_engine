@@ -2,9 +2,10 @@
 
 ## v2 (implementado: `engine/tools/sfpack.py`, lido por `pk_load_frames`/`pk_load_moves` em `engine/src/fight.c`)
 Little-endian. O pack começa no arquivo 0x100000 da ROM (32 bancos de 32 KB; o motor lê pelo banco FastROM `$A0`). **Banco 0 do pack** (≤ 32 KB, o motor lê sem cruzar bancos) tem:
-- Cabeçalho (32 bytes): `0` `"SFPK"`, `4` u16 versão (2), `6` u16 nº de lutadores, `8` u16 nº de golpes (19), `10` u16 ofs da tabela de lutadores, `12` u16 nº de quadros, `14` u16 nº de pedaços 16x16, `16` u16 nº de blocos de gráficos, `18` u16 ofs da tabela de blocos, `20` u16 ofs do diretório das tabelas de quadros.
+- Cabeçalho (32 bytes): `0` `"SFPK"`, `4` u16 versão (2), `6` u16 nº de lutadores, `8` u16 nº de golpes (19), `10` u16 ofs da tabela de lutadores, `12` u16 nº de quadros, `14` u16 nº de pedaços 16x16, `16` u16 nº de blocos de gráficos, `18` u16 ofs da tabela de blocos, `20` u16 ofs do diretório das tabelas de quadros, `22` u16 ofs da tabela de assets, `24` u16 nº de assets.
 - Tabela de lutadores: `u16 ofs` do bloco de golpes de cada um. Bloco (19 golpes, ordem em `project/game.json` → `atk_names`): `dmg stun hgt flags hitstop snd_swing snd_hit` (19 u8 cada) e `dur` (19×8 u8).
 - Tabela de blocos de gráficos: por bloco `u16 endereço (0x8000), u8 banco ($A0 + 1 + k), u8 0`. Os gráficos (4bpp, 128 bytes por peça 16x16) ficam **cada bloco no início de um banco** (bancos 1..N do pack, até 28 KB cada).
+- Tabela de assets (8 bytes cada: `u16 endereço, u16 banco, u16 tamanho, u16 0`), ids fixos na ordem: `stage.bin stage.map stage.pal face.bin face.pal hud.bin hud.pal hud2.bin ryu.pal sagat.pal boxer.pal` (cenário, retratos, HUD e paletas dos lutadores). Os dados ficam depois dos blocos de gráficos, sem cruzar bancos.
 - Diretório: `u16 ofs` de 25 tabelas, nesta ordem: `pf_chunk pf_off(u16) pf_count pf_w pf_h pf_ax pf_belt pf_hb pf_hbx0 pf_hbx1 pf_hby0 pf_hby1 pf_hu pf_hux0 pf_hux1 pf_huy0 pf_huy1 pf_hb2 pf_hb2x0 pf_hb2x1 pf_hb2y0 pf_hb2y1 pf_first(u16) pp_dx pp_dy`. Significado: quadro = bloco de gráficos, offset no bloco, nº de peças, largura, altura, âncora x, faixa de cintura, hitbox 1 (existe, x0 x1 y0 y1), hurtbox, hitbox 2; `pf_first` = índice da 1ª peça; `pp_dx/pp_dy` = posição de cada peça 16x16.
 
 ## Rascunho dos campos que virão (v0)

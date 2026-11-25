@@ -4,3 +4,4 @@
 .include "res/menu.asm"
 
 .include "res/pack.asm"
+.include "res/sfram.asm"
