@@ -736,6 +736,7 @@ def build_ryu():
     # ---- lutadores com arte propria (SF Pixel): project/game.json -> fighters[i].traits.art = "arquivo.sffighter.json" (relativo a project/)
     art_bases = {}
     art_pals = []
+    art_faces = {}
     import base64
     import json as _j
     _gj = os.path.join(os.path.dirname(ROOT), "project", "game.json")
@@ -798,6 +799,12 @@ def build_ryu():
                 cache[k] = fr
                 table.append(fr)
                 names.append(anim)
+        if data.get("portrait") and len(art_faces) < 2:   # retrato proprio (ate 2 lutadores novos): tiles no face.bin, paleta no face.pal
+            fpx = base64.b64decode(data["portrait"]["px"])
+            open(os.path.join(RES, "face.bin"), "ab").write(bytes(encode_tiles(list(fpx), 56, 80, 4)))
+            fw = [int(v) for v in data["pal"]][:16] + [0] * 16
+            open(os.path.join(RES, "face.pal"), "ab").write(b"".join((0 if i_ == 0 else w_).to_bytes(2, "little") for i_, w_ in enumerate(fw[:16])))
+            art_faces[_f["name"]] = len(art_faces)
         pal = [int(v) for v in data["pal"]] + [0] * 16
         pal = pal[:16]
         words = b"".join(w_.to_bytes(2, "little") for w_ in pal)
@@ -886,7 +893,7 @@ def build_ryu():
             ra.write("%s dsb %d\n" % (n_, (PP_MAX if n_.startswith("pp_") else PF_MAX) * sz_))
         ra.write("chunk_tab dsb %d\nsmap dsb 2048\n.ENDS\n.BASE $80\n" % (4 * NCHUNK_MAX))
     import json as _json
-    _json.dump(dict(layout=[[a_, first[a_], len(l_)] for a_, l_ in anims], chunk_sizes=[len(c_) for c_ in chunks], fighter_bases=[0, ryu_n, boxer_off], art_bases=art_bases, art_pals={n: PACK_ASSETS.index('art_%s.pal' % ''.join(ch if ch.isalnum() else '_' for ch in n.lower())) for n in art_bases}, nframes=len(table), npieces=len(dx), arrays=[dict(name=n, size=sz, data=d) for n, sz, d in arrays],
+    _json.dump(dict(layout=[[a_, first[a_], len(l_)] for a_, l_ in anims], chunk_sizes=[len(c_) for c_ in chunks], fighter_bases=[0, ryu_n, boxer_off], art_bases=art_bases, art_faces=art_faces, art_pals={n: PACK_ASSETS.index('art_%s.pal' % ''.join(ch if ch.isalnum() else '_' for ch in n.lower())) for n in art_bases}, nframes=len(table), npieces=len(dx), arrays=[dict(name=n, size=sz, data=d) for n, sz, d in arrays],
                     chunks=["ryu_%d.bin" % i for i in range(len(chunks))]), open(os.path.join(RES, "frames.json"), "w"))
     maxp = max(fr["n"] for fr in table)
     if DUMP is not None:

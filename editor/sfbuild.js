@@ -50,7 +50,7 @@
     const frames = [];   // quadros novos: {pf valores, pcs: [[dx, dy]]}
     const fromBase = (k) => { const f = {}; PF.forEach((n) => (f[n] = A[n][k])); f.pcs = []; for (let j = 0; j < A.pf_count[k]; j++) f.pcs.push([A.pp_dx[A.pf_first[k] + j], A.pp_dy[A.pf_first[k] + j]]); return f; };
     const first = {}; base.layout.forEach(([n, f]) => (first[n] = f));
-    const artBases = {}, artPals = {};
+    const artBases = {}, artPals = {}, artFaces = {};
     let total = nf0;
     game.fighters.forEach((F) => {
       const file = F.traits.art;
@@ -85,6 +85,13 @@
           cache[k] = fr; frames.push(fr); total++;
         }
       });
+      if (data.portrait && Object.keys(artFaces).length < 2) {   // retrato proprio: tiles no face.bin, paleta no face.pal
+        const fpx = b64dec(data.portrait.px), fb = adata[assets.indexOf("face.bin")], fp = adata[assets.indexOf("face.pal")];
+        encodeTiles(Array.from(fpx), 56, 80).forEach((v) => fb.push(v));
+        const fw = (data.pal || []).map((v) => v | 0).concat(new Array(16).fill(0)).slice(0, 16);
+        fw.forEach((v, i) => { const x = i ? v : 0; fp.push(x & 255, (x >> 8) & 255); });
+        artFaces[F.name] = Object.keys(artFaces).length;
+      }
       const pal = (data.pal || []).map((v) => v | 0).concat(new Array(16).fill(0)).slice(0, 16), w = [];
       pal.forEach((v) => w.push(v & 255, (v >> 8) & 255));
       const name = "art_" + slugOf(F.name) + ".pal";
@@ -110,7 +117,11 @@
       [t.moveset, fb, bases[t.fireball_from], t.jump_vy, t.walk_adj & 0xFFFF, t.walk_ticks, t.fb_pal, t.fb_alt_hi, t.fb_alt_lo,
         artPals[f.name] !== undefined ? artPals[f.name] : t.pal_asset, t.pal_alt_off, t.dirswap, t.fbpal_asset, t.fbpal_off1, t.fbpal_off2, t.fb_sfx,
         t.hp_close_hk, t.walk_pingpong, t.face_pal, t.face_pal_alt, t.gameover_fp, t.arcade_opp, t.face_idx, t.walk_fwd, t.walk_back, t.jump_vx,
-        t.grav_up, t.grav_dn, t.fb_spd, t.fb_dmg, t.fb_spd_s, t.fb_dmg_s, t.fb_spd_ex, t.fb_dmg_ex, t.fb_spd_sup, t.fb_dmg_sup].forEach(p16);
+        t.grav_up, t.grav_dn, t.fb_spd, t.fb_dmg, t.fb_spd_s, t.fb_dmg_s, t.fb_spd_ex, t.fb_dmg_ex, t.fb_spd_sup, t.fb_dmg_sup].map((v, i, a) => {
+        const j = artFaces[f.name];   // retrato proprio: rosto 3+j, paleta 3 ou 6 (P2 igual), game over le a paleta 7+j
+        if (j === undefined) return v;
+        return i === 18 || i === 19 ? [3, 6][j] : i === 20 ? 7 + j : i === 22 ? 3 + j : v;
+      }).forEach(p16);
     });
     offs.forEach((o, i) => w16(out, tab + 2 * i, o));
     const tabs = base.arrays.map(([name, size]) => { const b = []; A[name].forEach((v) => { if (size === 1) b.push(v & 255); else b.push(v & 255, (v >> 8) & 255); }); if (b.length > BANK) throw new Error("tabela grande demais: " + name); return b; });

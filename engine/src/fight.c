@@ -332,7 +332,7 @@ enum { AS_STAGE_BIN, AS_STAGE_MAP, AS_STAGE_PAL, AS_FACE_BIN, AS_FACE_PAL, AS_HU
 u16 pk_dst, pk_src, pk_bank, pk_n, pk_db;   // parametros do sf_copy (src/sfcopy.asm); pk_db: 0 = destino no banco $7E, 1 = $7F
 #define AS_MAX 32            // ids de asset (tabela do pack): os AS_* acima + paletas dos lutadores criados no SF Pixel
 u16 asset_tab[AS_MAX * 4];
-u16 fpal[7 * 16];   // paletas dos retratos (CPU: conversao para cinza)
+u16 fpal[9 * 16];   // paletas dos retratos (CPU: conversao para cinza); 7 e 8 = retratos de lutadores novos (SF Pixel)
 u16 pk_t;
 void sf_vram(void);
 void sf_cgram(void);
@@ -346,9 +346,21 @@ void faces_load(void)
 {
     pk_vram(AS_FACE_BIN, VRAM_BG1_GFX);
     pk_dst = (u16)&fpal;
-    pk_ram(AS_FACE_PAL, 7 * 32);
+    pk_ram(AS_FACE_PAL, 0);
     pk_cgram(AS_FACE_PAL, 0, 32, 6 * 16 * 2); // BG paletas 2 (Ryu), 3 (Ryu P2), 4 (cinza), 5 (Sagat), 6 (Sagat P2), 7 (Boxer)
     pk_cgram(AS_FACE_PAL, 6 * 32, 16, 32); // BG paleta 1: Boxer P2 (so nas telas de selecao/VS)
+    // retratos de lutadores novos (ate 2): paletas 7 e 8 do arquivo vao para as paletas alternativas 3 e 6 (a tela de VS
+    // devolve a alternativa original quando e espelho de um lutador original: face_vs_fix)
+    if (asset_tab[(AS_FACE_PAL << 2) + 2] > 7 * 32)
+        pk_cgram(AS_FACE_PAL, 7 * 32, 48, 32);
+    if (asset_tab[(AS_FACE_PAL << 2) + 2] > 8 * 32)
+        pk_cgram(AS_FACE_PAL, 8 * 32, 96, 32);
+}
+
+void face_vs_fix(void)
+{
+    if (sel_char[0] == sel_char[1] && FTC(sel_char[0], TRK_FACE_IDX) < 3)
+        pk_cgram(AS_FACE_PAL, 0, 32, 6 * 16 * 2); // espelho de um original: paletas alternativas originais de volta
 }
 
 //---------------------------------------------------------------------------------
@@ -573,6 +585,7 @@ void vs_run(void)
     game_screen = 2;
     screen_base();
     faces_load();
+    face_vs_fix();
     set_color(0, 0x2000);
     // P1 olhando para a direita, P2 para a esquerda; mesmo personagem dos dois lados: o P2 usa a paleta alternativa
     face_put(4, 9, FTC(sel_char[0], TRK_FACE_PAL), 1, FTC(sel_char[0], TRK_FACE_IDX));
@@ -4963,7 +4976,7 @@ u8 continue_run(void)
         gbuf[i] = gray(fpal[(fp << 4) + i]);
     fx_frame();
     dmaCopyVram((u8 *)map3, VRAM_BG3_MAP, 2048);
-    dmaCopyCGram((u8 *)gbuf, 32 + (fp << 4), 32);
+    dmaCopyCGram((u8 *)gbuf, FTC(sel_char[0], TRK_FACE_PAL) << 4, 32); // paleta do retrato do P1 (originais: 32 + fp*16)
     set_color(13, gray(0x021F));
     set_color(14, gray(0x0808));
     set_color(15, gray(0x4BFF));

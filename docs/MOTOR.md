@@ -43,3 +43,8 @@ Testado: Ryu clonado como 4o lutador aparece na selecao e luta.
 traits.art = arquivo .sffighter.json (em project/). engine/tools/mkfight.py (bloco "lutadores com arte propria") le o arquivo e acrescenta os quadros
 depois do DonLee (mesma ordem/contagem de animacoes do Ryu; animacao ausente = quadro do Ryu; menos quadros = repete o ultimo), gera graficos em pedacos 16x16,
 caixas (relativas a ancora e ao chao) e art_<nome>.pal (P1=P2). frames.json ganha art_bases/art_pals; sfpack usa no frame_base e pal_asset. asset_tab agora tem 32 ids.
+
+## Retrato proprio (ate 2 lutadores novos)
+Tag "retrato" no SF Pixel (1 quadro, ate 56x80, mesma paleta do lutador) -> portrait no .sffighter.json -> rosto 3/4 no face.bin e
+paleta 7/8 no face.pal; vai para as paletas alternativas 3/6 da selecao (face_vs_fix devolve a original no VS de espelho de um original).
+Limite: a VRAM do BG1 (0x0000-0x17FF) cabe 5 rostos. Testado: selecao e VS com o retrato; telas dos originais identicas.

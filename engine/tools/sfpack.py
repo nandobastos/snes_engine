@@ -39,6 +39,9 @@ def build(proj, fr, res_dir):   # traits do lutador (docs/FORMAT_SFPK.md): depoi
                  t["fb_alt_hi"], t["fb_alt_lo"], fr.get("art_pals", {}).get(f["name"], t["pal_asset"]), t["pal_alt_off"], t["dirswap"], t["fbpal_asset"], t["fbpal_off1"],
                  t["fbpal_off2"], t["fb_sfx"], t["hp_close_hk"], t["walk_pingpong"], t["face_pal"], t["face_pal_alt"], t["gameover_fp"], t["arcade_opp"], t["face_idx"], t["walk_fwd"], t["walk_back"], t["jump_vx"], t["grav_up"], t["grav_dn"],
                  t["fb_spd"], t["fb_dmg"], t["fb_spd_s"], t["fb_dmg_s"], t["fb_spd_ex"], t["fb_dmg_ex"], t["fb_spd_sup"], t["fb_dmg_sup"]]
+        if f["name"] in fr.get("art_faces", {}):     # retrato proprio: rosto 3+j, paleta 3 ou 6 (P2 igual), game over le a paleta 7+j
+            j = fr["art_faces"][f["name"]]
+            words[18], words[19], words[20], words[22] = (3, 6)[j], (3, 6)[j], 7 + j, 3 + j
         out += b"".join(struct.pack("<H", w) for w in words)      # traits: 36 palavras (ver TRK_* em engine/src/fight.c)
     for i, o in enumerate(offs):
         struct.pack_into("<H", out, tab + 2 * i, o)
