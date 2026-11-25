@@ -542,6 +542,63 @@ function paste() {
   msg(`Colado${added.length ? ` (${added.length} cor(es) nova(s) na paleta)` : ""}: arraste para posicionar e aperte Enter.` + (clipboard.w > doc.w || clipboard.h > doc.h ? " A arte é maior que o quadro: o que passar fica de fora." : ""));
 }
 
+/* ---------------------------------------------------- colar imagem de fora (Aseprite, navegador, print...)
+ * Ctrl+V com uma imagem na area de transferencia: vira arte colada (flutuando) com as cores do SNES. Cores novas vao para slots
+ * livres da paleta; se nao couber (15 cores), as que sobram viram a cor mais parecida. Sem transparencia na imagem (alguns
+ * programas copiam com fundo), a cor dos cantos vira transparente. Copia feita dentro do SF Pixel continua colando com os slots exatos. */
+async function pasteImageBlob(blob) {
+  if (doc.kind === "map") { msg("Colar imagem num cenário ainda não dá."); return; }
+  const bm = await createImageBitmap(blob), c = document.createElement("canvas");
+  c.width = bm.width; c.height = bm.height;
+  const g = c.getContext("2d"); g.drawImage(bm, 0, 0);
+  const D = g.getImageData(0, 0, c.width, c.height).data, W = c.width, H = c.height, keys = new Int32Array(W * H);
+  let opaque = true;
+  for (let i = 0; i < W * H; i++) { if (D[i * 4 + 3] < 128) { keys[i] = -1; opaque = false; } else keys[i] = keyOf(D[i * 4], D[i * 4 + 1], D[i * 4 + 2]); }
+  let fundo = false;
+  if (opaque && W > 1 && H > 1) {   // sem alfa: a cor que mais aparece nos 4 cantos e o fundo
+    const cnt = {}; [0, W - 1, (H - 1) * W, H * W - 1].forEach((i) => (cnt[keys[i]] = (cnt[keys[i]] || 0) + 1));
+    const bgk = +Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0];
+    if (cnt[bgk] >= 2) { for (let i = 0; i < W * H; i++) if (keys[i] === bgk) keys[i] = -1; fundo = true; }
+  }
+  // mesma imagem que foi copiada aqui dentro: cola a copia interna (slots exatos)
+  if (clipboard && clipboard.w === W && clipboard.h === H && clipboard.pal) {
+    let same = true;
+    for (let i = 0; i < W * H && same; i++) { const v = clipboard.data[i]; same = v ? keys[i] === clipboard.pal[v] : keys[i] === -1; }
+    if (same) { paste(); return; }
+  }
+  // cores: as da paleta atual ficam; novas ocupam slots livres; o resto vira a mais parecida
+  const count = {}; keys.forEach((k) => { if (k >= 0) count[k] = (count[k] || 0) + 1; });
+  const used = usedSlots(); let free = 0;
+  for (let i = 1; i < 16; i++) if (!used.has(i)) free++;
+  const inPal = new Set(doc.pal.slice(1, 16));
+  const novos = Object.keys(count).map(Number).filter((k) => !inPal.has(k)).sort((a, b) => count[b] - count[a]);
+  const ok = new Set([...inPal].filter((k) => used.has(doc.pal.indexOf(k, 1))).concat(novos.slice(0, free)));
+  const okList = [...ok], near = {};
+  const dist = (a, b) => { const [r, g2, bb] = rgbK(a), [R2, G, B] = rgbK(b); return (r - R2) ** 2 * 3 + (g2 - G) ** 2 * 4 + (bb - B) ** 2 * 2; };
+  let trocadas = 0;
+  Object.keys(count).map(Number).forEach((k) => { if (ok.has(k) || inPal.has(k)) near[k] = k; else { trocadas++; near[k] = okList.reduce((b, x) => (dist(k, x) < dist(k, b) ? x : b), okList[0]); } });
+  const tpal = [0], ix = {}, data = new Uint8Array(W * H);
+  for (let i = 0; i < W * H; i++) { if (keys[i] < 0) continue; const k = near[keys[i]]; if (ix[k] === undefined) { ix[k] = tpal.length; tpal.push(k); } data[i] = ix[k]; }
+  const bx = sel ? sel.x : Math.max(0, (doc.w - W) >> 1), by = sel ? sel.y : Math.max(0, doc.h - H);
+  clipboard = { w: W, h: H, data, x: bx, y: by, pal: tpal };
+  paste();
+  msg(`Imagem colada (${W}×${H})${fundo ? ", fundo virou transparente" : ""}${trocadas ? `, ${trocadas} cor(es) trocada(s) pela mais parecida (limite de 15)` : ""}: arraste para posicionar e aperte Enter.`);
+}
+window.addEventListener("paste", (e) => {
+  if (!$("#modal").classList.contains("hidden")) return;
+  const t = e.target.tagName; if (t === "INPUT" || t === "TEXTAREA") return;
+  e.preventDefault();
+  const it = [...(e.clipboardData ? e.clipboardData.items : [])].find((x) => x.type.startsWith("image/"));
+  if (it) pasteImageBlob(it.getAsFile()).catch(() => msg("Não consegui ler a imagem colada."));
+  else paste();
+});
+async function pasteMenu() {   // Editar -> Colar (pelo menu): tenta a imagem da area de transferencia do sistema
+  try {
+    for (const item of await navigator.clipboard.read()) { const ty = item.types.find((x) => x.startsWith("image/")); if (ty) { await pasteImageBlob(await item.getType(ty)); return; } }
+  } catch (err) { /* sem permissao: usa a copia interna */ }
+  paste();
+}
+
 /* ---------------------------------------------------- mouse no quadro */
 let drag = null, spaceDown = false;
 function toPx(e) { const r = cv.getBoundingClientRect(); return { x: Math.floor((e.clientX - r.left - panX) / zoom), y: Math.floor((e.clientY - r.top - panY) / zoom) }; }
@@ -1644,7 +1701,7 @@ const CMD = {
   optimize: () => (doc.kind === "map" ? MAP.optimize() : msg("Só para cenários.")), mapresize: () => (doc.kind === "map" ? MAP.resizeDialog() : msg("Só para cenários.")), md: exportSF, closetab: () => closeTab(tabIx), newtag: newTag, transform: startTransform, reduce: reduceTo15, delslot: () => deleteSlot(fg), dropunused: dropUnused,
   nexttab: () => switchTab((tabIx + 1) % tabs.length), prevtab: () => switchTab((tabIx + tabs.length - 1) % tabs.length), open: () => $("#file-open").click(), save: saveDoc, saveas: saveAs, savesgpx: saveSgpx, sheet: exportSheet, framepng: exportFrame, pal: exportPal,
   importframe: () => importImage("frame"), importsheet: () => importImage("sheet"),
-  undo: doUndo, redo: doRedo, copy: () => copySel(false), cut: () => copySel(true), paste,
+  undo: doUndo, redo: doRedo, copy: () => copySel(false), cut: () => copySel(true), paste: pasteMenu,
   selall: () => { dropFloat(); tlFocus = false; push(); sel = { x: 0, y: 0, w: doc.w, h: doc.h }; if (tool !== "move") { tool = "select"; renderToolbar(); renderToolOpts(); } render(); msg("Quadro inteiro selecionado: Ctrl+C copia, vá em outro quadro e Ctrl+V cola."); }, desel: () => { dropFloat(); if (sel) push(); sel = null; render(); },
   clear: () => { if (float) { float = null; render(); return; } push(); const c = cel(); for (let y = 0; y < doc.h; y++) for (let x = 0; x < doc.w; x++) if (inSel(x, y)) c[y * doc.w + x] = 0; afterDraw(); },
   fliph: () => flip(true, false), flipv: () => flip(false, false), fliphall: () => flip(true, true), resize: resizeDialog,
@@ -1710,7 +1767,7 @@ window.addEventListener("keydown", (e) => {
   if (ctrl) {
     if (K === "z") return run(e.shiftKey ? "redo" : "undo");
     if (k === "Tab") return run(e.shiftKey ? "prevtab" : "nexttab");
-    const m = { m: e.shiftKey ? "md" : null, w: "closetab", t: "transform", y: "redo", c: "copy", x: "cut", v: "paste", a: "selall", d: "desel", s: e.shiftKey ? "saveas" : "save", o: "open", n: "newdoc", i: "importframe", e: e.shiftKey ? "sheet" : "merge", "0": "fit", "1": "zoom100", "'": e.shiftKey ? "grid" : "tiles", '"': "grid" }[K];
+    const m = { m: e.shiftKey ? "md" : null, w: "closetab", t: "transform", y: "redo", c: "copy", x: "cut", v: null, a: "selall", d: "desel", s: e.shiftKey ? "saveas" : "save", o: "open", n: "newdoc", i: "importframe", e: e.shiftKey ? "sheet" : "merge", "0": "fit", "1": "zoom100", "'": e.shiftKey ? "grid" : "tiles", '"': "grid" }[K];
     if (e.altKey && K === "c") return run("resize");
     if (e.altKey && K === "i") return run("spritesize");
     if (e.altKey && K === "n") return run("fromsel");
@@ -1718,7 +1775,7 @@ window.addEventListener("keydown", (e) => {
     if (e.shiftKey && K === "t") return run("trim");
     if (e.altKey && K === "e") return run("allframes");
     if (m) return run(m);
-    return;
+    return;   // Ctrl+V: o evento 'paste' (abaixo) cola a imagem de fora ou a copia interna
   }
   if (e.altKey) {
     const m = { t: "newtag", n: "newframe", b: "newempty", delete: "delframe", ",": "frameleft", ".": "frameright" }[K];

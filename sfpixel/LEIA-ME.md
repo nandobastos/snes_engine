@@ -20,3 +20,8 @@ Pendente: prévia com o emulador, retrato e magia próprios.
 Arquivo → **Abrir lutador do jogo** (Ryu, Sagat ou DonLee): abre com todos os quadros, a paleta, as tags e as caixas, lidos da ROM-motor.
 Edite e exporte de volta (`.sffighter.json`). Testado: abrir o DonLee e exportar sem mudar nada dá exatamente os mesmos 131 quadros no jogo
 (gráficos, pedaços e caixas). Também existe `tools/para_sfpixel.py` (mesma coisa em Python, gera `project/arte/*.sgpx`).
+
+## Colar do Aseprite (ou de qualquer programa)
+Copie no Aseprite (Ctrl+C) e cole no SF Pixel (Ctrl+V): a arte entra flutuando, com as cores convertidas para as do SNES.
+Cores novas ocupam slots livres da paleta; passando de 15, as que sobram viram a mais parecida (a mensagem avisa).
+Se a imagem vier sem transparência, a cor dos cantos vira transparente. Arraste para posicionar e aperte Enter.
