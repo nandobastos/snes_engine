@@ -40,7 +40,8 @@ const SNES_RAMPS = ramps();
   const hx = (h) => { const n = parseInt(h.slice(1), 16); return keyOf(n >> 16, (n >> 8) & 255, n & 255); };
   SNES_RAMPS.unshift(["Nintendo", ["#0D0C0C", "#A5A2A2", "#E5E5E5", "#FFFFFF", "#DD2020"].map(hx)], ["Lavanda", ["#E6DFF2", "#C7B7E0", "#A78FC6", "#7A5C9B", "#50365F"].map(hx)]);
 }
-function applyTheme(t) { try { if (t) localStorage.setItem("sfpixel-theme", t); else t = localStorage.getItem("sfpixel-theme"); } catch (e) { /* sem armazenamento */ } document.documentElement.setAttribute("data-theme", t === "roxo" ? "roxo" : "nintendo"); }
+const LIGHT = () => document.documentElement.getAttribute("data-theme") === "claro";
+function applyTheme(t) { try { if (t) localStorage.setItem("sfpixel-theme", t); else t = localStorage.getItem("sfpixel-theme"); } catch (e) { /* sem armazenamento */ } document.documentElement.setAttribute("data-theme", t === "claro" ? "claro" : "escuro"); }
 applyTheme();
 
 /* ================================================================== documento */
@@ -160,12 +161,12 @@ function render() {
   const r = cv.getBoundingClientRect();
   if (cv.width !== Math.round(r.width) || cv.height !== Math.round(r.height)) { cv.width = Math.round(r.width); cv.height = Math.round(r.height); }
   ctx.imageSmoothingEnabled = false;
-  ctx.fillStyle = "#070708"; ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--view").trim() || "#070606"; ctx.fillRect(0, 0, cv.width, cv.height);
   const W = doc.w * zoom, H = doc.h * zoom;
   // xadrez (transparente)
   const cs = 16 * zoom;   /* quadrados de 16x16 pixels do sprite, como no Aseprite */
   ctx.save(); ctx.beginPath(); ctx.rect(panX, panY, W, H); ctx.clip();
-  for (let y = 0; y < H; y += cs) for (let x = 0; x < W; x += cs) { ctx.fillStyle = ((x + y) / cs) & 1 ? "#3a3d45" : "#2f3138"; ctx.fillRect(panX + x, panY + y, cs, cs); }
+  for (let y = 0; y < H; y += cs) for (let x = 0; x < W; x += cs) { ctx.fillStyle = ((x + y) / cs) & 1 ? (LIGHT() ? "#e5e5e5" : "#3a3d45") : (LIGHT() ? "#d0cece" : "#2f3138"); ctx.fillRect(panX + x, panY + y, cs, cs); }
   off.width = doc.w; off.height = doc.h;
   // papel de cebola: quadro anterior avermelhado, proximo azulado
   if (onion && !playing) {
@@ -203,13 +204,13 @@ function render() {
   if (showSplit) {
     ctx.lineWidth = 2; ctx.setLineDash([6, 4]);
     hwSplit(idx).forEach((s, i) => {
-      ctx.strokeStyle = i & 1 ? "rgba(217,164,65,.95)" : "rgba(209,32,43,.95)";
+      ctx.strokeStyle = i & 1 ? "rgba(199,183,224,.95)" : "rgba(122,92,155,.95)";
       ctx.strokeRect(panX + s.x * 8 * zoom + 1, panY + s.y * 8 * zoom + 1, s.w * 8 * zoom - 2, s.h * 8 * zoom - 2);
     });
     ctx.setLineDash([]); ctx.lineWidth = 1;
   }
   ctx.restore();
-  ctx.strokeStyle = "#d9a441"; ctx.strokeRect(panX - .5, panY - .5, W + 1, H + 1);
+  ctx.strokeStyle = "#a78fc6"; ctx.strokeRect(panX - .5, panY - .5, W + 1, H + 1);
   // selecao
   const s = float || sel;
   if (s) {
@@ -232,7 +233,7 @@ function render() {
     }
     ctx.setLineDash([]);
     if (float && float.tf) {   // alcas do Transformar (Ctrl+T)
-      ctx.strokeStyle = "#d9a441"; ctx.strokeRect(panX + s.x * zoom + .5, panY + s.y * zoom + .5, s.w * zoom, s.h * zoom);
+      ctx.strokeStyle = "#a78fc6"; ctx.strokeRect(panX + s.x * zoom + .5, panY + s.y * zoom + .5, s.w * zoom, s.h * zoom);
       tfHandles().forEach(([hx, hy]) => { ctx.fillStyle = "#fff"; ctx.fillRect(hx - 4, hy - 4, 8, 8); ctx.strokeStyle = "#000"; ctx.strokeRect(hx - 3.5, hy - 3.5, 7, 7); });
     }
   }
@@ -934,7 +935,7 @@ function drawPreviewFrame(f) {
   const fit = Math.max(1, Math.floor(Math.min((W - 8) / doc.w, (H - 8) / doc.h)));
   const z = pvZoom || fit, w = doc.w * z, h = doc.h * z, x = Math.round((W - w) / 2), y = Math.round((H - h) / 2);
   pvg.imageSmoothingEnabled = false; pvg.fillStyle = "#1b1c20"; pvg.fillRect(0, 0, W, H);
-  pvg.fillStyle = "#2f3138"; pvg.fillRect(x, y, w, h);
+  pvg.fillStyle = LIGHT() ? "#d0cece" : "#2f3138"; pvg.fillRect(x, y, w, h);
   off.width = doc.w; off.height = doc.h; og.putImageData(toImageData(composite(Math.min(f ?? pvFrame, doc.frames.length - 1))), 0, 0);
   pvg.drawImage(off, x, y, w, h);
   document.getElementById("pv-z").textContent = `${z}x${pvZoom ? "" : " (encaixado)"} · roda = zoom`;
@@ -1565,7 +1566,7 @@ function ask(title, fields, ok) {
 const CMD = {
   newdoc: newDialog, trim: trimCanvas, crop: cropToSel, rot180: () => rotateCanvas(180), rot90: () => rotateCanvas(90), rot270: () => rotateCanvas(270),
   spritesize: spriteSizeDialog, dup: duplicateSprite, fromsel: spriteFromSel, fillsel: () => fillSel(false), strokesel: () => fillSel(true), replace: replaceColorDialog,
-  shl: () => shiftCel(-1, 0), shr: () => shiftCel(1, 0), shu: () => shiftCel(0, -1), shd: () => shiftCel(0, 1), timeline: toggleTimeline, fullscreen: fullScreen, theme: () => { applyTheme(document.documentElement.getAttribute("data-theme") === "roxo" ? "nintendo" : "roxo"); render(); },
+  shl: () => shiftCel(-1, 0), shr: () => shiftCel(1, 0), shu: () => shiftCel(0, -1), shd: () => shiftCel(0, 1), timeline: toggleTimeline, fullscreen: fullScreen, theme: () => { applyTheme(document.documentElement.getAttribute("data-theme") === "claro" ? "escuro" : "claro"); render(); },
   newfighter: newFighterDialog, newbox: newBoxLayer, allframes: exportAllFrames, delframes: delFrames, newmap: () => MAP.newDialog(), importscene: () => importImage("scene"),
   importplane: () => (doc.kind === "map" ? importImage("sceneplane") : msg("Abra ou crie um cenário primeiro.")),
   optimize: () => (doc.kind === "map" ? MAP.optimize() : msg("Só para cenários.")), mapresize: () => (doc.kind === "map" ? MAP.resizeDialog() : msg("Só para cenários.")), md: exportSF, closetab: () => closeTab(tabIx), newtag: newTag, transform: startTransform, reduce: reduceTo15, delslot: () => deleteSlot(fg), dropunused: dropUnused,
@@ -1598,7 +1599,7 @@ const MENUS = {
     ["Recortar na seleção", "crop", ""], ["Aparar (encolher até a arte)", "trim", "Ctrl+Shift+T"], "-", ["Espelhar todos os quadros", "fliphall", ""], "-", ["Trocar dois slots da paleta…", "swap", ""], ["Reduzir para 15 cores", "reduce", ""], ["Excluir o slot da cor de frente", "delslot", "Delete na paleta"], ["Remover cores sem uso", "dropunused", ""], ["Paleta padrão", "defpal", ""]],
   frame: [["Novo quadro", "newframe", "Alt+N"], ["Novo quadro vazio", "newempty", "Alt+B"], ["Apagar quadro", "delframe", "Alt+Delete"], "-", ["Mover para a esquerda", "frameleft", "Alt+,"], ["Mover para a direita", "frameright", "Alt+."], ["Propriedades do quadro…", "frameprops", "P"], ["Nova tag nos quadros marcados", "newtag", "Alt+T"], "-", ["Tocar animação", "play", "Enter"], ["Quadro anterior", "prev", ","], ["Próximo quadro", "next", "."], ["Primeiro quadro", "first", "Home"], ["Último quadro", "last", "End"]],
   layer: [["Nova camada", "newlayer", "Shift+N"], ["Nova camada de caixa (hitbox, hurtbox…)", "newbox", ""], ["Apagar camada", "dellayer", ""], ["Renomear…", "rename", "F2"], "-", ["Subir camada", "layerup", ""], ["Descer camada", "layerdown", ""], ["Juntar com a de baixo", "merge", "Ctrl+E"]],
-  view: [["Trocar tema (Nintendo / Roxo lavanda)", "theme", ""], ["Janela de prévia", "preview", "F7"], ["Papel de cebola", "onion", "F3"], ["Linha do tempo", "timeline", "Tab"], ["Tela cheia", "fullscreen", "F11"], "-", ["Grade de tiles 8×8", "tiles", "Ctrl+'"], ["Grade de pixels", "grid", "Ctrl+Shift+'"], ["Pedaços 16×16 do SNES", "split", "F4"], "-", ["Caber na tela", "fit", "Ctrl+0"], ["Zoom 100%", "zoom100", "Ctrl+1"]],
+  view: [["Trocar tema (escuro / claro)", "theme", ""], ["Janela de prévia", "preview", "F7"], ["Papel de cebola", "onion", "F3"], ["Linha do tempo", "timeline", "Tab"], ["Tela cheia", "fullscreen", "F11"], "-", ["Grade de tiles 8×8", "tiles", "Ctrl+'"], ["Grade de pixels", "grid", "Ctrl+Shift+'"], ["Pedaços 16×16 do SNES", "split", "F4"], "-", ["Caber na tela", "fit", "Ctrl+0"], ["Zoom 100%", "zoom100", "Ctrl+1"]],
   mapx: [["Novo cenário…", "newmap", "Ctrl+Shift+N"], ["Importar imagem como cenário (nova aba)…", "importscene", ""], ["Importar imagem no plano atual…", "importplane", ""], "-", ["Otimizar tiles (junta iguais e espelhados)", "optimize", ""], ["Tamanho do mapa…", "mapresize", ""], "-", ["Exportar cenário para Mega Drive", "md", "Ctrl+Shift+M"]],
   help: [["Atalhos do teclado", "keys", "F1"], ["Sobre", "about", ""]],
 };
