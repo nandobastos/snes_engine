@@ -1,0 +1,15 @@
+/* Tema da SF Engine (igual ao SF Pixel): escuro = preto #0D0C0C e cinzas com detalhes em lavanda #A78FC6 e roxo #7A5C9B;
+   claro = elementos em cinzas (#A5A2A2, #E5E5E5, branco) com a barra de cima em roxo. Troca: botao "Tema" (tema.js). */
+:root{--bg:#0d0c0c;--pn:#171515;--ln:#353131;--tx:#e5e5e5;--mu:#a5a2a2;--ac:#7a5c9b;--ac2:#a78fc6;--bar:#171515;--bartx:#e5e5e5;--in:#0d0c0c;color-scheme:dark}
+:root[data-theme="claro"]{--bg:#e5e5e5;--pn:#ffffff;--ln:#a5a2a2;--tx:#1a1818;--mu:#5d5a5a;--ac:#7a5c9b;--ac2:#50365f;--bar:#7a5c9b;--bartx:#ffffff;--in:#ffffff;color-scheme:light}
+body{background:var(--bg);color:var(--tx)}
+header{background:var(--bar);color:var(--bartx);border-bottom:2px solid var(--ac)!important}
+header h1{color:var(--ac2)}:root[data-theme="claro"] header h1{color:#fff}
+:root[data-theme="claro"] header #msg{color:#e6dff2!important}
+button{background:var(--pn);color:var(--tx);border:1px solid var(--ln)}
+button:hover:not(:disabled){border-color:var(--ac2)}
+button.p{background:var(--ac)!important;color:#fff!important;border-color:var(--ac)!important}
+input,select{background:var(--in);color:var(--tx);border:1px solid var(--ln)}
+.it.on{border-color:var(--ac2)!important;box-shadow:inset 3px 0 0 var(--ac)}
+h2,h3{color:var(--ac2)}
+:root[data-theme="claro"] header button.p{background:#50365f!important;border-color:#e6dff2!important}

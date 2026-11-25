@@ -2,8 +2,6 @@
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Lutadores - SF Engine</title>
 <style>
-:root{--bg:#14161c;--pn:#1e222b;--ln:#343a48;--tx:#e8eaf0;--mu:#9aa3b5;--ac:#ffb020}
-@media (prefers-color-scheme:light){:root{--bg:#f3f4f7;--pn:#fff;--ln:#cfd3dc;--tx:#1b1e26;--mu:#5b6475;--ac:#b86a00}}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px system-ui,sans-serif}
 header{padding:12px 16px;border-bottom:1px solid var(--ln);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 h1{font-size:18px;margin:0 8px 0 0}main{display:grid;grid-template-columns:240px 1fr;gap:12px;padding:12px 16px}
@@ -18,7 +16,8 @@ input{background:var(--bg);color:var(--tx);border:1px solid var(--ln);border-rad
 input.n{width:200px}.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px 12px}
 div.cmd{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 0}div.cmd b{flex:1 1 260px;font-weight:normal}div.cmd .seq{min-width:120px;font-size:18px;letter-spacing:2px}div.cmd .ks button{padding:3px 7px;margin:1px}
 label{display:flex;justify-content:space-between;gap:6px;align-items:center}#msg{color:var(--mu)}
-</style></head><body>
+</style>
+<link rel="stylesheet" href="tema.css"><script src="tema.js"></script></head><body>
 <header><h1>Lutadores</h1>
 <input type="file" id="arq" accept=".json" hidden>
 <button id="abrir">Abrir game.json</button>
