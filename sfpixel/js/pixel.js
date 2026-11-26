@@ -135,7 +135,8 @@ function boxOf(li, f) {   // retangulo que cobre o que foi marcado na camada de 
   for (let y = 0; y < doc.h; y++) for (let x = 0; x < doc.w; x++) if (c[y * doc.w + x]) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
   return x1 < 0 ? null : { x0, y0, x1, y1 };
 }
-const KIND_INFO = { hitbox: ["Hitbox", "255,60,60"], hitbox2: ["Hitbox 2", "255,150,40"], hurtbox: ["Hurtbox", "60,220,90"], anchor: ["Âncora (pés)", "70,140,255"] };
+const BOXK = ["hitbox", "hitbox2", "hurtbox", "anchor"], isBox = (L) => L && BOXK.includes(L.kind);
+const KIND_INFO = { sketch: ["Rascunho", "90,160,255"], hitbox: ["Hitbox", "255,60,60"], hitbox2: ["Hitbox 2", "255,150,40"], hurtbox: ["Hurtbox", "60,220,90"], anchor: ["Âncora (pés)", "70,140,255"] };
 function kindLayer(kind) { return doc.layers.findIndex((L) => L.kind === kind); }
 const LIM_PIECES = 24, LIM_ROM_KB = 1024;
 function frameStats(f) {
@@ -176,12 +177,17 @@ function render() {
     });
   }
   const idx = composite(cur.frame);
-  { const L = doc.layers[cur.layer]; if (L && L.kind && L.vis) { const c = doc.cels[cur.layer][cur.frame], col = KIND_INFO[L.kind][1]; ctx.fillStyle = `rgba(${col},.45)`; for (let y = 0; y < doc.h; y++) for (let x = 0; x < doc.w; x++) if (c[y * doc.w + x]) ctx.fillRect(panX + x * zoom, panY + y * zoom, zoom, zoom); } }
+  { const L = doc.layers[cur.layer]; if (L && isBox(L) && L.vis) { const c = doc.cels[cur.layer][cur.frame], col = KIND_INFO[L.kind][1]; ctx.fillStyle = `rgba(${col},.45)`; for (let y = 0; y < doc.h; y++) for (let x = 0; x < doc.w; x++) if (c[y * doc.w + x]) ctx.fillRect(panX + x * zoom, panY + y * zoom, zoom, zoom); } }
   if (preview) for (const [x, y, v] of preview) if (x >= 0 && y >= 0 && x < doc.w && y < doc.h) idx[y * doc.w + x] = v;
+  doc.layers.forEach((L, li) => {   // rascunho: azul claro meio transparente, por baixo da arte (nao entra no lutador)
+    if (L.kind !== "sketch" || !L.vis) return;
+    const c = doc.cels[li][cur.frame]; ctx.fillStyle = "rgba(90,160,255,.45)";
+    for (let y = 0; y < doc.h; y++) for (let x = 0; x < doc.w; x++) if (c[y * doc.w + x]) ctx.fillRect(panX + x * zoom, panY + y * zoom, zoom, zoom);
+  });
   og.putImageData(toImageData(idx), 0, 0); ctx.drawImage(off, panX, panY, W, H);
   // caixas (hitbox, hurtbox...) por cima da arte
   doc.layers.forEach((L, li) => {
-    if (!L.kind || !L.vis) return;
+    if (!isBox(L) || !L.vis) return;
     const b = boxOf(li, cur.frame), col = KIND_INFO[L.kind][1];
     if (!b) return;
     if (L.kind === "anchor") { const ax = (b.x0 + b.x1 + 1) / 2, ay = b.y1 + 1; ctx.strokeStyle = `rgb(${col})`; ctx.beginPath(); ctx.moveTo(panX + ax * zoom - 8, panY + ay * zoom); ctx.lineTo(panX + ax * zoom + 8, panY + ay * zoom); ctx.moveTo(panX + ax * zoom, panY + ay * zoom - 8); ctx.lineTo(panX + ax * zoom, panY + ay * zoom + 8); ctx.stroke(); return; }
@@ -850,7 +856,7 @@ function renderTimeline() {
   h += "</tr>";
   for (let li = doc.layers.length - 1; li >= 0; li--) {
     const L = doc.layers[li];
-    h += `<tr><td class="tl-layer ${li === cur.layer ? "cur" : ""}"><div data-l="${li}"><button data-vis="${li}" title="Mostrar/esconder" class="${L.vis ? "" : "off"}">👁</button><button data-lock="${li}" title="Travar" class="${L.lock ? "" : "off"}">🔒</button><span title="Duplo clique: renomear"${L.kind ? ` style="color:rgb(${KIND_INFO[L.kind][1]})"` : ""}>${esc(L.name)}</span></div></td>`;
+    h += `<tr><td class="tl-layer ${li === cur.layer ? "cur" : ""}"><div data-l="${li}"><button data-vis="${li}" title="Mostrar/esconder" class="${L.vis ? "" : "off"}">👁</button><button data-lock="${li}" title="Travar" class="${L.lock ? "" : "off"}">🔒</button><span title="${isBox(L) ? "Camada da engine (não pode apagar/renomear/mover)" : "Duplo clique: renomear"}"${L.kind ? ` style="color:rgb(${KIND_INFO[L.kind][1]})"` : ""}>${isBox(L) ? "🔒 " : li < firstBox() && doc.layers.some(isBox) ? "↳ " : ""}${esc(L.name)}</span></div></td>`;
     doc.frames.forEach((f, fi) => {
       const has = doc.cels[li][fi].some((v) => v);
       const c = li === cur.layer && fi === cur.frame ? "cur" : fi === cur.frame || li === cur.layer ? "curcol" : "";
@@ -924,11 +930,14 @@ function moveFrame(d) {
   [doc.frames[a], doc.frames[b]] = [doc.frames[b], doc.frames[a]];
   doc.cels.forEach((r) => { [r[a], r[b]] = [r[b], r[a]]; }); cur.frame = b; renderAll();
 }
+const firstBox = () => { const i = doc.layers.findIndex(isBox); return i < 0 ? doc.layers.length : i; };
+const boxMsg = () => msg("As camadas Hitbox, Hitbox 2, Hurtbox e Âncora são da engine: dá para desenhar nelas, mas não apagar, renomear ou mover.");
 function newLayer() {
   dropFloat(); push();
-  doc.layers.splice(cur.layer + 1, 0, { name: "Camada " + (doc.layers.length + 1), vis: true, lock: false });
-  doc.cels.splice(cur.layer + 1, 0, doc.frames.map(() => new Uint8Array(doc.w * doc.h)));
-  cur.layer++; renderAll();
+  const at = Math.min(cur.layer + 1, firstBox());   // camadas novas ficam no grupo Corpo (abaixo das caixas)
+  doc.layers.splice(at, 0, { name: "Camada " + (doc.layers.length + 1), vis: true, lock: false });
+  doc.cels.splice(at, 0, doc.frames.map(() => new Uint8Array(doc.w * doc.h)));
+  cur.layer = at; renderAll();
 }
 function newBoxLayer() {
   ask("Nova camada de caixa", [["Tipo", "kind", "hurtbox", ["hitbox", "hitbox2", "hurtbox", "anchor"]]], (v) => {
@@ -940,22 +949,26 @@ function newBoxLayer() {
   });
 }
 function delLayer() {
+  if (isBox(doc.layers[cur.layer])) return boxMsg();
   if (doc.layers.length < 2) { msg("O sprite precisa de pelo menos uma camada."); return; }
   dropFloat(true); push(); doc.layers.splice(cur.layer, 1); doc.cels.splice(cur.layer, 1); clampCur(); renderAll();
 }
 function moveLayer(d) {
   const a = cur.layer, b = a + d; if (b < 0 || b >= doc.layers.length) return;
+  if (isBox(doc.layers[a]) || isBox(doc.layers[b])) return boxMsg();
   dropFloat(); push();
   [doc.layers[a], doc.layers[b]] = [doc.layers[b], doc.layers[a]]; [doc.cels[a], doc.cels[b]] = [doc.cels[b], doc.cels[a]]; cur.layer = b; renderAll();
 }
 function mergeDown() {
   if (cur.layer < 1) return;
+  if (isBox(doc.layers[cur.layer]) || isBox(doc.layers[cur.layer - 1]) || doc.layers[cur.layer].kind === "sketch" || doc.layers[cur.layer - 1].kind === "sketch") { msg("Juntar só entre camadas de desenho do Corpo (o Rascunho e as caixas ficam separados)."); return; }
   dropFloat(); push();
   const top = doc.cels[cur.layer], low = doc.cels[cur.layer - 1];
   top.forEach((c, f) => { for (let i = 0; i < c.length; i++) if (c[i]) low[f][i] = c[i]; });
   doc.layers.splice(cur.layer, 1); doc.cels.splice(cur.layer, 1); cur.layer--; renderAll();
 }
 function renameLayer(li) {
+  if (isBox(doc.layers[li])) return boxMsg();
   ask("Renomear camada", [["Nome", "name", doc.layers[li].name]], (v) => { push(); doc.layers[li].name = v.name || doc.layers[li].name; renderTimeline(); });
 }
 function frameProps(f) {
@@ -1092,7 +1105,7 @@ const FIGHTER_ANIMS = [["idle", 4, "loop"], ["walk", 5, "loop"], ["walkb", 5, "l
   ["jp", 3, "once"], ["jk", 3, "once"], ["jdk", 3, "once"], ["jhk", 3, "once"], ["hadouken", 4, "once"], ["shoryu", 6, "once"], ["tatsu", 6, "loop"], ["throw", 5, "once"], ["thrown", 4, "once"], ["rise", 2, "once"],
   ["hit_head", 3, "once"], ["hit_body", 4, "once"], ["hit_crouch", 2, "once"], ["fall", 3, "once"], ["ko", 1, "once"], ["victory", 4, "loop"], ["fireball", 1, "loop"], ["fireball_hit", 1, "once"], ["fireball_fx", 4, "loop"], ["spark", 3, "once"], ["shadow", 2, "loop"], ["retrato", 1, "once"]];
 const SGE_SIZES = [[64, 96, "médio (Ryu, Sagat, DonLee)"], [48, 80, "pequeno / ágil"], [104, 160, "grande (Big Bear): cabe; cuidado com poses esticadas, máx. 24 pedaços"]];
-function boxLayers() { return [{ name: "Corpo", vis: true, lock: false }, { name: "Hitbox", kind: "hitbox", vis: true, lock: false }, { name: "Hitbox 2", kind: "hitbox2", vis: true, lock: false }, { name: "Hurtbox", kind: "hurtbox", vis: true, lock: false }, { name: "Âncora", kind: "anchor", vis: true, lock: false }]; }
+function boxLayers() { return [{ name: "Rascunho", kind: "sketch", vis: true, lock: false }, { name: "Corpo", vis: true, lock: false }, { name: "Hitbox", kind: "hitbox", vis: true, lock: false }, { name: "Hitbox 2", kind: "hitbox2", vis: true, lock: false }, { name: "Hurtbox", kind: "hurtbox", vis: true, lock: false }, { name: "Âncora", kind: "anchor", vis: true, lock: false }]; }
 function newFighterDialog() {
   modal(`<h3>Novo lutador para a SF Engine</h3>
     <div class="row"><label>Nome</label><input id="nf-name" value="lutador"></div>
@@ -1203,7 +1216,7 @@ function fighterFromRom(G, fi) {
       const bx = (pre) => { const c = new Uint8Array(W * HH); if (A[pre][k]) { const x0 = s8(A[pre + "x0"][k]), x1 = s8(A[pre + "x1"][k]), y0 = A[pre + "y0"][k], y1 = A[pre + "y1"][k];
         for (let Y = GY - y1; Y < GY - y0; Y++) for (let X = AX + x0; X <= AX + x1; X++) if (X >= 0 && Y >= 0 && X < W && Y < HH) c[Y * W + X] = 1; } return c; };
       const an = new Uint8Array(W * HH); an[(GY - 1) * W + AX - 1] = an[(GY - 1) * W + AX] = 1;
-      [body, bx("pf_hb"), bx("pf_hb2"), bx("pf_hu"), an].forEach((c, li) => d.cels[li].push(c));
+      [new Uint8Array(W * HH), body, bx("pf_hb"), bx("pf_hb2"), bx("pf_hu"), an].forEach((c, li) => d.cels[li].push(c));
       d.frames.push({ d: 100 });
     });
     d.tags.push({ name: anim, from: t0, to: d.frames.length - 1, loop: ["idle", "walk", "walkb", "victory", "tatsu"].includes(anim) ? "loop" : "once" });
@@ -1237,14 +1250,14 @@ function fighterFromArt(art, name) {
       f.pieces.forEach((p) => { const px = unb64(p.px); for (let yy = 0; yy < 16; yy++) for (let xx = 0; xx < 16; xx++) { const v = px[yy * 16 + xx], X = bx + p.x + xx, Y = by + p.y + yy; if (v && X >= 0 && Y >= 0 && X < W && Y < H) body[Y * W + X] = v; } });
       const box = (b) => { const c = new Uint8Array(W * H); if (b) for (let Y = by + b[1]; Y < by + b[3]; Y++) for (let X = bx + b[0]; X < bx + b[2]; X++) if (X >= 0 && Y >= 0 && X < W && Y < H) c[Y * W + X] = 1; return c; };
       const an = new Uint8Array(W * H); an[(GY - 1) * W + AX - 1] = an[(GY - 1) * W + AX] = 1;
-      add([body, box(f.hitbox), box(f.hitbox2), box(f.hurtbox), an], f.ms);
+      add([new Uint8Array(W * H), body, box(f.hitbox), box(f.hitbox2), box(f.hurtbox), an], f.ms);
     });
     d.tags.push({ name: t.name, from: t0, to: d.frames.length - 1, loop: t.loop || "once" });
   });
   if (art.portrait) {   // tag "retrato": o rosto 56x80 encostado embaixo e centralizado
     const body = new Uint8Array(W * H), px = unb64(art.portrait.px), ox = AX - 28, oy = GY - 80;
     for (let y = 0; y < 80; y++) for (let x = 0; x < 56; x++) if (px[y * 56 + x] && oy + y >= 0) body[(oy + y) * W + ox + x] = px[y * 56 + x];
-    const t0 = d.frames.length; add([body, ...[1, 2, 3, 4].map(() => new Uint8Array(W * H))], 100);
+    const t0 = d.frames.length; add([new Uint8Array(W * H), body, ...[1, 2, 3, 4].map(() => new Uint8Array(W * H))], 100);
     d.tags.push({ name: "retrato", from: t0, to: t0, loop: "once" });
   }
   return d;
@@ -1683,9 +1696,12 @@ function reorderLayer(li, slot) {
   for (let i = n - 1; i >= 0; i--) vis.push(i);
   const from = vis.indexOf(li);
   if (slot === from || slot === from + 1) return;
-  dropFloat(); push();
+  if (isBox(doc.layers[li])) return boxMsg();
   vis.splice(from, 1); vis.splice(slot > from ? slot - 1 : slot, 0, li);
   const order = vis.slice().reverse();   // indice novo -> indice antigo
+  const nb = order.map((i) => isBox(doc.layers[i])), fb = nb.indexOf(true);
+  if (fb >= 0 && nb.slice(fb).some((x) => !x)) return msg("As camadas do Corpo ficam abaixo das caixas da engine (Hitbox, Hitbox 2, Hurtbox, Âncora).");
+  dropFloat(); push();
   doc.layers = order.map((i) => doc.layers[i]); doc.cels = order.map((i) => doc.cels[i]);
   cur.layer = order.indexOf(li);
   renderAll(); msg("Camada movida.");

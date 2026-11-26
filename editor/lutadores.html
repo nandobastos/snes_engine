@@ -92,13 +92,13 @@ async function vis(){if(V)return V;if(!await motor())return null;try{V=SFView.op
 function card(title,cls,html){const d=document.createElement('section');d.className='card '+(cls||'');d.innerHTML=(title?'<h3>'+title+'</h3>':'')+(html||'');return d}
 function refresh(){
   const L=$('lista');L.innerHTML='';
-  G.fighters.forEach((f,i)=>{const b=document.createElement('button');b.className='it'+(i==sel&&VIEW==='lutador'?' on':'');
+  G.fighters.forEach((f,i)=>{const b=document.createElement('button');b.className='it';
     const t=f.traits;b.innerHTML='<canvas width="28" height="40"></canvas><span>'+esc(f.name)+'<small>'+(t.clone_of?'clone de '+esc(t.clone_of):i<ORIG?'original':'novo')+'</small></span>';
-    b.onclick=()=>{if(!$('anim').classList.contains('hidden')){if(i!==EDITANDO&&confirm('Abrir '+f.name+' no editor de animação? O que não foi exportado do lutador atual se perde.')){sel=i;VIEW='lutador';refresh();abrirEditor(G.fighters[i])}return}sel=i;VIEW='lutador';refresh()};L.appendChild(b);
+    b.onclick=()=>{if(!$('anim').classList.contains('hidden')){if(i!==EDITANDO&&confirm('Abrir '+f.name+' no editor de animação? O que não foi exportado do lutador atual se perde.')){sel=i;VIEW='lutador';abrirEditor(G.fighters[i]);refresh()}return}sel=i;VIEW='lutador';refresh()};L.appendChild(b);
     vis().then(v=>{if(!v)return;const c=b.querySelector('canvas'),g=c.getContext('2d');g.imageSmoothingEnabled=false;try{g.drawImage(v.portrait(G,f,ARTS),0,0,28,40)}catch(e){}})});
   ['clonar','novo','salvar','arte','rom','jogar','regras','telas'].forEach(k=>$(k).disabled=false);$('rem').disabled=sel<ORIG;
   document.querySelectorAll('.nav button[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===VIEW));
-  document.querySelectorAll('.side .it').forEach((b,i)=>b.classList.toggle('on',(!$('anim').classList.contains('hidden')&&i===EDITANDO)||(i==sel&&VIEW==='lutador')));
+  {const ed=!$('anim').classList.contains('hidden');document.querySelectorAll('.side .it').forEach((b,i)=>b.classList.toggle('on',ed?i===EDITANDO:(i==sel&&VIEW==='lutador')))}
   if(VIEW==='regras')return regras();
   if(VIEW==='telas')return telas();
   const f=G.fighters[sel],e=$('ed');e.innerHTML='';$('titulo').textContent=f.name;
