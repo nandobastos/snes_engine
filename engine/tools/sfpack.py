@@ -88,7 +88,7 @@ def hurt_boxes(proj, fr):
     A = {a["name"]: a["data"] for a in fr["arrays"]}
     lst, idx = [], {}
     art = {int(k): v for k, v in fr.get("hurts", {}).items()}
-    limb = proj.get("game", {}).get("hurt_membro", False)
+    limb = proj.get("game", {}).get("hurt_membro", False) and os.environ.get("SF_BASE") != "1"   # a ROM-base fica sem conversao
     for k in range(len(A["pf_hu"])):
         if k in art:
             boxes = art[k]
