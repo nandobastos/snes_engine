@@ -74,5 +74,5 @@ except OSError:
     sys.exit(1)
 print("SF Engine rodando em http://localhost:%d  (feche esta janela para encerrar)" % PORT)
 if os.environ.get("SF_SEM_NAVEGADOR") != "1":
-    webbrowser.open("http://localhost:%d" % PORT)
+    webbrowser.open("http://localhost:%d/editor/lutadores.html" % PORT)
 srv.serve_forever()
