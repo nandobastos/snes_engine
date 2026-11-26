@@ -1887,6 +1887,14 @@ window.addEventListener("keydown", (e) => {
     e.preventDefault(); if (!float) liftFloat();
     const d = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[k]; if (float.tf) { float.tf.L += d[0]; float.tf.T += d[1]; } float.x += d[0]; float.y += d[1]; render(); return;
   }
+  // setas sem selecao (e fora da ferramenta Mover): andam na linha do tempo. Esquerda/direita = quadro; cima/baixo = camada
+  if (k.startsWith("Arrow") && !sel && !float && !["select", "selellipse", "wand", "move"].includes(tool)) {
+    e.preventDefault(); dropFloat();
+    if (k === "ArrowLeft") goFrame(cur.frame - 1);
+    else if (k === "ArrowRight") goFrame(cur.frame + 1);
+    else { cur.layer = Math.max(0, Math.min(doc.layers.length - 1, cur.layer + (k === "ArrowUp" ? 1 : -1))); renderTimeline(); renderReport(); msg("Camada: " + doc.layers[cur.layer].name); }
+    return;
+  }
   if (k === "+" || k === "=" || k === "-") { zoomKey(k === "-" ? -1 : 1); return; }   // + e - do teclado: zoom no centro
   if (k === "]") { brush = Math.min(16, brush + 1); renderToolOpts(); render(); return; }
   if (k === "[") { brush = Math.max(1, brush - 1); renderToolOpts(); render(); return; }
