@@ -35,12 +35,12 @@ SFX = [
     ("GROUND",    "SFII_52 - Hit the ground.wav", RATE),
     ("LANDING",   "SFII_53 - Landing.wav", RATE),
     ("HADOUKEN",  "SFII_69 - RyuKen Hadouken.wav", RATE),
-    ("SHORYU",    "SFII_7~1.WAV", RATE2),          # voz do Shoryuken (arquivo 70, pelo tamanho/ordem)
-    ("TATSU",     "SFII_7~2.WAV", RATE2),          # voz do Tatsumaki (arquivo 71)
-    ("MOVE",      "SFII_0~2.WAV", RATE2),          # SFII_02 - Move Cursor
-    ("OK",        "SFII_0~3.WAV", RATE2),          # SFII_03 - Selection
+    ("SHORYU",    "SFII_70_Shoryuken.wav", RATE2),          # voz do Shoryuken (arquivo 70, pelo tamanho/ordem)
+    ("TATSU",     "SFII_71_Tatsumaki.wav", RATE2),          # voz do Tatsumaki (arquivo 71)
+    ("MOVE",      "SFII_02_MoveCursor.wav", RATE2),          # SFII_02 - Move Cursor
+    ("OK",        "SFII_03_Selection.wav", RATE2),          # SFII_03 - Selection
     ("TIGER",     "SFII_72 - Sagat Tiger.wav", RATE2),   # Sagat: "Tiger!" (Tiger Shot)
-    ("TIGERUP",   "SFII_7~4.WAV", RATE2),        # Sagat: "Tiger Uppercut" (arquivo 74)
+    ("TIGERUP",   "SFII_74_TigerUppercut.wav", RATE2),        # Sagat: "Tiger Uppercut" (arquivo 74)
     # anunciante (tom 2): conjuntos proprios por tela (intro do round, resultado, contagem do Continue)
     ("V_ROUND",   "SFII_18 - Round.wav", RATE),
     ("V_ONE",     "SFII_19 - One.wav", RATE),

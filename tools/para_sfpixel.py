@@ -45,8 +45,8 @@ def main():
     os.makedirs(os.path.join(ROOT, "project", "arte"), exist_ok=True)
     for fi, base in enumerate(fr["fighter_bases"]):
         idxs = [base + first + i for _, first, cnt in layout for i in range(cnt)]
-        L = max(A["pf_ax"][k] for k in idxs)
-        Rr = max(A["pf_w"][k] - A["pf_ax"][k] for k in idxs)
+        L = max(s8(A["pf_ax"][k]) for k in idxs)
+        Rr = max(A["pf_w"][k] - s8(A["pf_ax"][k]) for k in idxs)
         T = max(A["pf_h"][k] for k in idxs)
         W = ((max(L, Rr) * 2 + 8 + 7) // 8) * 8
         H = ((T + 8 + 7) // 8) * 8
@@ -63,7 +63,7 @@ def main():
             t0 = len(frames)
             for k in ks:
                 body = bytearray(W * H)
-                ax, h, n = A["pf_ax"][k], A["pf_h"][k], A["pf_count"][k]
+                ax, h, n = s8(A["pf_ax"][k]), A["pf_h"][k], A["pf_count"][k]
                 ox, oy = AX - ax, GY - h      # canto de cima do quadro no documento
                 gfx = chunks[A["pf_chunk"][k]]
                 for j in range(n):

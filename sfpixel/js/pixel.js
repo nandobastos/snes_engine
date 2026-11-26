@@ -1183,7 +1183,7 @@ function fighterFromRom(G, fi) {
   const swaps = []; if (fi === 2) for (let a = 1; a < 16; a++) for (let b = a + 1; b < 16; b++) if (pal[a] !== pal[b] && pal2[a] === pal[b] && pal2[b] === pal[a]) swaps.push([a, b]);
   const FX = new Set(["fireball", "fireball_hit", "fireball_fx", "spark", "shadow"]), lay = B.layout.filter((l) => !FX.has(l[0])), base = B.fighter_bases[fi];
   const idx = []; lay.forEach(([, f0, c]) => { for (let i = 0; i < c; i++) idx.push(base + f0 + i); });
-  const L = Math.max(...idx.map((k) => A.pf_ax[k])), Rr = Math.max(...idx.map((k) => A.pf_w[k] - A.pf_ax[k])), T = Math.max(...idx.map((k) => A.pf_h[k]));
+  const L = Math.max(...idx.map((k) => s8(A.pf_ax[k]))), Rr = Math.max(...idx.map((k) => A.pf_w[k] - s8(A.pf_ax[k]))), T = Math.max(...idx.map((k) => A.pf_h[k]));
   const W = Math.ceil((Math.max(L, Rr) * 2 + 8) / 8) * 8, HH = Math.ceil((T + 8) / 8) * 8, AX = W >> 1, GY = HH - 4;
   const d = newDoc(W, HH, ["Ryu", "Sagat", "DonLee"][fi]);
   d.pal = pal; d.mirrorSwap = swaps; d.frames = []; d.tags = []; d.layers = boxLayers(); d.cels = d.layers.map(() => []);
@@ -1197,7 +1197,7 @@ function fighterFromRom(G, fi) {
     while (ks.length > 1 && ["pf_chunk", "pf_off", "pf_count"].every((n) => A[n][ks[ks.length - 1]] === A[n][ks[ks.length - 2]])) ks.pop();
     const t0 = d.frames.length;
     ks.forEach((k) => {
-      const body = new Uint8Array(W * HH), ax = A.pf_ax[k], hh = A.pf_h[k], n = A.pf_count[k], oy = GY - hh, go = chunkAt(A.pf_chunk[k]) + A.pf_off[k];
+      const body = new Uint8Array(W * HH), ax = s8(A.pf_ax[k]),   /* ancora pode ficar fora do desenho (negativa) */ hh = A.pf_h[k], n = A.pf_count[k], oy = GY - hh, go = chunkAt(A.pf_chunk[k]) + A.pf_off[k];
       for (let j = 0; j < n; j++) { const dx = s8(A.pp_dx[A.pf_first[k] + j]), dy = A.pp_dy[A.pf_first[k] + j], px = piece(go, j, n);
         for (let yy = 0; yy < 16; yy++) for (let xx = 0; xx < 16; xx++) { const v = px[yy * 16 + xx], X = AX + dx - 64 + xx, Y = oy + dy + yy; if (v && X >= 0 && Y >= 0 && X < W && Y < HH) body[Y * W + X] = v; } }
       const bx = (pre) => { const c = new Uint8Array(W * HH); if (A[pre][k]) { const x0 = s8(A[pre + "x0"][k]), x1 = s8(A[pre + "x1"][k]), y0 = A[pre + "y0"][k], y1 = A[pre + "y1"][k];

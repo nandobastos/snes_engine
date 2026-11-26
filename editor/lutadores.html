@@ -94,10 +94,11 @@ function refresh(){
   const L=$('lista');L.innerHTML='';
   G.fighters.forEach((f,i)=>{const b=document.createElement('button');b.className='it'+(i==sel&&VIEW==='lutador'?' on':'');
     const t=f.traits;b.innerHTML='<canvas width="28" height="40"></canvas><span>'+esc(f.name)+'<small>'+(t.clone_of?'clone de '+esc(t.clone_of):i<ORIG?'original':'novo')+'</small></span>';
-    b.onclick=()=>{sel=i;VIEW='lutador';refresh()};L.appendChild(b);
+    b.onclick=()=>{if(!$('anim').classList.contains('hidden')){if(i!==EDITANDO&&confirm('Abrir '+f.name+' no editor de animação? O que não foi exportado do lutador atual se perde.')){sel=i;VIEW='lutador';refresh();abrirEditor(G.fighters[i])}return}sel=i;VIEW='lutador';refresh()};L.appendChild(b);
     vis().then(v=>{if(!v)return;const c=b.querySelector('canvas'),g=c.getContext('2d');g.imageSmoothingEnabled=false;try{g.drawImage(v.portrait(G,f,ARTS),0,0,28,40)}catch(e){}})});
   ['clonar','novo','salvar','arte','rom','jogar','regras','telas'].forEach(k=>$(k).disabled=false);$('rem').disabled=sel<ORIG;
   document.querySelectorAll('.nav button[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===VIEW));
+  document.querySelectorAll('.side .it').forEach((b,i)=>b.classList.toggle('on',(!$('anim').classList.contains('hidden')&&i===EDITANDO)||(i==sel&&VIEW==='lutador')));
   if(VIEW==='regras')return regras();
   if(VIEW==='telas')return telas();
   const f=G.fighters[sel],e=$('ed');e.innerHTML='';$('titulo').textContent=f.name;
@@ -206,11 +207,11 @@ function regras(){
   cc.appendChild(g);
   cc.insertAdjacentHTML('beforeend','<p><small>As linhas contam de cima (cada linha = 8 px; a tela tem 28). As cores viram as do SNES (32 tons por canal). Clique em Jogar para ver.</small></p>');
 }
-$('regras').onclick=()=>{VIEW='regras';refresh()};
+$('regras').onclick=()=>{fecharEditor();VIEW='regras';refresh()};
 function telas(){if(!G.flow||!G.flow.nodes||!G.flow.nodes.length)G.flow=JSON.parse(JSON.stringify(SFBuild.DEFAULT_FLOW));
   $('titulo').textContent='Telas do Arcade';const e=$('ed');e.innerHTML='';const cc=card('','c-flow');e.appendChild(cc);
   SFTelas.open(G,cc,()=>msg('Fluxo alterado: salve o game.json e clique em Jogar para testar.'))}
-$('telas').onclick=()=>{VIEW='telas';refresh()};
+$('telas').onclick=()=>{fecharEditor();VIEW='telas';refresh()};
 $('arte').onclick=async()=>{if(SERVIDOR){await lerPasta();refresh();msg('Arte e estágios relidos da pasta project/ ('+Object.keys(ARTS).length+' arte(s), '+Object.keys(STAGES).length+' estágio(s)).');return}$('arqArte').click()};
 $('arqArte').onchange=async e=>{for(const f of e.target.files){try{const o=JSON.parse(await f.text());if(o.format!=='sf-fighter')throw 0;ARTS[f.name]=o;}catch(x){msg(f.name+' não é um arquivo exportado do SF Pixel.');return}}msg(Object.keys(ARTS).length+' arquivo(s) de arte carregado(s). Escolha a arte no lutador.');refresh()};
 async function motor(){
@@ -239,6 +240,7 @@ async function lerPasta(){   // le toda a arte (.sffighter.json) e os estagios (
   for(const fn of files){if(!/\.(sffighter|sfstage)\.json$/.test(fn))continue;try{const o=await (await fetch('../project/'+encodeURIComponent(fn))).json();if(o.format==='sf-fighter')ARTS[fn]=o;else if(o.format==='sf-stage')STAGES[fn]=o}catch(e){}}
 }
 
-$('navl').onclick=()=>{VIEW='lutador';if(G)refresh()};
-$('anim-x').onclick=()=>{$('anim').classList.add('hidden');$('anim-f').src='about:blank';EDITANDO=-1};
+$('navl').onclick=()=>{fecharEditor();VIEW='lutador';if(G)refresh()};
+function fecharEditor(){$('anim').classList.add('hidden');$('anim-f').src='about:blank';EDITANDO=-1}
+$('anim-x').onclick=()=>{fecharEditor();refresh()};
 </script></body></html>

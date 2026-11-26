@@ -30,7 +30,7 @@
     const cache = new Map();
     function romFrame(k, pal, key) {   // quadro k da tabela da engine
       const ck = key + ":" + k; if (cache.has(ck)) return cache.get(ck);
-      const w = A.pf_w[k], hh = A.pf_h[k], ax = A.pf_ax[k], n = A.pf_count[k], go = chunkAt(A.pf_chunk[k]) + A.pf_off[k], idx = new Uint8Array(w * hh);
+      const w = A.pf_w[k], hh = A.pf_h[k], ax = s8(A.pf_ax[k]), n = A.pf_count[k], go = chunkAt(A.pf_chunk[k]) + A.pf_off[k], idx = new Uint8Array(w * hh);
       for (let j = 0; j < n; j++) { const dx = s8(A.pp_dx[A.pf_first[k] + j]) - 64 + ax, dy = A.pp_dy[A.pf_first[k] + j], px = piece(go, j, n);
         for (let yy = 0; yy < 16; yy++) for (let xx = 0; xx < 16; xx++) { const v = px[yy * 16 + xx], X = dx + xx, Y = dy + yy; if (v && X >= 0 && Y >= 0 && X < w && Y < hh) idx[Y * w + X] = v; } }
       const fr = { c: canvasFrom(w, hh, idx, pal), ax, h: hh, n };
