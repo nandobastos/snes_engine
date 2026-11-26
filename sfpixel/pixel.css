@@ -218,3 +218,5 @@ input[type=checkbox], input[type=radio] { box-shadow: none; background: none; bo
 
 .snesrgb{padding:2px 8px 6px}.snesrgb label{display:flex;gap:6px;align-items:center;font-size:12px}.snesrgb input{flex:1}.snesrgb b{width:20px;text-align:right}
 .pc{display:block;font-size:9px;line-height:1}.pc.ok{color:var(--ok)}.pc.warn{color:#c8a030}.pc.bad{color:var(--bad);font-weight:bold}
+
+.tl-grp td.tl-layer{background:var(--panel2)}.tl-grp span{font-weight:600;color:var(--acc2)}.tl-grpfill{background:var(--panel2)}

@@ -61,8 +61,8 @@ function cel(l = cur.layer, f = cur.frame) { return doc.cels[l][f]; }
 /* ================================================================== desfazer */
 let undo = [], redo = [];
 const cpSel = (x) => x && { ...x, m: x.m && x.m.slice() };
-function snap() { if (doc.kind === "map") return MAP.snap(); return { w: doc.w, h: doc.h, pal: doc.pal.slice(), loop: doc.loop, tags: doc.tags.map((t) => ({ ...t })), layers: doc.layers.map((l) => ({ ...l })), frames: doc.frames.map((f) => ({ ...f })), cels: doc.cels.map((r) => r.map((a) => a.slice())), cur: { ...cur }, sel: cpSel(sel) }; }
-function restore(s) { if (s.kind === "map") { MAP.restore(s); Object.assign(cur, s.cur); return; } Object.assign(doc, { w: s.w, h: s.h, pal: s.pal, loop: s.loop, tags: s.tags, layers: s.layers, frames: s.frames, cels: s.cels }); Object.assign(cur, s.cur); clampCur(); sel = s.sel && s.sel.m && s.sel.m.length !== doc.w * doc.h ? null : cpSel(s.sel); }
+function snap() { if (doc.kind === "map") return MAP.snap(); return { w: doc.w, h: doc.h, pal: doc.pal.slice(), loop: doc.loop, tags: doc.tags.map((t) => ({ ...t })), layers: doc.layers.map((l) => ({ ...l })), groups: JSON.parse(JSON.stringify(doc.groups || {})), frames: doc.frames.map((f) => ({ ...f })), cels: doc.cels.map((r) => r.map((a) => a.slice())), cur: { ...cur }, sel: cpSel(sel) }; }
+function restore(s) { if (s.kind === "map") { MAP.restore(s); Object.assign(cur, s.cur); return; } Object.assign(doc, { w: s.w, h: s.h, pal: s.pal, loop: s.loop, tags: s.tags, layers: s.layers, groups: s.groups || {}, frames: s.frames, cels: s.cels }); Object.assign(cur, s.cur); clampCur(); sel = s.sel && s.sel.m && s.sel.m.length !== doc.w * doc.h ? null : cpSel(s.sel); }
 function push() { undo.push(snap()); if (undo.length > 200) undo.shift(); redo = []; dirty(); }
 function doUndo() { dropFloat(true); if (!undo.length) return; redo.push(snap()); restore(undo.pop()); renderAll(); }
 function doRedo() { if (!redo.length) return; undo.push(snap()); restore(redo.pop()); renderAll(); }
@@ -79,7 +79,7 @@ function composite(f, out) {
   out = out || new Uint8Array(doc.w * doc.h);
   out.fill(0);
   doc.layers.forEach((L, li) => {
-    if (!L.vis || L.kind) return;   // camadas de caixa nao fazem parte da arte
+    if (!shown(L) || L.kind) return;   // camadas de caixa nao fazem parte da arte (e pasta escondida nao aparece)
     const c = doc.cels[li][f];
     for (let i = 0; i < c.length; i++) if (c[i]) out[i] = c[i];
     if (float && li === cur.layer && f === cur.frame) stampFloat(out);
@@ -179,17 +179,17 @@ function render() {
     });
   }
   const idx = composite(cur.frame);
-  { const L = doc.layers[cur.layer]; if (L && isBox(L) && L.vis) { const c = doc.cels[cur.layer][cur.frame], col = KIND_INFO[L.kind][1]; ctx.fillStyle = `rgba(${col},.45)`; for (let y = 0; y < doc.h; y++) for (let x = 0; x < doc.w; x++) if (c[y * doc.w + x]) ctx.fillRect(panX + x * zoom, panY + y * zoom, zoom, zoom); } }
+  { const L = doc.layers[cur.layer]; if (L && isBox(L) && shown(L)) { const c = doc.cels[cur.layer][cur.frame], col = KIND_INFO[L.kind][1]; ctx.fillStyle = `rgba(${col},.45)`; for (let y = 0; y < doc.h; y++) for (let x = 0; x < doc.w; x++) if (c[y * doc.w + x]) ctx.fillRect(panX + x * zoom, panY + y * zoom, zoom, zoom); } }
   if (preview) for (const [x, y, v] of preview) if (x >= 0 && y >= 0 && x < doc.w && y < doc.h) idx[y * doc.w + x] = v;
   doc.layers.forEach((L, li) => {   // rascunho: azul claro meio transparente, por baixo da arte (nao entra no lutador)
-    if (L.kind !== "sketch" || !L.vis) return;
+    if (L.kind !== "sketch" || !shown(L)) return;
     const c = doc.cels[li][cur.frame]; ctx.fillStyle = "rgba(90,160,255,.45)";
     for (let y = 0; y < doc.h; y++) for (let x = 0; x < doc.w; x++) if (c[y * doc.w + x]) ctx.fillRect(panX + x * zoom, panY + y * zoom, zoom, zoom);
   });
   og.putImageData(toImageData(idx), 0, 0); ctx.drawImage(off, panX, panY, W, H);
   // caixas (hitbox, hurtbox...) por cima da arte
   doc.layers.forEach((L, li) => {
-    if (!isBox(L) || !L.vis) return;
+    if (!isBox(L) || !shown(L)) return;
     const b = boxOf(li, cur.frame), col = KIND_INFO[L.kind][1];
     if (!b) return;
     if (L.kind === "anchor") { const ax = (b.x0 + b.x1 + 1) / 2, ay = b.y1 + 1; ctx.strokeStyle = `rgb(${col})`; ctx.beginPath(); ctx.moveTo(panX + ax * zoom - 8, panY + ay * zoom); ctx.lineTo(panX + ax * zoom + 8, panY + ay * zoom); ctx.moveTo(panX + ax * zoom, panY + ay * zoom - 8); ctx.lineTo(panX + ax * zoom, panY + ay * zoom + 8); ctx.stroke(); return; }
@@ -856,9 +856,16 @@ function renderTimeline() {
   h += `<tr><th class="tl-layer"><div class="tl-hicons"><span title="Visível">👁</span><span title="Travada">🔒</span><span style="flex:1"></span></div></th>`;
  doc.frames.forEach((f, i) => { h += (gap.has(i) ? `<th class="tl-gap"></th>` : "") + `<th data-f="${i}" class="${i === cur.frame ? "cur" : ""} ${rs && i >= rs[0] && i <= rs[1] ? "rng" : ""}" title="${f.d} ms · ${frameStats(i).pieces} pedaços 16×16 · Shift+clique marca vários · duplo clique: duração">${i + 1}<small class="pc ${frameStats(i).pieces > LIM_PIECES ? "bad" : frameStats(i).pieces > 20 ? "warn" : "ok"}">${frameStats(i).pieces}</small></th>`; });
   h += "</tr>";
+  let prevG = null;
   for (let li = doc.layers.length - 1; li >= 0; li--) {
     const L = doc.layers[li];
-    h += `<tr><td class="tl-layer ${li === cur.layer ? "cur" : ""}"><div data-l="${li}"><button data-vis="${li}" title="Mostrar/esconder" class="${L.vis ? "" : "off"}">👁</button><button data-lock="${li}" title="Travar" class="${L.lock ? "" : "off"}">🔒</button><span title="${isBox(L) ? "Camada da engine (não pode apagar/renomear/mover)" : "Duplo clique: renomear"}"${L.kind ? ` style="color:rgb(${KIND_INFO[L.kind][1]})"` : ""}>${isBox(L) ? "🔒 " : li < firstBox() && doc.layers.some(isBox) ? "↳ " : ""}${esc(L.name)}</span></div></td>`;
+    if (L.group && L.group !== prevG) {
+      const gs = grpOf(L.group), cols = doc.frames.length + gap.size;
+      h += `<tr class="tl-grp"><td class="tl-layer"><div data-g="${esc(L.group)}"><button data-gv="${esc(L.group)}" title="Mostrar/esconder a pasta" class="${gs.vis ? "" : "off"}">👁</button><button data-gt="${esc(L.group)}" title="Abrir/fechar a pasta">${gs.open ? "▾" : "▸"}</button><span title="${L.group === ENGINE_GRP ? "Pasta fixa da engine" : "Duplo clique: renomear a pasta"}">📁 ${esc(L.group)}</span></div></td><td colspan="${cols}" class="tl-grpfill"></td></tr>`;
+    }
+    prevG = L.group || null;
+    if (L.group && !grpOf(L.group).open) continue;
+    h += `<tr><td class="tl-layer ${li === cur.layer ? "cur" : ""}"><div data-l="${li}"><button data-vis="${li}" title="Mostrar/esconder" class="${L.vis ? "" : "off"}">👁</button><button data-lock="${li}" title="Travar" class="${L.lock ? "" : "off"}">🔒</button><span title="${isBox(L) ? "Camada da engine (não pode apagar/renomear/mover)" : "Duplo clique: renomear"}"${L.kind ? ` style="color:rgb(${KIND_INFO[L.kind][1]})"` : ""}>${L.group ? "&nbsp;&nbsp;&nbsp;" : ""}${isBox(L) ? "🔒 " : ""}${esc(L.name)}</span></div></td>`;
     doc.frames.forEach((f, fi) => {
       const has = doc.cels[li][fi].some((v) => v);
       const c = li === cur.layer && fi === cur.frame ? "cur" : fi === cur.frame || li === cur.layer ? "curcol" : "";
@@ -875,6 +882,9 @@ function renderTimeline() {
   t.querySelectorAll("[data-f]").forEach((e) => tlDrag(e, "frame"));
   t.querySelectorAll("[data-l]").forEach((e) => tlDrag(e, "layer"));
   t.querySelectorAll("[data-l]").forEach((e) => { e.onclick = () => { if (tlDragged) { tlDragged = false; return; } dropFloat(); cur.layer = +e.dataset.l; renderTimeline(); }; e.querySelector("span").ondblclick = () => renameLayer(+e.dataset.l); });
+  t.querySelectorAll("[data-gt]").forEach((e) => e.onclick = (ev) => { ev.stopPropagation(); const g = grpOf(e.dataset.gt); g.open = !g.open; renderTimeline(); });
+  t.querySelectorAll("[data-gv]").forEach((e) => e.onclick = (ev) => { ev.stopPropagation(); const g = grpOf(e.dataset.gv); g.vis = !g.vis; dirty(); renderTimeline(); render(); drawPreviewFrame(); });
+  t.querySelectorAll("[data-g] span").forEach((e) => e.ondblclick = () => renameGroup(e.parentNode.dataset.g));
   t.querySelectorAll("[data-vis]").forEach((e) => e.onclick = (ev) => { ev.stopPropagation(); const L = doc.layers[+e.dataset.vis]; L.vis = !L.vis; renderTimeline(); render(); drawPreviewFrame(); });
   t.querySelectorAll("[data-lock]").forEach((e) => e.onclick = (ev) => { ev.stopPropagation(); const L = doc.layers[+e.dataset.lock]; L.lock = !L.lock; renderTimeline(); });
   t.querySelectorAll("[data-c]").forEach((e) => e.onclick = (ev) => { const [l, f] = e.dataset.c.split(",").map(Number); dropFloat(); tlFocus = false; cur.layer = l; if (ev.shiftKey) range = { a: range ? range.a : cur.frame, b: f }; else range = null; goFrame(f); });
@@ -937,9 +947,42 @@ const boxMsg = () => msg("As camadas Hitbox, Hitbox 2, Hurtbox e Âncora são da
 function newLayer() {
   dropFloat(); push();
   const at = Math.min(cur.layer + 1, firstBox());   // camadas novas ficam no grupo Corpo (abaixo das caixas)
-  doc.layers.splice(at, 0, { name: "Camada " + (doc.layers.length + 1), vis: true, lock: false });
+  const cg = doc.layers[cur.layer] && !isBox(doc.layers[cur.layer]) ? doc.layers[cur.layer].group : (doc.layers.find((x) => x.group === "Corpo") ? "Corpo" : undefined);
+  doc.layers.splice(at, 0, Object.assign({ name: "Camada " + (doc.layers.length + 1), vis: true, lock: false }, cg ? { group: cg } : {}));
   doc.cels.splice(at, 0, doc.frames.map(() => new Uint8Array(doc.w * doc.h)));
   cur.layer = at; renderAll();
+}
+function newGroup() {
+  const L = doc.layers[cur.layer];
+  if (isBox(L)) { msg("Escolha uma camada do Corpo (as caixas ficam na pasta fixa da engine)."); return; }
+  ask("Nova pasta", [["Nome da pasta", "name", "Pasta " + (Object.keys(doc.groups || {}).length + 1)]], (v) => {
+    const n = (v.name || "").trim(); if (!n || n === ENGINE_GRP) return;
+    push(); grpOf(n); L.group = n; renderAll(); msg(`Pasta "${n}" criada com a camada ${L.name}. Use Camada → Pôr na pasta para juntar outras.`);
+  });
+}
+function toGroup() {
+  const L = doc.layers[cur.layer];
+  if (isBox(L)) { boxMsg(); return; }
+  const names = [...new Set(doc.layers.map((x) => x.group).filter((g) => g && g !== ENGINE_GRP))];
+  ask("Pôr a camada numa pasta", [["Pasta", "g", L.group || names[0] || "", ["(nenhuma)"].concat(names)]], (v) => {
+    push(); if (v.g === "(nenhuma)") delete L.group; else L.group = v.g;
+    // a camada vai para junto das outras da pasta (as pastas ficam continuas na lista)
+    const li = cur.layer, last = doc.layers.map((x, i) => (x.group === L.group && i !== li ? i : -1)).filter((i) => i >= 0).pop();
+    if (L.group && last !== undefined && last + 1 !== li && last !== li - 1) { const [ly] = doc.layers.splice(li, 1), [cl] = doc.cels.splice(li, 1); const at = Math.min(last + (last < li ? 1 : 0), firstBox()); doc.layers.splice(at, 0, ly); doc.cels.splice(at, 0, cl); cur.layer = at; }
+    renderAll();
+  });
+}
+function renameGroup(old) {
+  if (!old || old === ENGINE_GRP) { msg("A pasta da engine não pode ser renomeada."); return; }
+  ask("Renomear pasta", [["Nome", "name", old]], (v) => {
+    const n = (v.name || "").trim(); if (!n || n === old || n === ENGINE_GRP) return;
+    push(); doc.layers.forEach((L) => { if (L.group === old) L.group = n; }); doc.groups[n] = doc.groups[old]; delete doc.groups[old]; renderAll();
+  });
+}
+function ungroup() {
+  const g = doc.layers[cur.layer].group;
+  if (!g || g === ENGINE_GRP) { msg("Escolha uma camada de uma pasta sua."); return; }
+  push(); doc.layers.forEach((L) => { if (L.group === g) delete L.group; }); delete doc.groups[g]; renderAll(); msg(`Pasta "${g}" desfeita (as camadas continuam).`);
 }
 function newBoxLayer() {
   ask("Nova camada de caixa", [["Tipo", "kind", "hurt_body", BOXK]], (v) => {
@@ -1095,11 +1138,11 @@ function renderReport() {
 /* ================================================================== arquivos */
 function b64(u8) { let s = ""; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); }
 function unb64(s) { const b = atob(s), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
-function serialize(d = doc) { if (d.kind === "map") return MAP.serialize(d); return { format: "sfpixel", version: 3, name: d.name, w: d.w, h: d.h, pal: d.pal, loop: d.loop, tags: d.tags, layers: d.layers, frames: d.frames, mirrorSwap: d.mirrorSwap || [], cels: d.cels.map((r) => r.map(b64)), sgengine: d.sgengine || null }; }
+function serialize(d = doc) { if (d.kind === "map") return MAP.serialize(d); return { format: "sfpixel", version: 3, name: d.name, w: d.w, h: d.h, pal: d.pal, loop: d.loop, tags: d.tags, layers: d.layers, groups: d.groups || {}, frames: d.frames, mirrorSwap: d.mirrorSwap || [], cels: d.cels.map((r) => r.map(b64)), sgengine: d.sgengine || null }; }
 function deserialize(o) {
   if (o.format !== "sfpixel" && o.format !== "sgpixel") throw new Error("Arquivo não é do SF Pixel");
   if (o.kind === "map") return MAP.deserialize(o);
-  return { name: o.name, w: o.w, h: o.h, pal: o.pal, loop: o.loop || "loop", tags: o.tags || [], layers: o.layers.map((l) => ({ lock: false, ...l })), frames: o.frames, mirrorSwap: o.mirrorSwap || [], cels: o.cels.map((r) => r.map(unb64)), sgengine: o.sgengine || null };
+  return { name: o.name, w: o.w, h: o.h, pal: o.pal, loop: o.loop || "loop", tags: o.tags || [], layers: o.layers.map((l) => ({ lock: false, ...l })), frames: o.frames, groups: o.groups || {}, mirrorSwap: o.mirrorSwap || [], cels: o.cels.map((r) => r.map(unb64)), sgengine: o.sgengine || null };
 }
 /* ---------------------------------------------------- lutador para a SG Engine
  * Cria o documento ja com uma tag por animacao que a engine usa (nome igual), na quantidade de quadros sugerida.
@@ -1110,8 +1153,13 @@ const FIGHTER_ANIMS = [["idle", 4, "loop"], ["walk", 5, "loop"], ["walkb", 5, "l
   ["jp", 3, "once"], ["jk", 3, "once"], ["jdk", 3, "once"], ["jhk", 3, "once"], ["hadouken", 4, "once"], ["shoryu", 6, "once"], ["tatsu", 6, "loop"], ["throw", 5, "once"], ["thrown", 4, "once"], ["rise", 2, "once"],
   ["hit_head", 3, "once"], ["hit_body", 4, "once"], ["hit_crouch", 2, "once"], ["fall", 3, "once"], ["ko", 1, "once"], ["victory", 4, "loop"], ["fireball", 1, "loop"], ["fireball_hit", 1, "once"], ["fireball_fx", 4, "loop"], ["spark", 3, "once"], ["shadow", 2, "loop"], ["retrato", 1, "once"]];
 const SGE_SIZES = [[64, 96, "médio (Ryu, Sagat, DonLee)"], [48, 80, "pequeno / ágil"], [104, 160, "grande (Big Bear): cabe; cuidado com poses esticadas, máx. 24 pedaços"]];
+/* PASTAS (grupos de camadas, estilo Photoshop): a camada guarda o nome da pasta (L.group); doc.groups guarda aberta/visivel.
+ * A pasta "Caixas da engine" e fixa (as caixas nao saem dela); as outras o artista cria, renomeia e desfaz. */
+const ENGINE_GRP = "Caixas da engine";
+const grpOf = (name) => { doc.groups = doc.groups || {}; return doc.groups[name] || (doc.groups[name] = { open: true, vis: true }); };
+const shown = (L) => L.vis && !(L.group && doc.groups && doc.groups[L.group] && doc.groups[L.group].vis === false);
 function boxLayers() {   // de baixo para cima: rascunho, corpo, pushbox, hurtboxes, hitboxes e ancora
-  const L = (name, kind) => Object.assign({ name, vis: true, lock: false }, kind ? { kind } : {});
+  const L = (name, kind) => Object.assign({ name, vis: true, lock: false, group: kind && kind !== "sketch" ? ENGINE_GRP : "Corpo" }, kind ? { kind } : {});
   return [L("Rascunho", "sketch"), L("Corpo"), L("Pushbox", "pushbox"), L("Hurt pernas", "hurt_legs"), L("Hurt tronco", "hurt_body"), L("Hurt cabeça", "hurt_head"),
     L("Hurt membro", "hurt_limb"), L("Hitbox", "hitbox"), L("Hitbox 2", "hitbox2"), L("Âncora", "anchor")];
 }
@@ -1795,7 +1843,7 @@ const CMD = {
   newdoc: newDialog, trim: trimCanvas, crop: cropToSel, rot180: () => rotateCanvas(180), rot90: () => rotateCanvas(90), rot270: () => rotateCanvas(270),
   spritesize: spriteSizeDialog, dup: duplicateSprite, fromsel: spriteFromSel, fillsel: () => fillSel(false), strokesel: () => fillSel(true), replace: replaceColorDialog,
   shl: () => shiftCel(-1, 0), shr: () => shiftCel(1, 0), shu: () => shiftCel(0, -1), shd: () => shiftCel(0, 1), timeline: toggleTimeline, fullscreen: fullScreen, theme: () => { applyTheme(document.documentElement.getAttribute("data-theme") === "claro" ? "escuro" : "claro"); render(); },
-  newfighter: newFighterDialog, mirrorswap: mirrorSwapDialog, pvmirror: () => { pvMirror = !pvMirror; drawPreviewFrame(); msg(pvMirror ? "Prévia espelhada (como no outro lado da tela)." : "Prévia normal."); }, gamefighter: openGameFighterDialog, newbox: newBoxLayer, allframes: exportAllFrames, delframes: delFrames, newmap: () => MAP.newDialog(), importscene: () => importImage("scene"),
+  newfighter: newFighterDialog, newgroup: newGroup, togroup: toGroup, ungroup: ungroup, mirrorswap: mirrorSwapDialog, pvmirror: () => { pvMirror = !pvMirror; drawPreviewFrame(); msg(pvMirror ? "Prévia espelhada (como no outro lado da tela)." : "Prévia normal."); }, gamefighter: openGameFighterDialog, newbox: newBoxLayer, allframes: exportAllFrames, delframes: delFrames, newmap: () => MAP.newDialog(), importscene: () => importImage("scene"),
   importplane: () => (doc.kind === "map" ? importImage("sceneplane") : msg("Abra ou crie um cenário primeiro.")),
   optimize: () => (doc.kind === "map" ? MAP.optimize() : msg("Só para cenários.")), mapresize: () => (doc.kind === "map" ? MAP.resizeDialog() : msg("Só para cenários.")), md: exportSF, closetab: () => closeTab(tabIx), newtag: newTag, transform: startTransform, reduce: reduceTo15, delslot: () => deleteSlot(fg), dropunused: dropUnused,
   nexttab: () => switchTab((tabIx + 1) % tabs.length), prevtab: () => switchTab((tabIx + tabs.length - 1) % tabs.length), open: () => $("#file-open").click(), save: saveDoc, saveas: saveAs, savesgpx: saveSgpx, sheet: exportSheet, framepng: exportFrame, pal: exportPal,
@@ -1826,7 +1874,7 @@ const MENUS = {
   sprite: [["Duplicar sprite", "dup", ""], "-", ["Tamanho do sprite (escala)…", "spritesize", "Ctrl+Alt+I"], ["Tamanho do canvas…", "resize", "C"], ["Girar canvas 180°", "rot180", ""], ["Girar canvas 90° horário", "rot90", ""], ["Girar canvas 90° anti-horário", "rot270", ""], "-",
     ["Recortar na seleção", "crop", ""], ["Aparar (encolher até a arte)", "trim", "Ctrl+Shift+T"], "-", ["Espelhar todos os quadros", "fliphall", ""], "-", ["Trocar dois slots da paleta…", "swap", ""], ["Reduzir para 15 cores", "reduce", ""], ["Excluir o slot da cor de frente", "delslot", "Delete na paleta"], ["Remover cores sem uso", "dropunused", ""], ["Paleta padrão", "defpal", ""], "-", ["Trocar cores ao virar de lado (espelho)…", "mirrorswap", ""]],
   frame: [["Novo quadro", "newframe", "Alt+N"], ["Novo quadro vazio", "newempty", "Alt+B"], ["Apagar quadro", "delframe", "Alt+Delete"], "-", ["Mover para a esquerda", "frameleft", "Alt+,"], ["Mover para a direita", "frameright", "Alt+."], ["Propriedades do quadro…", "frameprops", "P"], ["Nova tag nos quadros marcados", "newtag", "Alt+T"], "-", ["Tocar animação", "play", "Enter"], ["Quadro anterior", "prev", ","], ["Próximo quadro", "next", "."], ["Primeiro quadro", "first", "Home"], ["Último quadro", "last", "End"]],
-  layer: [["Nova camada", "newlayer", "Shift+N"], ["Nova camada de caixa (hitbox, hurtbox…)", "newbox", ""], ["Apagar camada", "dellayer", ""], ["Renomear…", "rename", "F2"], "-", ["Subir camada", "layerup", ""], ["Descer camada", "layerdown", ""], ["Juntar com a de baixo", "merge", "Ctrl+E"]],
+  layer: [["Nova camada", "newlayer", "Shift+N"], ["Nova pasta (com a camada atual)…", "newgroup", "Ctrl+G"], ["Pôr a camada numa pasta…", "togroup", ""], ["Desfazer a pasta", "ungroup", ""], ["Nova camada de caixa (hitbox, hurtbox…)", "newbox", ""], ["Apagar camada", "dellayer", ""], ["Renomear…", "rename", "F2"], "-", ["Subir camada", "layerup", ""], ["Descer camada", "layerdown", ""], ["Juntar com a de baixo", "merge", "Ctrl+E"]],
   view: [["Trocar tema (escuro / claro)", "theme", ""], ["Prévia espelhada (com a troca de cores)", "pvmirror", ""], ["Janela de prévia", "preview", "F7"], ["Papel de cebola", "onion", "F3"], ["Linha do tempo", "timeline", "Tab"], ["Tela cheia", "fullscreen", "F11"], "-", ["Grade de tiles 8×8", "tiles", "Ctrl+'"], ["Grade de pixels", "grid", "Ctrl+Shift+'"], ["Pedaços 16×16 do SNES", "split", "F4"], "-", ["Caber na tela", "fit", "Ctrl+0"], ["Zoom 100%", "zoom100", "Ctrl+1"]],
   mapx: [["Novo cenário…", "newmap", "Ctrl+Shift+N"], ["Importar imagem como cenário (nova aba)…", "importscene", ""], ["Importar imagem no plano atual…", "importplane", ""], "-", ["Otimizar tiles (junta iguais e espelhados)", "optimize", ""], ["Tamanho do mapa…", "mapresize", ""], "-", ["Exportar cenário para Mega Drive", "md", "Ctrl+Shift+M"]],
   help: [["Atalhos do teclado", "keys", "F1"], ["Sobre", "about", ""]],
@@ -1866,7 +1914,7 @@ window.addEventListener("keydown", (e) => {
   if (ctrl) {
     if (K === "z") return run(e.shiftKey ? "redo" : "undo");
     if (k === "Tab") return run(e.shiftKey ? "prevtab" : "nexttab");
-    const m = { m: e.shiftKey ? "md" : null, w: "closetab", t: "transform", y: "redo", c: "copy", x: "cut", v: null, a: "selall", d: "desel", s: e.shiftKey ? "saveas" : "save", o: "open", n: "newdoc", i: "importframe", e: e.shiftKey ? "sheet" : "merge", "0": "fit", "1": "zoom100", "'": e.shiftKey ? "grid" : "tiles", '"': "grid" }[K];
+    const m = { m: e.shiftKey ? "md" : null, w: "closetab", t: "transform", y: "redo", c: "copy", x: "cut", v: null, g: "newgroup", a: "selall", d: "desel", s: e.shiftKey ? "saveas" : "save", o: "open", n: "newdoc", i: "importframe", e: e.shiftKey ? "sheet" : "merge", "0": "fit", "1": "zoom100", "'": e.shiftKey ? "grid" : "tiles", '"': "grid" }[K];
     if (e.altKey && K === "c") return run("resize");
     if (e.altKey && K === "i") return run("spritesize");
     if (e.altKey && K === "n") return run("fromsel");
