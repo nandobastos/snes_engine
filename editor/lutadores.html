@@ -1,38 +1,79 @@
 <!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Lutadores - SF Engine</title>
+<title>SF Engine</title>
+<link rel="stylesheet" href="tema.css">
 <style>
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px system-ui,sans-serif}
-header{padding:12px 16px;border-bottom:1px solid var(--ln);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-h1{font-size:18px;margin:0 8px 0 0}main{display:grid;grid-template-columns:240px 1fr;gap:12px;padding:12px 16px}
-@media(max-width:700px){main{grid-template-columns:1fr}}
-.pn{background:var(--pn);border:1px solid var(--ln);border-radius:8px;padding:10px}
-button{background:var(--pn);color:var(--tx);border:1px solid var(--ln);border-radius:6px;padding:6px 10px;cursor:pointer;font:inherit}
-button.p{background:var(--ac);color:#000;border-color:var(--ac)}button:disabled{opacity:.4}
-.it{display:block;width:100%;text-align:left;margin-bottom:6px}.it.on{border-color:var(--ac)}
-small{color:var(--mu)}table{border-collapse:collapse;width:100%;overflow-x:auto;display:block}
-td,th{border-bottom:1px solid var(--ln);padding:3px 4px;text-align:left;font-weight:normal}th{color:var(--mu);font-size:12px}
-input{background:var(--bg);color:var(--tx);border:1px solid var(--ln);border-radius:4px;padding:3px 5px;width:62px;font:inherit}
-input.n{width:200px}.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px 12px}
-div.cmd{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 0}div.cmd b{flex:1 1 260px;font-weight:normal}div.cmd .seq{min-width:120px;font-size:18px;letter-spacing:2px}div.cmd .ks button{padding:3px 7px;margin:1px}
-.flow{display:grid;grid-template-columns:1fr 270px;gap:10px}.flow-canvas{overflow:auto;max-height:76vh;background:var(--bg);border:1px solid var(--ln);border-radius:8px}.flow-side label{display:block}.flow-side select,.flow-side input{width:100%;margin-top:4px}@media(max-width:800px){.flow{grid-template-columns:1fr}}
-textarea{width:100%;background:var(--in);color:var(--tx);border:1px solid var(--ln);border-radius:4px;font:inherit;padding:4px}
-label{display:flex;justify-content:space-between;gap:6px;align-items:center}#msg{color:var(--mu)}
+*{box-sizing:border-box}html,body{margin:0;height:100%}body{font:14px system-ui,"Segoe UI",sans-serif;display:grid;grid-template-columns:230px 1fr;min-height:100vh}
+.hidden{display:none!important}
+/* menu lateral */
+.side{background:var(--pn);border-right:1px solid var(--ln);display:flex;flex-direction:column;padding:16px 12px;gap:10px;position:sticky;top:0;height:100vh;overflow:auto}
+.logo{font-size:22px;font-weight:800;letter-spacing:.02em;margin:2px 6px 8px}.logo span{color:var(--ac2)}
+.nav button,.side .it{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:0;border-radius:10px;padding:8px 10px;color:var(--tx);cursor:pointer;font:inherit}
+.nav button:hover,.side .it:hover{background:var(--bg)}.nav button.on,.side .it.on{background:var(--ac);color:#fff}
+.side .it canvas{width:28px;height:40px;image-rendering:pixelated;border-radius:4px;background:var(--bg);flex:none}
+.side .it span{display:flex;flex-direction:column;line-height:1.2}.side .it small{color:var(--mu);font-size:11px}.side .it.on small{color:#e6dff2}
+.sec{color:var(--mu);font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin:8px 8px 0}
+.promo{margin-top:auto;background:linear-gradient(160deg,#2a2330,#0d0c0c);color:#fff;border-radius:16px;padding:14px;text-align:center}
+.promo b{display:block;font-size:15px;margin-bottom:4px}.promo small{color:#c7b7e0}
+.promo button{margin-top:10px;width:100%;background:var(--ac)!important;color:#fff!important;border:0!important;border-radius:10px;padding:9px;font-weight:600}
+.side .links button{width:100%;margin-top:6px}
+/* topo */
+.main{padding:18px 22px;min-width:0}
+.top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.top h1{font-size:26px;font-weight:600;margin:0 auto 0 0;color:var(--tx)}
+button{border-radius:999px;padding:7px 14px;cursor:pointer;font:inherit}
+#msg{color:var(--mu);width:100%;font-size:13px;min-height:18px}
+/* caixas */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px}
+.kpi{background:var(--pn);border:1px solid var(--ln);border-radius:18px;padding:14px 16px;display:flex;flex-direction:column;gap:2px}
+.kpi span{color:var(--mu);font-size:13px}.kpi b{font-size:26px;font-weight:600}.kpi small{color:var(--mu)}
+.kpi.dark{background:linear-gradient(160deg,#2a2330,#0d0c0c);color:#fff;border-color:#0d0c0c}.kpi.dark span,.kpi.dark small{color:#c7b7e0}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px}
+.card{background:var(--pn);border:1px solid var(--ln);border-radius:18px;padding:16px;min-width:0}
+.card h3{margin:0 0 10px;font-size:16px;font-weight:600;color:var(--tx)}
+.c-ret{grid-column:span 3}.c-cen{grid-column:span 4}.c-anim{grid-column:span 5}.c-dados{grid-column:span 4}.c-cmd{grid-column:span 8}.c-car{grid-column:span 12}.c-gol{grid-column:span 12}.c-flow{grid-column:span 12}
+.c-ret canvas{width:112px;height:160px;display:block;margin:0 auto;background:var(--bg);border-radius:12px}
+.c-cen canvas{width:100%;max-width:256px;aspect-ratio:256/224;display:block;border-radius:12px}
+canvas.px{image-rendering:pixelated}
+.anims{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.mini{background:var(--bg);border-radius:12px;display:flex;flex-direction:column;align-items:center;padding:4px 2px}
+.mini canvas{width:100%;max-width:112px;aspect-ratio:1;image-rendering:pixelated}.mini span{font-size:11px;color:var(--mu);margin-bottom:2px}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px}
+label{display:flex;justify-content:space-between;gap:6px;align-items:center}label.col{flex-direction:column;align-items:stretch;margin-top:8px}label.sel{gap:6px}
+input,select,textarea{border-radius:8px;padding:5px 8px;font:inherit}input{width:70px}input.n{width:210px}textarea{width:100%}
+.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px 16px}
+table{border-collapse:collapse;width:100%;display:block;overflow-x:auto}td,th{border-bottom:1px solid var(--ln);padding:4px;text-align:left;font-weight:normal}th{color:var(--mu);font-size:12px}
+div.cmd{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0}div.cmd b{flex:1 1 240px;font-weight:normal}div.cmd .seq{min-width:110px;font-size:18px;letter-spacing:2px}div.cmd .ks button{padding:3px 8px;margin:1px;border-radius:8px}
+.bad{color:#e05555}
+.flow{display:grid;grid-template-columns:1fr 270px;gap:10px}.flow-canvas{overflow:auto;max-height:72vh;background:var(--bg);border:1px solid var(--ln);border-radius:12px}.flow-side label{display:block}.flow-side select,.flow-side input{width:100%;margin-top:4px}
+/* editor de animacao embutido */
+#anim{position:fixed;inset:0 0 0 230px;background:var(--bg);display:flex;flex-direction:column;z-index:50}
+#anim .bar{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid var(--ln);background:var(--pn)}#anim .bar b{margin-right:auto}
+#anim iframe{flex:1;border:0;width:100%}
+@media(max-width:1100px){.c-ret,.c-cen,.c-anim,.c-dados,.c-cmd{grid-column:span 6}.kpis{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:760px){body{grid-template-columns:1fr}.side{position:static;height:auto}#anim{inset:0}.grid>*{grid-column:span 12!important}.anims{grid-template-columns:repeat(3,1fr)}}
 </style>
-<link rel="stylesheet" href="tema.css"><script src="tema.js"></script></head><body>
-<header><h1>Lutadores</h1>
-<input type="file" id="arq" accept=".json" hidden>
-<button id="abrir">Abrir game.json</button>
-<button id="clonar" disabled>Clonar</button><button id="novo" disabled>Novo (a partir de um modelo)</button>
-<button id="rem" disabled>Excluir</button><button id="regras" disabled>Regras e HUD</button><button id="telas" disabled>Telas (fluxo)</button><button class="p" id="salvar" disabled>Salvar game.json</button>
-<input type="file" id="arqArte" accept=".json" multiple hidden><button id="arte" disabled title="Com o Abrir SF Engine.bat: relê a pasta project/">Carregar arte (SF Pixel)</button>
-<button id="rom" disabled>Gerar ROM (.sfc)</button><button class="p" id="jogar" disabled>Jogar</button>
-<input type="file" id="arqBase" accept=".sfc" hidden><input type="file" id="arqImg" accept="image/*" hidden><input type="file" id="arqStg" accept=".json" multiple hidden>
-<span id="msg">Abra o arquivo project/game.json do seu projeto.</span></header>
-<main><div class="pn"><div id="lista"></div><small>Os 3 originais não podem ser excluídos. Clones e novos têm cópia própria dos golpes: mudar um não muda o outro.</small></div>
-<div class="pn" id="ed"><small>Selecione um lutador.</small></div></main>
+<script src="tema.js"></script></head><body>
+<aside class="side">
+  <div class="logo">SF<span>Engine</span></div>
+  <div class="nav"><button data-v="lutador" id="navl">🥊 Lutadores</button><button data-v="telas" id="telas" disabled>🗺️ Telas (fluxo)</button><button data-v="regras" id="regras" disabled>⚙️ Regras e HUD</button></div>
+  <div class="sec">Lutadores</div>
+  <div id="lista"></div>
+  <div class="promo"><b>Testar o jogo</b><small>Gera a ROM com tudo o que está aqui e abre o emulador.</small><button id="jogar" disabled>▶ Jogar</button></div>
+  <div class="links"><button id="salvar" disabled>💾 Salvar game.json</button><button id="rom" disabled>⬇ Gerar ROM (.sfc)</button><button id="abrir">📂 Abrir game.json</button></div>
+</aside>
+<div class="main">
+  <header class="top"><h1 id="titulo">Lutadores</h1>
+    <button id="clonar" disabled>Clonar</button><button id="novo" disabled>Novo</button><button id="rem" disabled>Excluir</button>
+    <button id="arte" disabled title="Relê a arte e os estágios da pasta project/">Recarregar arte</button>
+    <div id="msg">Abra o arquivo project/game.json do seu projeto (ou use o Abrir SF Engine.bat).</div></header>
+  <div id="ed"></div>
+</div>
+<div id="anim" class="hidden"><div class="bar"><b id="anim-t">Editor de animação</b><small>Exportar para a SF Engine (Ctrl+Shift+M) aplica a arte no lutador.</small><button id="anim-x">✕ Voltar</button></div><iframe id="anim-f" title="SF Pixel"></iframe></div>
+<input type="file" id="arq" accept=".json" hidden><input type="file" id="arqArte" accept=".json" multiple hidden><input type="file" id="arqBase" accept=".sfc" hidden><input type="file" id="arqImg" accept="image/*" hidden><input type="file" id="arqStg" accept=".json" multiple hidden>
 <script src="sfbuild.js"></script>
 <script src="sfstage.js"></script>
+<script src="sfview.js"></script>
 <script src="telas.js"></script>
 <script>
 const TOK=[['↓',14,2],['↘',14,10],['→',14,8],['↗',15,9],['↑',15,1],['↖',15,5],['←',14,4],['↙',14,6],['→*',12,8],['←*',12,4]];
@@ -46,49 +87,91 @@ const $=id=>document.getElementById(id);
 const TR=[["jump_vy","Força do pulo"],["walk_ticks","Passo do andar (quadros)"],["walk_adj","Ajuste de velocidade"],["fb_alt_hi","Altura da magia (alta)"],["fb_alt_lo","Altura da magia (baixa)"],["fb_sfx","Som da magia"],["hp_close_hk","HP de perto = HK de perto (0/1)"],["walk_pingpong","Andar vai e volta (0/1)"],["moveset","Especiais (0 = estilo Ryu, 1 = Sagat)"],["walk_fwd","Velocidade andando para frente"],["walk_back","Velocidade andando para trás"],["jump_vx","Velocidade do pulo para o lado"],["grav_up","Gravidade subindo (menor = pula mais alto)"],["grav_dn","Gravidade descendo"],["fb_spd","Magia fraca: velocidade"],["fb_dmg","Magia fraca: dano"],["fb_spd_s","Magia média: velocidade"],["fb_dmg_s","Magia média: dano"],["fb_spd_ex","Magia reforçada (EX): velocidade"],["fb_dmg_ex","Magia reforçada (EX): dano"],["fb_spd_sup","Super: velocidade"],["fb_dmg_sup","Super: dano"]];
 const MV=[["dmg","Dano"],["stun","Stun"],["hgt","Altura"],["flags","Flags"],["hitstop","Hitstop"],["snd_swing","Som do golpe"],["snd_hit","Som do impacto"]];
 function msg(t){$('msg').textContent=t}
+let V=null; const ANIMS=[['idle','Parado'],['walk','Andar'],['mp','Soco fraco'],['hp','Soco forte'],['mk','Chute fraco'],['hk','Chute forte'],['hadouken','Magia'],['shoryu','Golpe p/ cima'],['tatsu','Giro'],['victory','Vitória']];
+async function vis(){if(V)return V;if(!await motor())return null;try{V=SFView.open(BASE,BASEJ)}catch(e){V=null}return V}
+function card(title,cls,html){const d=document.createElement('section');d.className='card '+(cls||'');d.innerHTML=(title?'<h3>'+title+'</h3>':'')+(html||'');return d}
 function refresh(){
   const L=$('lista');L.innerHTML='';
-  G.fighters.forEach((f,i)=>{const b=document.createElement('button');b.className='it'+(i==sel?' on':'');
-    const t=f.traits;b.innerHTML=f.name+'<br><small>'+(t.clone_of?'clone de '+t.clone_of:i<ORIG?'original':'novo')+'</small>';
-    b.onclick=()=>{sel=i;refresh()};L.appendChild(b)});
+  G.fighters.forEach((f,i)=>{const b=document.createElement('button');b.className='it'+(i==sel&&VIEW==='lutador'?' on':'');
+    const t=f.traits;b.innerHTML='<canvas width="28" height="40"></canvas><span>'+esc(f.name)+'<small>'+(t.clone_of?'clone de '+esc(t.clone_of):i<ORIG?'original':'novo')+'</small></span>';
+    b.onclick=()=>{sel=i;VIEW='lutador';refresh()};L.appendChild(b);
+    vis().then(v=>{if(!v)return;const c=b.querySelector('canvas'),g=c.getContext('2d');g.imageSmoothingEnabled=false;try{g.drawImage(v.portrait(G,f,ARTS),0,0,28,40)}catch(e){}})});
   ['clonar','novo','salvar','arte','rom','jogar','regras','telas'].forEach(k=>$(k).disabled=false);$('rem').disabled=sel<ORIG;
-  const f=G.fighters[sel],e=$('ed');e.innerHTML='';
-  const nm=document.createElement('label');nm.innerHTML='<b>Nome</b>';const ni=document.createElement('input');ni.className='n';ni.value=f.name;
-  ni.onchange=()=>{f.name=ni.value.trim()||f.name;refresh()};nm.appendChild(ni);e.appendChild(nm);
-  const ar=document.createElement('label');ar.innerHTML='<b>Arte (SF Pixel)</b>';const as=document.createElement('select');
-  as.innerHTML='<option value="">— a do lutador de origem —</option>'+Object.keys(ARTS).concat(f.traits.art&&!ARTS[f.traits.art]?[f.traits.art]:[]).map(n=>'<option'+(n===f.traits.art?' selected':'')+'>'+n+'</option>').join('');
-  as.onchange=()=>{if(as.value)f.traits.art=as.value;else delete f.traits.art;refresh()};ar.appendChild(as);e.appendChild(ar);
-  if(f.traits.art&&!ARTS[f.traits.art])e.insertAdjacentHTML('beforeend','<p><small style="color:#c22">Carregue o arquivo '+f.traits.art+' (botão Carregar arte) antes de gerar a ROM.</small></p>');
-  const sl=document.createElement('label');sl.innerHTML='<b>Estágio (quando ele é o P2)</b>';const ss=document.createElement('select');
-  ss.innerHTML='<option value="">— o estágio padrão —</option>'+Object.keys(STAGES).concat(f.traits.stage&&!STAGES[f.traits.stage]?[f.traits.stage]:[]).map(n=>'<option'+(n===f.traits.stage?' selected':'')+'>'+n+'</option>').join('');
-  ss.onchange=()=>{if(ss.value)f.traits.stage=ss.value;else delete f.traits.stage;refresh()};sl.appendChild(ss);e.appendChild(sl);
-  const sb=document.createElement('div');sb.style.margin='6px 0';sb.innerHTML='<button id="stNew">Criar estágio de uma imagem…</button> <button id="stLoad">Carregar estágio (.sfstage.json)</button>';e.appendChild(sb);
-  if(f.traits.stage&&STAGES[f.traits.stage]){const cv=document.createElement('canvas');cv.width=256;cv.height=224;cv.style.cssText='width:256px;max-width:100%;image-rendering:pixelated;border:1px solid var(--ln);display:block';cv.getContext('2d').putImageData(SFStage.render(STAGES[f.traits.stage]),0,0);e.appendChild(cv);
-    e.insertAdjacentHTML('beforeend','<small>'+STAGES[f.traits.stage].tiles+' tiles de 512.</small>')}
-  else if(f.traits.stage)e.insertAdjacentHTML('beforeend','<p><small style="color:#c22">Carregue o arquivo '+f.traits.stage+' antes de gerar a ROM.</small></p>');
-  $('stNew').onclick=()=>$('arqImg').click();$('stLoad').onclick=()=>$('arqStg').click();
-  e.insertAdjacentHTML('beforeend','<h3>Frase de vitória</h3>');const qa=document.createElement('textarea');qa.maxLength=112;qa.rows=2;qa.value=f.win_quote||'';
-  qa.placeholder='Ex.: Meus punhos são de ferro! (até 4 linhas de 28 letras)';qa.oninput=()=>{f.win_quote=qa.value};e.appendChild(qa);
-  e.insertAdjacentHTML('beforeend','<h3>Características</h3>');const g=document.createElement('div');g.className='g';
-  TR.forEach(([k,n])=>{const l=document.createElement('label');l.textContent=n;const i=document.createElement('input');i.type='number';i.value=f.traits[k];
-    i.onchange=()=>{f.traits[k]=+i.value};l.appendChild(i);g.appendChild(l)});e.appendChild(g);
-  e.insertAdjacentHTML('beforeend','<h3>Comandos dos especiais</h3><p><small>Direções do primeiro ao último passo (o lutador olhando para a direita: → = frente). Clique nas setas para montar; ⌫ apaga o último passo. →* = qualquer frente (com ou sem baixo).</small></p>');
+  document.querySelectorAll('.nav button[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===VIEW));
+  if(VIEW==='regras')return regras();
+  if(VIEW==='telas')return telas();
+  const f=G.fighters[sel],e=$('ed');e.innerHTML='';$('titulo').textContent=f.name;
+  // ---- numeros
+  const k=document.createElement('div');k.className='kpis';e.appendChild(k);
+  const maxd=Math.max(...G.atk_names.map(a=>f.moves[a].dmg));
+  const kp=(t,v,s,dark)=>'<div class="kpi'+(dark?' dark':'')+'"><span>'+t+'</span><b>'+v+'</b><small>'+s+'</small></div>';
+  k.innerHTML=kp('Lutador',esc(f.name),f.traits.clone_of?'clone de '+esc(f.traits.clone_of):sel<ORIG?'original':'novo',true)+kp('Quadros','…','')+kp('Maior quadro','…','pedaços 16×16 (máx. 24)')+kp('Golpe mais forte',maxd,'de dano');
+  vis().then(v=>{if(!v)return;const st=v.stats(G,f,ARTS);const ks=k.querySelectorAll('.kpi b'),ss=k.querySelectorAll('.kpi small');ks[1].textContent=st.frames;ss[1].textContent=st.anims+' animações';ks[2].textContent=st.maxPieces+'/24';ks[2].className=st.maxPieces>24?'bad':''});
+  const grid=document.createElement('div');grid.className='grid';e.appendChild(grid);
+  // ---- retrato
+  const ret=card('Retrato','c-ret','<canvas class="px" width="56" height="80"></canvas><p><small>Aparece na seleção, no VS, no Continue e na vitória.</small></p><div class="row"><button class="p" data-a="edit">Editar animações e retrato</button></div>');
+  grid.appendChild(ret);ret.querySelector('[data-a=edit]').onclick=()=>abrirEditor(f);
+  // ---- cenario
+  const cen=card('Cenário','c-cen','<canvas class="px" width="256" height="224"></canvas><div class="row"><select data-a="st"></select><button data-a="new">Criar de uma imagem…</button><button data-a="load">Carregar…</button></div><small data-a="inf">Usado quando ele é o P2 (o oponente).</small>');
+  grid.appendChild(cen);
+  const ss=cen.querySelector('[data-a=st]');
+  ss.innerHTML='<option value="">Cenário padrão</option>'+Object.keys(STAGES).concat(f.traits.stage&&!STAGES[f.traits.stage]?[f.traits.stage]:[]).map(n=>'<option'+(n===f.traits.stage?' selected':'')+'>'+esc(n)+'</option>').join('');
+  ss.onchange=()=>{if(ss.value)f.traits.stage=ss.value;else delete f.traits.stage;refresh()};
+  cen.querySelector('[data-a=new]').onclick=()=>$('arqImg').click();cen.querySelector('[data-a=load]').onclick=()=>$('arqStg').click();
+  if(f.traits.stage&&!STAGES[f.traits.stage])cen.querySelector('[data-a=inf]').innerHTML='<span class="bad">Falta o arquivo '+esc(f.traits.stage)+'.</span>';
+  else if(f.traits.stage)cen.querySelector('[data-a=inf]').textContent=STAGES[f.traits.stage].tiles+' tiles de 512 · usado quando ele é o P2.';
+  // ---- animacoes
+  const an=card('Animações','c-anim','<div class="anims"></div><div class="row"><label class="sel">Arte <select data-a="art"></select></label><button data-a="edit">Abrir no editor de animação</button></div>');
+  grid.appendChild(an);
+  const as=an.querySelector('[data-a=art]');
+  as.innerHTML='<option value="">a do lutador de origem</option>'+Object.keys(ARTS).concat(f.traits.art&&!ARTS[f.traits.art]?[f.traits.art]:[]).map(n=>'<option'+(n===f.traits.art?' selected':'')+'>'+esc(n)+'</option>').join('');
+  as.onchange=()=>{if(as.value)f.traits.art=as.value;else delete f.traits.art;refresh()};
+  an.querySelector('[data-a=edit]').onclick=()=>abrirEditor(f);
+  const box=an.querySelector('.anims');
+  ANIMS.forEach(([n,l])=>{const d=document.createElement('div');d.className='mini';d.innerHTML='<canvas width="112" height="112"></canvas><span>'+l+'</span>';box.appendChild(d)});
+  vis().then(v=>{if(!v){ret.querySelector('p small').textContent='Abra pelo Abrir SF Engine.bat para ver as imagens.';return}
+    const pc=ret.querySelector('canvas').getContext('2d');pc.drawImage(v.portrait(G,f,ARTS),0,0);
+    cen.querySelector('canvas').getContext('2d').drawImage(v.stage(G,f,STAGES),0,0);
+    box.querySelectorAll('canvas').forEach((c,i)=>SFView.player(c,v.anim(G,f,ANIMS[i][0],ARTS),ANIMS[i][0]==='idle'||ANIMS[i][0]==='walk'?140:110))});
+  // ---- dados
+  const da=card('Dados','c-dados','<label>Nome <input class="n" data-a="nm"></label><label class="col">Frase de vitória <textarea rows="3" maxlength="112" data-a="q" placeholder="Ex.: Meus punhos são de ferro! (até 4 linhas de 28 letras)"></textarea></label>');
+  grid.appendChild(da);const ni=da.querySelector('[data-a=nm]');ni.value=f.name;ni.onchange=()=>{f.name=ni.value.trim()||f.name;refresh()};
+  const qa=da.querySelector('[data-a=q]');qa.value=f.win_quote||'';qa.oninput=()=>{f.win_quote=qa.value};
+  // ---- comandos
+  const co=card('Comandos dos especiais','c-cmd','<p><small>Do primeiro ao último passo, olhando para a direita (→ = frente). →* = qualquer frente.</small></p>');grid.appendChild(co);
   if(!f.commands)f.commands=JSON.parse(JSON.stringify(DEFCMD));
   CMDN.forEach((nm,ci)=>{const row=document.createElement('div');row.className='cmd';
-    const show=()=>row.querySelector('.seq').textContent=f.commands[ci].length?f.commands[ci].map(tok).join(' '):'(nenhum: desligado)';
+    const show=()=>row.querySelector('.seq').textContent=f.commands[ci].length?f.commands[ci].map(tok).join(' '):'(desligado)';
     row.innerHTML='<b>'+nm+'</b><span class="seq"></span><span class="ks">'+TOK.map((t,ti)=>'<button data-t="'+ti+'">'+t[0]+'</button>').join('')+'<button data-t="x">⌫</button><button data-t="d">padrão</button></span>';
     row.querySelectorAll('button').forEach(b=>b.onclick=()=>{const t=b.dataset.t,c=f.commands[ci];
       if(t==='x')c.pop();else if(t==='d')f.commands[ci]=JSON.parse(JSON.stringify(DEFCMD[ci]));else if(c.length<7)c.push([TOK[+t][1],TOK[+t][2]]);else msg('Máximo 7 passos.');show()});
-    e.appendChild(row);show()});
-  e.insertAdjacentHTML('beforeend','<h3>Golpes</h3>');
+    co.appendChild(row);show()});
+  // ---- caracteristicas
+  const ca=card('Características','c-car');const g=document.createElement('div');g.className='g';ca.appendChild(g);grid.appendChild(ca);
+  TR.forEach(([k2,n])=>{const l=document.createElement('label');l.textContent=n;const i=document.createElement('input');i.type='number';i.value=f.traits[k2];
+    i.onchange=()=>{f.traits[k2]=+i.value};l.appendChild(i);g.appendChild(l)});
+  // ---- golpes
+  const go=card('Golpes','c-gol');grid.appendChild(go);
   const t=document.createElement('table');t.innerHTML='<tr><th>Golpe</th>'+MV.map(m=>'<th>'+m[1]+'</th>').join('')+'<th>Duração dos quadros (8)</th></tr>';
   G.atk_names.forEach(a=>{const m=f.moves[a];const r=t.insertRow();r.insertCell().textContent=a;
-    MV.forEach(([k])=>{const c=r.insertCell(),i=document.createElement('input');i.type='number';i.value=m[k];i.onchange=()=>{m[k]=+i.value};c.appendChild(i)});
+    MV.forEach(([k2])=>{const c=r.insertCell(),i=document.createElement('input');i.type='number';i.value=m[k2];i.onchange=()=>{m[k2]=+i.value};c.appendChild(i)});
     const c=r.insertCell(),i=document.createElement('input');i.style.width='140px';i.value=m.dur.join(',');
     i.onchange=()=>{const v=i.value.split(',').map(x=>+x.trim());while(v.length<8)v.push(0);m.dur=v.slice(0,8)};c.appendChild(i)});
-  e.appendChild(t);
-  e.insertAdjacentHTML('beforeend','<p><small>A arte (quadros, retrato, paleta) começa igual à do lutador de origem; troque pela arte própria desenhando no SG Pixel.</small></p>');
+  go.appendChild(t);
 }
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let VIEW='lutador';
+// ---- editor de animacao (SF Pixel) dentro da engine
+function abrirEditor(f){
+  const i=G.fighters.indexOf(f),t=f.traits,src=t.art&&ARTS[t.art]?'arte='+encodeURIComponent(t.art):'jogo='+(t.frames_from!==undefined?t.frames_from:i);
+  $('anim-t').textContent='Editor de animação · '+f.name;
+  $('anim-f').src='../sfpixel/index.html?embed=1&'+src+'&nome='+encodeURIComponent(f.name);
+  $('anim').classList.remove('hidden');EDITANDO=i;
+}
+let EDITANDO=-1;
+window.addEventListener('message',e=>{if(!e.data||e.data.type!=='sf-exported'||EDITANDO<0)return;
+  ARTS[e.data.file]=e.data.data;G.fighters[EDITANDO].traits.art=e.data.file;V&&0;refresh();
+  msg('Arte de '+G.fighters[EDITANDO].name+' atualizada ('+e.data.file+'). Salve o game.json e clique em Jogar.')});
 function nome(base){let n=base,k=2;while(G.fighters.some(f=>f.name.toLowerCase()==n.toLowerCase()))n=base+' '+k++;return n}
 function clonar(i,nm){if(G.fighters.length>=MAX){msg('Limite de '+MAX+' lutadores.');return}
   const s=G.fighters[i],c=JSON.parse(JSON.stringify(s));c.name=nome(nm||s.name+' (cópia)');
@@ -112,20 +195,22 @@ $('arqStg').onchange=async e=>{for(const f of e.target.files){try{const o=JSON.p
 const HUDC=[[2,'Barra de vida'],[1,'Borda da barra de vida'],[3,'Fundo da barra de vida'],[10,'Barra de super'],[9,'Borda da barra de super'],[11,'Fundo da barra de super']];
 const w2hex=w=>'#'+[w&31,(w>>5)&31,(w>>10)&31].map(v=>Math.round(v*255/31).toString(16).padStart(2,'0')).join('');
 const hex2w=h=>{const n=parseInt(h.slice(1),16);return ((n>>19)&31)|(((n>>11)&31)<<5)|(((n>>3)&31)<<10)};
-$('regras').onclick=()=>{
+function regras(){
   const gm=G.game=G.game||{hud_hp_row:4,hud_win_row:5,hud_sp_row:23,rounds_to_win:2,hud_pal:[0,0x7fff,0x175f,0xc53,0,0,0,0,0,0x7fff,0x7f4c,0x38a2]};
-  document.querySelectorAll('#lista .it').forEach(b=>b.classList.remove('on'));
-  const e=$('ed');e.innerHTML='<h3>Regras e HUD (valem para o jogo todo)</h3>';const g=document.createElement('div');g.className='g';
+  const e=$('ed');e.innerHTML='';$('titulo').textContent='Regras e HUD';const cc=card('Regras e HUD (valem para o jogo todo)','');e.appendChild(cc);const g=document.createElement('div');g.className='g';
   [['rounds_to_win','Rounds para vencer (1 ou 2)',1,2],['hud_hp_row','Linha da barra de vida (2 a 24)',2,24],['hud_win_row','Linha das bolinhas de round (2 a 25)',2,25],['hud_sp_row','Linha da barra de super (2 a 24)',2,24]].forEach(([k,n,mi,ma])=>{
     const l=document.createElement('label');l.textContent=n;const i=document.createElement('input');i.type='number';i.min=mi;i.max=ma;i.value=gm[k];
     i.onchange=()=>{gm[k]=Math.max(mi,Math.min(ma,+i.value||mi));i.value=gm[k]};l.appendChild(i);g.appendChild(l)});
   HUDC.forEach(([ix,n])=>{const l=document.createElement('label');l.textContent=n;const i=document.createElement('input');i.type='color';i.value=w2hex(gm.hud_pal[ix]);
     i.oninput=()=>{gm.hud_pal[ix]=hex2w(i.value)};l.appendChild(i);g.appendChild(l)});
-  e.appendChild(g);
-  e.insertAdjacentHTML('beforeend','<p><small>As linhas contam de cima (cada linha = 8 px; a tela tem 28). As cores viram as do SNES (32 tons por canal). Clique em Jogar para ver.</small></p>');
-};
-$('telas').onclick=()=>{if(!G.flow||!G.flow.nodes||!G.flow.nodes.length)G.flow=JSON.parse(JSON.stringify(SFBuild.DEFAULT_FLOW));
-  document.querySelectorAll('#lista .it').forEach(b=>b.classList.remove('on'));SFTelas.open(G,$('ed'),()=>msg('Fluxo alterado: salve o game.json e clique em Jogar para testar.'))};
+  cc.appendChild(g);
+  cc.insertAdjacentHTML('beforeend','<p><small>As linhas contam de cima (cada linha = 8 px; a tela tem 28). As cores viram as do SNES (32 tons por canal). Clique em Jogar para ver.</small></p>');
+}
+$('regras').onclick=()=>{VIEW='regras';refresh()};
+function telas(){if(!G.flow||!G.flow.nodes||!G.flow.nodes.length)G.flow=JSON.parse(JSON.stringify(SFBuild.DEFAULT_FLOW));
+  $('titulo').textContent='Telas do Arcade';const e=$('ed');e.innerHTML='';const cc=card('','c-flow');e.appendChild(cc);
+  SFTelas.open(G,cc,()=>msg('Fluxo alterado: salve o game.json e clique em Jogar para testar.'))}
+$('telas').onclick=()=>{VIEW='telas';refresh()};
 $('arte').onclick=async()=>{if(SERVIDOR){await lerPasta();refresh();msg('Arte e estágios relidos da pasta project/ ('+Object.keys(ARTS).length+' arte(s), '+Object.keys(STAGES).length+' estágio(s)).');return}$('arqArte').click()};
 $('arqArte').onchange=async e=>{for(const f of e.target.files){try{const o=JSON.parse(await f.text());if(o.format!=='sf-fighter')throw 0;ARTS[f.name]=o;}catch(x){msg(f.name+' não é um arquivo exportado do SF Pixel.');return}}msg(Object.keys(ARTS).length+' arquivo(s) de arte carregado(s). Escolha a arte no lutador.');refresh()};
 async function motor(){
@@ -145,7 +230,7 @@ $('salvar').onclick=async()=>{const txt=JSON.stringify(G,null,2);
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'application/json'}));a.download='game.json';a.click();msg('game.json baixado: coloque na pasta project/ e gere a ROM.')};
 
 // aberto pelo servidor da SF Engine: abre o project/game.json e os arquivos de arte/estagio que ele usa
-(async()=>{try{const p=await fetch('/api/ping');if(!p.ok)return;SERVIDOR=true;
+(async()=>{try{const p=await fetch('/api/ping');if(!p.ok)return;SERVIDOR=true;$('abrir').style.display='none';
   const r=await fetch('../project/game.json');if(!r.ok)return;G=await r.json();
   await lerPasta();
   sel=0;refresh();msg('Projeto aberto da pasta (project/game.json). Salvar grava direto na pasta.')}catch(e){}})();
@@ -153,4 +238,7 @@ async function lerPasta(){   // le toda a arte (.sffighter.json) e os estagios (
   const files=await (await fetch('/api/arquivos')).json();
   for(const fn of files){if(!/\.(sffighter|sfstage)\.json$/.test(fn))continue;try{const o=await (await fetch('../project/'+encodeURIComponent(fn))).json();if(o.format==='sf-fighter')ARTS[fn]=o;else if(o.format==='sf-stage')STAGES[fn]=o}catch(e){}}
 }
+
+$('navl').onclick=()=>{VIEW='lutador';if(G)refresh()};
+$('anim-x').onclick=()=>{$('anim').classList.add('hidden');$('anim-f').src='about:blank';EDITANDO=-1};
 </script></body></html>

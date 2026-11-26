@@ -5,8 +5,8 @@
   let t = "escuro"; try { t = localStorage.getItem(K) || "escuro"; } catch (e) { /* idem */ }
   set(t);
   window.addEventListener("DOMContentLoaded", () => {
-    const h = document.querySelector("header") || document.body, b = document.createElement("button");
-    b.textContent = "Tema"; b.title = "Trocar tema (escuro / claro)"; b.style.marginLeft = "auto";
+    const lk = document.querySelector(".links"), h = lk || document.querySelector("header") || document.body, b = document.createElement("button");
+    b.textContent = lk ? "🌓 Tema" : "Tema"; b.title = "Trocar tema (escuro / claro)"; if (!lk) b.style.marginLeft = "auto";
     b.onclick = () => set(document.documentElement.getAttribute("data-theme") === "claro" ? "escuro" : "claro");
     h.appendChild(b);
   });

@@ -1153,8 +1153,12 @@ async function exportSF() {
   const nome = fileBase() + ".sffighter.json", txt = JSON.stringify(out);
   try {   // aberto pelo "Abrir SF Engine.bat": grava direto em project/
     const r = await fetch("/api/salvar?f=" + encodeURIComponent(nome), { method: "POST", body: txt });
-    if (r.ok) { msg(`Exportado para project/${nome} (${out.tags.length} animações). No editor de Lutadores, escolha essa arte no lutador.`); return; }
+    if (r.ok) {
+      if (window.parent !== window) window.parent.postMessage({ type: "sf-exported", file: nome, data: out }, "*");   // SF Engine: aplica no lutador
+      msg(`Exportado para project/${nome} (${out.tags.length} animações).`); return;
+    }
   } catch (e) { /* sem servidor: baixa o arquivo */ }
+  if (window.parent !== window) window.parent.postMessage({ type: "sf-exported", file: nome, data: out }, "*");
   download(new Blob([txt], { type: "application/json" }), nome);
   msg(`Exportado: ${out.tags.length} animações (${nome}).`);
 }
@@ -1217,6 +1221,44 @@ function mirrorSwapDialog() {
 }
 let pvMirror = false;
 document.getElementById("pv-mirror").onclick = () => CMD.pvmirror();
+/* .sffighter.json (arte exportada) -> documento editavel (corpo, caixas, ancora, tags, retrato, troca de cores) */
+function fighterFromArt(art, name) {
+  const fr = art.tags.flatMap((t) => t.frames), ax = (f) => (f.anchor ? Math.round(f.anchor[0]) : f.w >> 1);
+  const L = Math.max(28, ...fr.map(ax)), Rr = Math.max(28, ...fr.map((f) => f.w - ax(f))), T = Math.max(art.portrait ? 80 : 0, ...fr.map((f) => f.h));
+  const W = Math.ceil((Math.max(L, Rr) * 2 + 8) / 8) * 8, H = Math.ceil((T + 8) / 8) * 8, AX = W >> 1, GY = H - 4;
+  const d = newDoc(W, H, name || art.name || "lutador");
+  d.pal = Array.from({ length: 16 }, (_, i) => (i ? art.pal[i] || 0 : 0)); d.mirrorSwap = art.mirror_swap || [];
+  d.frames = []; d.tags = []; d.layers = boxLayers(); d.cels = d.layers.map(() => []);
+  const add = (cels, ms) => { cels.forEach((c, li) => d.cels[li].push(c)); d.frames.push({ d: ms || 100 }); };
+  art.tags.forEach((t) => {
+    const t0 = d.frames.length;
+    t.frames.forEach((f) => {
+      const bx = AX - ax(f), by = GY - f.h, body = new Uint8Array(W * H);
+      f.pieces.forEach((p) => { const px = unb64(p.px); for (let yy = 0; yy < 16; yy++) for (let xx = 0; xx < 16; xx++) { const v = px[yy * 16 + xx], X = bx + p.x + xx, Y = by + p.y + yy; if (v && X >= 0 && Y >= 0 && X < W && Y < H) body[Y * W + X] = v; } });
+      const box = (b) => { const c = new Uint8Array(W * H); if (b) for (let Y = by + b[1]; Y < by + b[3]; Y++) for (let X = bx + b[0]; X < bx + b[2]; X++) if (X >= 0 && Y >= 0 && X < W && Y < H) c[Y * W + X] = 1; return c; };
+      const an = new Uint8Array(W * H); an[(GY - 1) * W + AX - 1] = an[(GY - 1) * W + AX] = 1;
+      add([body, box(f.hitbox), box(f.hitbox2), box(f.hurtbox), an], f.ms);
+    });
+    d.tags.push({ name: t.name, from: t0, to: d.frames.length - 1, loop: t.loop || "once" });
+  });
+  if (art.portrait) {   // tag "retrato": o rosto 56x80 encostado embaixo e centralizado
+    const body = new Uint8Array(W * H), px = unb64(art.portrait.px), ox = AX - 28, oy = GY - 80;
+    for (let y = 0; y < 80; y++) for (let x = 0; x < 56; x++) if (px[y * 56 + x] && oy + y >= 0) body[(oy + y) * W + ox + x] = px[y * 56 + x];
+    const t0 = d.frames.length; add([body, ...[1, 2, 3, 4].map(() => new Uint8Array(W * H))], 100);
+    d.tags.push({ name: "retrato", from: t0, to: t0, loop: "once" });
+  }
+  return d;
+}
+/* aberto pela SF Engine (editor de animacao embutido): ?jogo=N (lutador do jogo) ou ?arte=arquivo (de project/), &nome=Nome */
+(async function embedOpen() {
+  const q = new URLSearchParams(location.search); if (!q.get("embed")) return;
+  try {
+    let d = null;
+    if (q.get("arte")) d = fighterFromArt(await (await fetch("../project/" + encodeURIComponent(q.get("arte")))).json(), q.get("nome"));
+    else if (q.get("jogo") !== null) { d = fighterFromRom(await gameRom(), +q.get("jogo")); if (q.get("nome")) d.name = q.get("nome"); }
+    if (d) { loadDoc(d); msg(`${d.name}: ${d.frames.length} quadros em ${d.tags.length} animações. Quando terminar: Arquivo → Exportar para a SF Engine (aplica no lutador).`); }
+  } catch (e) { msg("Não consegui abrir o lutador: " + e.message); }
+})();
 function openGameFighterDialog() {
   modal(`<h3>Abrir lutador do jogo</h3>
     <div class="hint" style="padding:0">Abre o lutador com todos os quadros, a paleta, as tags e as caixas, pronto para editar e exportar de volta. (Precisa abrir o SF Pixel pelo servidor, junto com a pasta engine/.)</div>
