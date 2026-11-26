@@ -71,7 +71,7 @@
     const frames = [];   // quadros novos: {pf valores, pcs: [[dx, dy]]}
     const fromBase = (k) => { const f = {}; PF.forEach((n) => (f[n] = A[n][k])); f.pcs = []; for (let j = 0; j < A.pf_count[k]; j++) f.pcs.push([A.pp_dx[A.pf_first[k] + j], A.pp_dy[A.pf_first[k] + j]]); return f; };
     const first = {}; base.layout.forEach(([n, f]) => (first[n] = f));
-    const artBases = {}, artPals = {}, artFaces = {}, artSwap = {}, artStages = {};
+    const artBases = {}, artPals = {}, artFaces = {}, artSwap = {}, artStages = {}, artPush = {};
     let total = nf0;
     game.fighters.forEach((F) => {
       if (F.traits.stage) {   // estagio proprio: 3 assets (tiles, mapa, paletas)
@@ -102,11 +102,13 @@
           if (cur.length + out.length > CHUNK) { done.push(cur); cur = []; }
           const box = (b) => (b ? [b[0] - ax, b[2] - 1 - ax, Math.max(0, h0 - b[3]), h0 - b[1]] : null);
           const hb = box(af.hitbox), hb2 = box(af.hitbox2), hu = box(af.hurtbox);
+          const hl = af.hurts && af.hurts.length ? af.hurts.slice(0, 4).map((h) => [h[0]].concat(box(h.slice(1)))) : null;   // hurtboxes explicitas
+          if (anim === "idle" && k === 0 && af.pushbox) artPush[F.name] = Math.floor((af.pushbox[2] - af.pushbox[0]) / 2);
           const fr = { pf_chunk: done.length, pf_off: cur.length, pf_count: pcs.length, pf_w: af.w, pf_h: h0 + dy, pf_ax: ax, pf_belt: 255,
             pf_hb: hb ? 1 : 0, pf_hbx0: hb ? hb[0] : 0, pf_hbx1: hb ? hb[1] : 0, pf_hby0: hb ? hb[2] : 0, pf_hby1: hb ? hb[3] : 0,
             pf_hu: hu ? 1 : 0, pf_hux0: hu ? hu[0] : 0, pf_hux1: hu ? hu[1] : 0, pf_huy0: hu ? hu[2] : 0, pf_huy1: hu ? hu[3] : 0,
             pf_hb2: hb2 ? 1 : 0, pf_hb2x0: hb2 ? hb2[0] : 0, pf_hb2x1: hb2 ? hb2[1] : 0, pf_hb2y0: hb2 ? hb2[2] : 0, pf_hb2y1: hb2 ? hb2[3] : 0,
-            pcs: pcs.map(([x, y]) => [x - ax + 64, y]) };
+            pcs: pcs.map(([x, y]) => [x - ax + 64, y]), hurts: hl };
           out.forEach((v) => cur.push(v));
           cache[k] = fr; frames.push(fr); total++;
         }
@@ -129,7 +131,25 @@
       artPals[F.name] = assets.length; assets.push(name); adata.push(w.concat(w2));
     });
     done.push(cur);
-    frames.forEach((f) => { PF.forEach((n) => { if (n !== "pf_first") A[n].push(f[n]); }); A.pf_first.push(A.pp_dx.length); f.pcs.forEach(([x, y]) => { A.pp_dx.push(x); A.pp_dy.push(y); }); });
+    const hurtsAt = {};
+    frames.forEach((f, j) => { PF.forEach((n) => { if (n !== "pf_first") A[n].push(f[n]); }); A.pf_first.push(A.pp_dx.length); f.pcs.forEach(([x, y]) => { A.pp_dx.push(x); A.pp_dy.push(y); }); if (f.hurts) hurtsAt[nf0 + j] = f.hurts; });
+    // ---- hurtboxes estilo Capcom (= hurt_boxes do engine/tools/sfpack.py)
+    const hurtList = [], hurtIdx = new Map(), s8 = (v) => (v > 127 ? v - 256 : v), limb = !!(game.game && game.game.hurt_membro);
+    for (let k = 0; k < A.pf_hu.length; k++) {
+      let boxes = null;
+      if (hurtsAt[k]) boxes = hurtsAt[k];
+      else if (limb && k < nf0 && A.pf_hu[k] === 1 && A.pf_hb[k]) {
+        const x0 = s8(A.pf_hux0[k]), x1 = s8(A.pf_hux1[k]), bot = A.pf_huy0[k], top = A.pf_huy1[k], lg = bot + (((top - bot) * 3) >> 3), hd = top - 20;
+        const hx0 = s8(A.pf_hbx0[k]), hx1 = s8(A.pf_hbx1[k]);
+        boxes = [[0, x0, x1, hd, top], [1, x0, x1, lg, hd], [2, x0, x1, bot, lg], [3, hx0, hx0 + Math.floor(((hx1 - hx0) * 2) / 3), A.pf_hby0[k], A.pf_hby1[k]]];
+      }
+      if (!boxes) continue;
+      const e = [boxes.length]; boxes.slice(0, 4).forEach((b) => b.forEach((v) => e.push(v & 255))); while (e.length < 21) e.push(0);
+      const key = e.join(",");
+      if (!hurtIdx.has(key)) { hurtIdx.set(key, hurtList.length); hurtList.push(e); }
+      const i = hurtIdx.get(key);
+      A.pf_hu[k] = 2; A.pf_hux0[k] = i & 255; A.pf_hux1[k] = i >> 8; A.pf_huy0[k] = 0; A.pf_huy1[k] = 0;
+    }
     // ---- pack (engine/tools/sfpack.py)
     const out = new Array(32).fill(0); [0x53, 0x46, 0x50, 0x4B].forEach((c, i) => (out[i] = c));
     const w16 = (arr, o, v) => { arr[o] = v & 255; arr[o + 1] = (v >> 8) & 255; };
@@ -148,7 +168,7 @@
       [t.moveset, fb, bases[t.fireball_from], t.jump_vy, t.walk_adj & 0xFFFF, t.walk_ticks, t.fb_pal, t.fb_alt_hi, t.fb_alt_lo,
         artPals[f.name] !== undefined ? artPals[f.name] : t.pal_asset, t.pal_alt_off, t.dirswap, t.fbpal_asset, t.fbpal_off1, t.fbpal_off2, t.fb_sfx,
         t.hp_close_hk, t.walk_pingpong, t.face_pal, t.face_pal_alt, t.gameover_fp, t.arcade_opp, t.face_idx, t.walk_fwd, t.walk_back, t.jump_vx,
-        t.grav_up, t.grav_dn, t.fb_spd, t.fb_dmg, t.fb_spd_s, t.fb_dmg_s, t.fb_spd_ex, t.fb_dmg_ex, t.fb_spd_sup, t.fb_dmg_sup, t.stage_bin !== undefined ? t.stage_bin : 0, t.stage_map !== undefined ? t.stage_map : 1, t.stage_pal !== undefined ? t.stage_pal : 2, assets.length + fi].map((v, i, a) => {
+        t.grav_up, t.grav_dn, t.fb_spd, t.fb_dmg, t.fb_spd_s, t.fb_dmg_s, t.fb_spd_ex, t.fb_dmg_ex, t.fb_spd_sup, t.fb_dmg_sup, t.stage_bin !== undefined ? t.stage_bin : 0, t.stage_map !== undefined ? t.stage_map : 1, t.stage_pal !== undefined ? t.stage_pal : 2, assets.length + fi, artPush[f.name] !== undefined ? artPush[f.name] : (t.push_w !== undefined ? t.push_w : 16), t.throw_rng !== undefined ? t.throw_rng : 4].map((v, i, a) => {
         if (artStages[f.name] && i >= 36 && i <= 38) return artStages[f.name][i - 36];
         if (artBases[f.name] !== undefined && (i === 10 || i === 11)) return i === 10 ? 0 : (artSwap[f.name] ? 1 : 0);
         const j = artFaces[f.name];   // retrato proprio: rosto 3+j, paleta 3 ou 6 (P2 igual), game over le a paleta 7+j
@@ -171,6 +191,7 @@
     const gm = game.game || {}, ofsGs = out.length, dv = (v, d) => (v === undefined ? d : v);   // bloco do jogo: HUD e rounds
     [dv(gm.hud_hp_row, 4), dv(gm.hud_win_row, 5), dv(gm.hud_sp_row, 23), dv(gm.rounds_to_win, 2)].forEach(p16);
     const tabs = base.arrays.map(([name, size]) => { const b = []; A[name].forEach((v) => { if (size === 1) b.push(v & 255); else b.push(v & 255, (v >> 8) & 255); }); if (b.length > BANK) throw new Error("tabela grande demais: " + name); return b; });
+    tabs.push(hurtList.length ? [].concat(...hurtList) : new Array(21).fill(0));   // tabela 26: hurtboxes explicitas (fica na ROM)
     let tpos = BANK; const tplace = [];
     tabs.forEach((b) => { if ((tpos % BANK) + b.length > BANK) tpos = (Math.floor(tpos / BANK) + 1) * BANK; tplace.push(tpos); tpos += b.length; tpos = (tpos + 1) & ~1; });
     const tbanks = Math.floor(tpos / BANK) + (tpos % BANK ? 1 : 0) - 1, gfx0 = 1 + tbanks;

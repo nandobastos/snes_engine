@@ -135,8 +135,10 @@ function boxOf(li, f) {   // retangulo que cobre o que foi marcado na camada de 
   for (let y = 0; y < doc.h; y++) for (let x = 0; x < doc.w; x++) if (c[y * doc.w + x]) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
   return x1 < 0 ? null : { x0, y0, x1, y1 };
 }
-const BOXK = ["hitbox", "hitbox2", "hurtbox", "anchor"], isBox = (L) => L && BOXK.includes(L.kind);
-const KIND_INFO = { sketch: ["Rascunho", "90,160,255"], hitbox: ["Hitbox", "255,60,60"], hitbox2: ["Hitbox 2", "255,150,40"], hurtbox: ["Hurtbox", "60,220,90"], anchor: ["Âncora (pés)", "70,140,255"] };
+const BOXK = ["hitbox", "hitbox2", "hurtbox", "hurt_head", "hurt_body", "hurt_legs", "hurt_limb", "pushbox", "anchor"], isBox = (L) => L && BOXK.includes(L.kind);
+/* hurtboxes estilo Capcom: tipo usado pela engine (0 cabeca, 1 tronco, 2 pernas, 3 membro que ataca) */
+const HURTK = [["hurt_head", 0], ["hurt_body", 1], ["hurt_legs", 2], ["hurt_limb", 3]];
+const KIND_INFO = { sketch: ["Rascunho", "90,160,255"], hitbox: ["Hitbox", "255,60,60"], hitbox2: ["Hitbox 2", "255,150,40"], hurtbox: ["Hurtbox (única)", "70,120,255"], hurt_head: ["Hurt cabeça", "90,150,255"], hurt_body: ["Hurt tronco", "60,110,255"], hurt_legs: ["Hurt pernas", "40,80,230"], hurt_limb: ["Hurt membro", "120,180,255"], pushbox: ["Pushbox", "60,220,90"], anchor: ["Âncora (pés)", "255,210,60"] };
 function kindLayer(kind) { return doc.layers.findIndex((L) => L.kind === kind); }
 const LIM_PIECES = 24, LIM_ROM_KB = 1024;
 function frameStats(f) {
@@ -940,7 +942,7 @@ function newLayer() {
   cur.layer = at; renderAll();
 }
 function newBoxLayer() {
-  ask("Nova camada de caixa", [["Tipo", "kind", "hurtbox", ["hitbox", "hitbox2", "hurtbox", "anchor"]]], (v) => {
+  ask("Nova camada de caixa", [["Tipo", "kind", "hurt_body", BOXK]], (v) => {
     if (kindLayer(v.kind) >= 0) { msg("Já existe uma camada " + KIND_INFO[v.kind][0] + "."); return; }
     dropFloat(); push();
     doc.layers.splice(cur.layer + 1, 0, { name: KIND_INFO[v.kind][0], kind: v.kind, vis: true, lock: false });
@@ -1068,7 +1070,10 @@ function renderReport() {
     <div class="ptitle" style="margin:6px -8px 2px">Caixas deste quadro</div>
     <div><span class="k" style="color:rgb(${KIND_INFO.hitbox[1]})">Hitbox:</span> ${boxTxt(bx("hitbox", cur.frame))}</div>
     <div><span class="k" style="color:rgb(${KIND_INFO.hitbox2[1]})">Hitbox 2:</span> ${boxTxt(bx("hitbox2", cur.frame))}</div>
-    <div><span class="k" style="color:rgb(${KIND_INFO.hurtbox[1]})">Hurtbox:</span> ${boxTxt(bx("hurtbox", cur.frame))}${bx("hurtbox", cur.frame) ? "" : ' <span class="warn">(sem hurtbox: usa o corpo)</span>'}</div>
+    ${HURTK.map(([kd]) => `<div><span class="k" style="color:rgb(${KIND_INFO[kd][1]})">${KIND_INFO[kd][0]}:</span> ${boxTxt(bx(kd, cur.frame))}</div>`).join("")}
+    ${kindLayer("hurtbox") >= 0 ? `<div><span class="k" style="color:rgb(${KIND_INFO.hurtbox[1]})">Hurtbox (única):</span> ${boxTxt(bx("hurtbox", cur.frame))}</div>` : ""}
+    <div><span class="k" style="color:rgb(${KIND_INFO.pushbox[1]})">Pushbox:</span> ${boxTxt(bx("pushbox", cur.frame))} <span class="k">(a do 1º quadro do idle vale para o lutador)</span></div>
+    ${HURTK.some(([kd]) => bx(kd, cur.frame)) || bx("hurtbox", cur.frame) ? "" : '<div class="warn">Sem hurtbox neste quadro: a engine usa o corpo padrão (em pé, agachado ou pulando).</div>'}
     <div><span class="k" style="color:rgb(${KIND_INFO.anchor[1]})">Âncora:</span> ${bx("anchor", cur.frame) ? "marcada" : "—"}</div>
     <div class="hint" style="padding:2px 0">Selecione a camada da caixa e desenhe um retângulo (U): a caixa é o menor retângulo que cobre o que você marcou.</div>
     <div class="ptitle" style="margin:6px -8px 2px">Animação (${doc.frames.length} quadros)</div>
@@ -1105,7 +1110,11 @@ const FIGHTER_ANIMS = [["idle", 4, "loop"], ["walk", 5, "loop"], ["walkb", 5, "l
   ["jp", 3, "once"], ["jk", 3, "once"], ["jdk", 3, "once"], ["jhk", 3, "once"], ["hadouken", 4, "once"], ["shoryu", 6, "once"], ["tatsu", 6, "loop"], ["throw", 5, "once"], ["thrown", 4, "once"], ["rise", 2, "once"],
   ["hit_head", 3, "once"], ["hit_body", 4, "once"], ["hit_crouch", 2, "once"], ["fall", 3, "once"], ["ko", 1, "once"], ["victory", 4, "loop"], ["fireball", 1, "loop"], ["fireball_hit", 1, "once"], ["fireball_fx", 4, "loop"], ["spark", 3, "once"], ["shadow", 2, "loop"], ["retrato", 1, "once"]];
 const SGE_SIZES = [[64, 96, "médio (Ryu, Sagat, DonLee)"], [48, 80, "pequeno / ágil"], [104, 160, "grande (Big Bear): cabe; cuidado com poses esticadas, máx. 24 pedaços"]];
-function boxLayers() { return [{ name: "Rascunho", kind: "sketch", vis: true, lock: false }, { name: "Corpo", vis: true, lock: false }, { name: "Hitbox", kind: "hitbox", vis: true, lock: false }, { name: "Hitbox 2", kind: "hitbox2", vis: true, lock: false }, { name: "Hurtbox", kind: "hurtbox", vis: true, lock: false }, { name: "Âncora", kind: "anchor", vis: true, lock: false }]; }
+function boxLayers() {   // de baixo para cima: rascunho, corpo, pushbox, hurtboxes, hitboxes e ancora
+  const L = (name, kind) => Object.assign({ name, vis: true, lock: false }, kind ? { kind } : {});
+  return [L("Rascunho", "sketch"), L("Corpo"), L("Pushbox", "pushbox"), L("Hurt pernas", "hurt_legs"), L("Hurt tronco", "hurt_body"), L("Hurt cabeça", "hurt_head"),
+    L("Hurt membro", "hurt_limb"), L("Hitbox", "hitbox"), L("Hitbox 2", "hitbox2"), L("Âncora", "anchor")];
+}
 function newFighterDialog() {
   modal(`<h3>Novo lutador para a SF Engine</h3>
     <div class="row"><label>Nome</label><input id="nf-name" value="lutador"></div>
@@ -1144,7 +1153,8 @@ async function exportSF() {
       const an = bx("anchor");
       let x1b = 0, y1b = 0; for (let y = 0; y < doc.h; y++) for (let x = 0; x < doc.w; x++) if (idx[y * doc.w + x]) { x1b = Math.max(x1b, x); y1b = Math.max(y1b, y); }
       frames.push({ ms: doc.frames[f].d, w: x1b - x0 + 1, h: y1b - y0 + 1, dy: sp.length ? sp[0].dy : 0, pieces: sp.map((q) => { const px = new Uint8Array(256); for (let yy = 0; yy < 16; yy++) for (let xx = 0; xx < 16; xx++) { const X = q.px + xx, Y = q.py + yy; px[yy * 16 + xx] = X >= 0 && Y >= 0 && X < doc.w && Y < doc.h ? idx[Y * doc.w + X] : 0; } return { x: q.px - x0, y: q.py - y0, px: b64(px) }; }),
-        hitbox: rel(bx("hitbox")), hitbox2: rel(bx("hitbox2")), hurtbox: rel(bx("hurtbox")), anchor: an ? [(an.x0 + an.x1 + 1) / 2 - x0, an.y1 + 1 - y0] : null });
+        hitbox: rel(bx("hitbox")), hitbox2: rel(bx("hitbox2")), hurtbox: rel(bx("hurtbox")), pushbox: rel(bx("pushbox")),
+        hurts: HURTK.map(([kd, t]) => { const r = rel(bx(kd)); return r ? [t].concat(r) : null; }).filter(Boolean), anchor: an ? [(an.x0 + an.x1 + 1) / 2 - x0, an.y1 + 1 - y0] : null });
     }
     out.tags.push({ name: t.name, loop: t.loop, frames });
   });
@@ -1216,7 +1226,16 @@ function fighterFromRom(G, fi) {
       const bx = (pre) => { const c = new Uint8Array(W * HH); if (A[pre][k]) { const x0 = s8(A[pre + "x0"][k]), x1 = s8(A[pre + "x1"][k]), y0 = A[pre + "y0"][k], y1 = A[pre + "y1"][k];
         for (let Y = GY - y1; Y < GY - y0; Y++) for (let X = AX + x0; X <= AX + x1; X++) if (X >= 0 && Y >= 0 && X < W && Y < HH) c[Y * W + X] = 1; } return c; };
       const an = new Uint8Array(W * HH); an[(GY - 1) * W + AX - 1] = an[(GY - 1) * W + AX] = 1;
-      [new Uint8Array(W * HH), body, bx("pf_hb"), bx("pf_hb2"), bx("pf_hu"), an].forEach((c, li) => d.cels[li].push(c));
+      const rect = (x0, x1, y0, y1) => { const c = new Uint8Array(W * HH); for (let Y = GY - y1; Y < GY - y0; Y++) for (let X = AX + x0; X <= AX + x1; X++) if (X >= 0 && Y >= 0 && X < W && Y < HH) c[Y * W + X] = 1; return c; };
+      const none = () => new Uint8Array(W * HH);
+      let hh0 = none(), hh1 = none(), hh2 = none(), hh3 = none(), push = none();
+      if (A.pf_hu[k]) {   // a hurtbox unica dividida como a engine faz: cabeca (20 px de cima), pernas (3/8 de baixo), tronco no meio
+        const x0 = s8(A.pf_hux0[k]), x1 = s8(A.pf_hux1[k]), bot = A.pf_huy0[k], top = A.pf_huy1[k], lg = bot + (((top - bot) * 3) >> 3), hd = top - 20;
+        hh0 = rect(x0, x1, hd, top); hh1 = rect(x0, x1, lg, hd); hh2 = rect(x0, x1, bot, lg);
+        if (A.pf_hb[k]) { const hx0 = s8(A.pf_hbx0[k]), hx1 = s8(A.pf_hbx1[k]); hh3 = rect(hx0, hx0 + Math.floor(((hx1 - hx0) * 2) / 3), A.pf_hby0[k], A.pf_hby1[k]); }
+        push = rect(-16, 15, 0, Math.min(top, 80));
+      }
+      [none(), body, push, hh2, hh1, hh0, hh3, bx("pf_hb"), bx("pf_hb2"), an].forEach((c, li) => d.cels[li].push(c));
       d.frames.push({ d: 100 });
     });
     d.tags.push({ name: anim, from: t0, to: d.frames.length - 1, loop: ["idle", "walk", "walkb", "victory", "tatsu"].includes(anim) ? "loop" : "once" });
@@ -1250,14 +1269,15 @@ function fighterFromArt(art, name) {
       f.pieces.forEach((p) => { const px = unb64(p.px); for (let yy = 0; yy < 16; yy++) for (let xx = 0; xx < 16; xx++) { const v = px[yy * 16 + xx], X = bx + p.x + xx, Y = by + p.y + yy; if (v && X >= 0 && Y >= 0 && X < W && Y < H) body[Y * W + X] = v; } });
       const box = (b) => { const c = new Uint8Array(W * H); if (b) for (let Y = by + b[1]; Y < by + b[3]; Y++) for (let X = bx + b[0]; X < bx + b[2]; X++) if (X >= 0 && Y >= 0 && X < W && Y < H) c[Y * W + X] = 1; return c; };
       const an = new Uint8Array(W * H); an[(GY - 1) * W + AX - 1] = an[(GY - 1) * W + AX] = 1;
-      add([new Uint8Array(W * H), body, box(f.hitbox), box(f.hitbox2), box(f.hurtbox), an], f.ms);
+      const hk = (t) => { const h = (f.hurts || []).find((x) => x[0] === t); return h ? box(h.slice(1)) : t === 1 && !(f.hurts || []).length ? box(f.hurtbox) : new Uint8Array(W * H); };
+      add([new Uint8Array(W * H), body, box(f.pushbox), hk(2), hk(1), hk(0), hk(3), box(f.hitbox), box(f.hitbox2), an], f.ms);
     });
     d.tags.push({ name: t.name, from: t0, to: d.frames.length - 1, loop: t.loop || "once" });
   });
   if (art.portrait) {   // tag "retrato": o rosto 56x80 encostado embaixo e centralizado
     const body = new Uint8Array(W * H), px = unb64(art.portrait.px), ox = AX - 28, oy = GY - 80;
     for (let y = 0; y < 80; y++) for (let x = 0; x < 56; x++) if (px[y * 56 + x] && oy + y >= 0) body[(oy + y) * W + ox + x] = px[y * 56 + x];
-    const t0 = d.frames.length; add([new Uint8Array(W * H), body, ...[1, 2, 3, 4].map(() => new Uint8Array(W * H))], 100);
+    const t0 = d.frames.length; add([new Uint8Array(W * H), body, ...[1, 2, 3, 4, 5, 6, 7, 8].map(() => new Uint8Array(W * H))], 100);
     d.tags.push({ name: "retrato", from: t0, to: t0, loop: "once" });
   }
   return d;

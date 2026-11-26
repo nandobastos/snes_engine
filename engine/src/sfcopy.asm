@@ -46,6 +46,41 @@ _sc_end:
     rtl
 
 ; ---------------------------------------------------------------------------------
+; sf_peek: como o sf_copy (pk_bank:pk_src -> $7E:pk_dst, pk_n bytes), mas pela CPU e sem DMA: serve no meio da logica do jogo
+; (poucos bytes, sem disputar canal de DMA com a NMI). void sf_peek(void)
+; ---------------------------------------------------------------------------------
+sf_peek:
+    php
+    phb
+    rep #$30
+    lda.w pk_n
+    beq _sp_end
+    ldy.w pk_src
+    ldx.w pk_dst
+    pha                     ; contador na pilha (1,s)
+    sep #$20
+    lda.w pk_bank
+    pha
+    plb                     ; DB = banco de origem
+_sp_loop:
+    lda.w $0000,y
+    sta.l $7E0000,x
+    inx
+    iny
+    rep #$20
+    lda 1,s
+    dec a
+    sta 1,s
+    sep #$20
+    bne _sp_loop
+    rep #$20
+    pla
+_sp_end:
+    plb
+    plp
+    rtl
+
+; ---------------------------------------------------------------------------------
 ; sf_vram: DMA do pack (pk_bank:pk_src, pk_n bytes) para a VRAM (endereco em palavras = pk_dst). Mesmas regras do dmaCopyVram (tela apagada/vblank).
 ; sf_cgram: DMA do pack para a CGRAM (pk_dst = indice da cor, 0-255). void sf_vram(void), void sf_cgram(void)
 ; ---------------------------------------------------------------------------------

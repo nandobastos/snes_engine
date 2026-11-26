@@ -80,3 +80,13 @@ quantas lutas), select (param 1 = recomeca do 1o oponente), title. No pack: pk_h
 arcade_run interpreta. Padrao: VS -> luta -> vitoria -> proximo (2 lutas) -> final; perdeu -> continue -> selecao / titulo.
 Vitoria: rosto do vencedor + frase (fighters[].win_quote, ate 4 linhas de 28 letras, fonte engine/font8.json; asset quote_i,
 traco 39). Testado: vitoria com a frase, continue 9..0 e START -> selecao; ROM do navegador = Python; Practice identico.
+
+## Caixas estilo Capcom (hurtboxes por parte do corpo, pushbox, hitboxes)
+- Hurtboxes: pf_hu = 1 (uma caixa; a engine divide em cabeca = 20 px de cima, pernas = 3/8 de baixo, tronco no meio) ou
+  pf_hu = 2 (lista explicita na ROM, tabela 26: 21 bytes = n + ate 4 x (tipo, x0, x1, y0, y1); tipo 0 cabeca, 1 tronco,
+  2 pernas (so golpe baixo, como antes), 3 membro que ataca (conta como tronco)). Carregada por sf_peek (CPU, sem DMA).
+- game.hurt_membro: os 3 originais ganham a hurtbox do membro (2/3 de tras da hitbox) nos quadros de ataque (counter-poke).
+- Pushbox: traco push_w (meia largura, padrao 16) e throw_rng (agarrao alcanca push_w+push_w+throw_rng, padrao 36 = o original).
+- SF Pixel: camadas Pushbox (verde), Hurt cabeca/tronco/pernas/membro (azul), Hitbox/Hitbox 2 (vermelho), Ancora.
+- Testes: caixas explicitas sem membro = jogo original (sem a tela de depuracao); DonLee exportado com as caixas = DonLee
+  original com hurt_membro; ROM do navegador = Python. A depuracao (SELECT) desenha as caixas explicitas em azul.

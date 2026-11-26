@@ -66,9 +66,9 @@ u16 prof_dummy;
 #endif
 enum { TRK_MOVESET, TRK_FRAME_BASE, TRK_FX_BASE, TRK_JUMP_VY, TRK_WALK_ADJ, TRK_WALK_TICKS, TRK_FB_PAL, TRK_FB_ALT_HI, TRK_FB_ALT_LO,
        TRK_PAL_ASSET, TRK_PAL_ALT, TRK_DIRSWAP, TRK_FBPAL_ASSET, TRK_FBPAL_OFF1, TRK_FBPAL_OFF2, TRK_FB_SFX, TRK_HP_CLOSE_HK, TRK_PINGPONG, TRK_FACE_PAL, TRK_FACE_ALT, TRK_GAMEOVER_FP, TRK_ARCADE_OPP, TRK_FACE_IDX, TRK_WALK_FWD, TRK_WALK_BACK, TRK_JUMP_VX, TRK_GRAV_UP, TRK_GRAV_DN,
-       TRK_FB_SPD, TRK_FB_DMG, TRK_FB_SPD_S, TRK_FB_DMG_S, TRK_FB_SPD_EX, TRK_FB_DMG_EX, TRK_FB_SPD_SUP, TRK_FB_DMG_SUP, TRK_STAGE_BIN, TRK_STAGE_MAP, TRK_STAGE_PAL, TRK_QUOTE };
+       TRK_FB_SPD, TRK_FB_DMG, TRK_FB_SPD_S, TRK_FB_DMG_S, TRK_FB_SPD_EX, TRK_FB_DMG_EX, TRK_FB_SPD_SUP, TRK_FB_DMG_SUP, TRK_STAGE_BIN, TRK_STAGE_MAP, TRK_STAGE_PAL, TRK_QUOTE, TRK_PUSH_W, TRK_THROW_RNG };
 u16 pk_trait(u8 ch, u8 k);
-u16 pk_h[16], pk_dir[50];   // cabecalho do pack e diretorio das tabelas de quadros
+u16 pk_h[16], pk_dir[52];   // cabecalho do pack e diretorio das tabelas de quadros
 u8 pk_i, pk_j;
 u16 pk_gs[4];
 // fluxo do Arcade (pack, pk_h[14]): [quantidade, no inicial] e nos de 8 bytes: tipo, saida 1, saida 2, saida 3, parametro
@@ -344,6 +344,7 @@ void sf_vram(void);
 void sf_cgram(void);
 
 void pk_boot(void);
+void sf_peek(void);
 void pk_vram(u8 id, u16 vdst);
 void pk_cgram(u8 id, u16 off, u8 cdst, u16 n);
 void pk_ram(u8 id, u16 n);   // destino em pk_dst (nao passar o endereco como argumento: o tcc-816 empilha 4 bytes)
@@ -731,9 +732,10 @@ u8 mv_dmg[2 * ATK_COUNT], mv_stun[2 * ATK_COUNT], mv_hgt[2 * ATK_COUNT], mv_flag
 u8 mv_hs[2 * ATK_COUNT], mv_sw[2 * ATK_COUNT], mv_sh[2 * ATK_COUNT];  // hitstop, som do golpe, som do impacto
 u8 mv_dur[2 * ATK_COUNT * 8];
 // ---- TRACOS do lutador (vem do pack, 20 palavras depois dos golpes; ver docs/FORMAT_SFPK.md): numeros que antes eram "if (Sagat)" no codigo
-u16 ftr[2 * 40];
-const u8 trb[2] = {0, 40};
-s8 fwf[2], fwb[2], fjvx[2], fgup[2], fgdn[2];   // copias (por jogador) da fisica do lutador: lidas todo quadro, mais baratas que TR()
+u16 ftr[2 * 42];
+const u8 trb[2] = {0, 42};
+s8 fwf[2], fwb[2], fjvx[2], fgup[2], fgdn[2];
+u8 fpush[2], fthr[2];   // pushbox (meia largura, px) e alcance do agarrao alem das pushboxes (px)   // copias (por jogador) da fisica do lutador: lidas todo quadro, mais baratas que TR()
 #define TR(i, k) ftr[trb[i] + (k)]
 const u8 mvb[2] = {0, ATK_COUNT};
 const u8 mvb80[2] = {0, 80};
@@ -769,7 +771,7 @@ void pk_load_frames(void)
     pk_dst = (u16)&pk_h;
     pk_get(0, 32);
     pk_dst = (u16)&pk_dir;
-    pk_get(pk_h[10], 100);
+    pk_get(pk_h[10], 104);   // 25 tabelas copiadas para a RAM + a das hurtboxes (fica na ROM)
     pk_db = 1;
     pk_dst = (u16)&chunk_tab;
     pk_get(pk_h[9], pk_h[8] * 4);
@@ -885,9 +887,9 @@ void pk_load_moves(u8 p, u8 ch)
     pk_dst = (u16)&mv_dur[mvb8[p]];
     pk_get(pk_o + 7 * ATK_COUNT, ATK_COUNT * 8);
     pk_dst = (u16)&ftr[trb[p]];
-    pk_get(pk_o + 15 * ATK_COUNT, 80);
+    pk_get(pk_o + 15 * ATK_COUNT, 84);
     pk_dst = (u16)&mot_ram[mvb80[p]];
-    pk_get(pk_o + 15 * ATK_COUNT + 80, 80);   // comandos dos especiais (motion_id)   // tracos
+    pk_get(pk_o + 15 * ATK_COUNT + 84, 80);   // comandos dos especiais (motion_id)   // tracos
 }
 
 const u8 atk_base[ATK_COUNT] = {A_MP, A_HP, A_MK, A_HK, A_CMP, A_CHP, A_CMK, A_CHK, A_JP, A_JK, A_JDK,
@@ -973,7 +975,7 @@ void fight_gfx_init(void)
     REG_TM = 0x17;             // BG1, BG2, BG3, OBJ
     dmaCopyVram(&dbg_bin, VRAM_BG3_GFX + (DBG_TILE0 << 3), (&dbg_bin_end - &dbg_bin)); // contornos do debug
     pk_cgram(AS_HUD_PAL, 0, 0, 24); // paleta 0 = barras de vida; paleta 2 (indice 8) = barra de super
-    set_color(5, 0x03E0);  // BG3 paleta 1 (debug): cor 1 = verde (hurtbox)
+    set_color(5, 0x7E40);  // BG3 paleta 1 (debug): cor 1 = azul (hurtbox, como nos jogos da Capcom)
     set_color(6, 0x001F);  // cor 2 = vermelho (hitbox)
     set_color(7, 0x001F);  // cor 3 (hurtbox e hitbox no mesmo pixel) = vermelho
     pk_cgram(AS_RYU_PAL, 0, 128, 5 * 16 * 2); // OBJ paletas 0 (P1), 1 (P2), 2 (bola de fogo), 3 (sombra), 4 (faisca)
@@ -1313,8 +1315,95 @@ u8 hurt_frame(u8 d)
     if (fanim[d] == 255)
         return 255;
     f = fanim[d] + fidx[d];
-    if (pf_hu[f + choff[d]])
+    if (pf_hu[f + choff[d]] == 1)
         return f;
+    return 255;
+}
+
+// HURTBOXES EXPLICITAS (estilo Capcom: cabeca, tronco, pernas e o membro que ataca). Quadro com pf_hu == 2: a lista fica
+// na ROM (tabela 26 do diretorio do pack), 21 bytes por quadro: quantidade e ate 4 x (tipo, x0, x1, y0, y1); o indice da
+// lista esta em pf_hux0 (byte baixo) e pf_hux1 (alto). Carrega para hc_buf so quando o quadro do defensor muda.
+u8 hc_buf[42];
+u16 hc_rf[2];
+const u8 hc_base[2] = {0, 21};
+const u8 hc_ord[4] = {0, 1, 3, 2};   // cabeca, tronco, membro e por ultimo pernas (so golpe baixo)
+void hurt_load(u8 d, u16 rf)
+{
+    u16 ix;
+    if (hc_rf[d] == rf)
+        return;
+    hc_rf[d] = rf;
+    ix = (u8)pf_hux0[rf];
+    ix |= ((u16)(u8)pf_hux1[rf]) << 8;
+    pk_dst = (u16)&hc_buf[hc_base[d]];
+    pk_src = pk_dir[50] + ix * 21;
+    pk_bank = pk_dir[51];
+    pk_n = 21;
+    sf_peek();
+}
+
+// regiao acertada nas hurtboxes explicitas (0 cabeca, 1 tronco ou membro, 2 pernas) ou 255
+u8 hit_region_x(s16 ax0, s16 ax1, s16 ay0, s16 ay1, u8 d, u8 low, u16 rf, s16 base)
+{
+    u8 n, j, p, t, o, r;
+    s16 x0, x1, y0, y1, cx;
+    hurt_load(d, rf);
+    n = hc_buf[hc_base[d]];
+    cx = fx[d] >> 3;
+    for (p = 0; p < 4; p++)
+    {
+        t = hc_ord[p];
+        if (t == 2 && !low)
+            continue;
+        for (j = 0; j < n; j++)
+        {
+            o = hc_base[d] + 1 + j * 5;
+            if (hc_buf[o] != t)
+                continue;
+            // x0/x1 com sinal (sem cast (s8): o tcc-816 erra a conversao)
+            x0 = hc_buf[o + 1];
+            if (x0 > 127)
+                x0 -= 256;
+            x1 = hc_buf[o + 2];
+            if (x1 > 127)
+                x1 -= 256;
+            if (fdir[d])
+            {
+                y0 = cx - x1;
+                x1 = cx - x0;
+                x0 = y0;
+            }
+            else
+            {
+                x0 += cx;
+                x1 += cx;
+            }
+            y0 = base + hc_buf[o + 3];
+            y1 = base + hc_buf[o + 4];
+            if (ax1 < x0)
+                continue;
+            if (ax0 > x1)
+                continue;
+            if (ay1 < y0)
+                continue;
+            if (ay0 > y1)
+                continue;
+            r = t;
+            if (t == 3)
+                r = 1;
+            if (ax0 < x0)
+                ax0 = x0;
+            if (ax1 > x1)
+                ax1 = x1;
+            if (ay0 < y0)
+                ay0 = y0;
+            if (ay1 > y1)
+                ay1 = y1;
+            hit_cx = (ax0 + ax1) >> 1;
+            hit_cy = GROUND_Y - ((ay0 + ay1) >> 1);
+            return r;
+        }
+    }
     return 255;
 }
 
@@ -1912,7 +2001,15 @@ void hurt_bt(u8 d, s16 *bot, s16 *top)
 u8 hit_region(s16 ax0, s16 ax1, s16 ay0, s16 ay1, u8 d, u8 low)
 {
     s16 dx0, dx1, bot, top, lg, hd, y0, y1;
-    u8 r;
+    u8 r, f;
+    u16 rf;
+    if (fanim[d] != 255)
+    {
+        f = fanim[d] + fidx[d];
+        rf = f + choff[d];
+        if (pf_hu[rf] == 2)
+            return hit_region_x(ax0, ax1, ay0, ay1, d, low, rf, fbase(d, f));
+    }
     hurt_x(d, &dx0, &dx1);
     if (ax1 < dx0 || ax0 > dx1)
         return 255;
@@ -2256,7 +2353,9 @@ u8 throw_ok(u8 i, u16 keys)
         want = KEY_RIGHT;
     if (dist < 0)
         dist = -dist;
-    if (!(keys & want) || dist > THROW_DIST || fh[i] || fh[d] || finv[d])
+    if (dist > fpush[0] + fpush[1] + fthr[i])   // agarrao: alcance alem das pushboxes (padrao 16 + 16 + 4 = 36)
+        return 0;
+    if (!(keys & want) || fh[i] || fh[d] || finv[d])
         return 0;
     return fstate[d] == ST_IDLE || fstate[d] == ST_WALK || fstate[d] == ST_CROUCH || fstate[d] == ST_ATTACK;
 }
@@ -3362,7 +3461,7 @@ void cam_update(void)
 // os corpos nao se atravessam no chao e ninguem sai da tela
 void resolve_inner(void)
 {
-    s16 d, over;
+    s16 d, over, pw;
     if (fx[0] < xlo)
         fx[0] = xlo;
     if (fx[0] > xhi)
@@ -3376,9 +3475,10 @@ void resolve_inner(void)
     d = fx[1] - fx[0];
     if (d < 0)
         d = -d;
-    if (d < 32 * 8)
+    pw = (fpush[0] + fpush[1]) << 3;   // pushboxes (padrao 16 + 16 px)
+    if (d < pw)
     {
-        over = (32 * 8 - d) >> 1;
+        over = (pw - d) >> 1;
         if (fx[0] <= fx[1])
         {
             fx[0] -= over;
@@ -3626,6 +3726,48 @@ void dbg_hdiv(s16 x0, s16 x1, s16 y)
     }
 }
 
+// debug: desenha as hurtboxes explicitas do quadro (se houver). 1 = desenhou
+u8 dbg_explicit(u8 d)
+{
+    u8 f, n, j, o;
+    u16 rf;
+    s16 base, cx, x0, x1, t;
+    if (fanim[d] == 255)
+        return 0;
+    f = fanim[d] + fidx[d];
+    rf = f + choff[d];
+    if (pf_hu[rf] != 2)
+        return 0;
+    hurt_load(d, rf);
+    base = fbase(d, f);
+    cx = fx[d] >> 3;
+    n = hc_buf[hc_base[d]];
+    dbg_col = 0;
+    for (j = 0; j < n; j++)
+    {
+        o = hc_base[d] + 1 + j * 5;
+        x0 = hc_buf[o + 1];
+        if (x0 > 127)
+            x0 -= 256;
+        x1 = hc_buf[o + 2];
+        if (x1 > 127)
+            x1 -= 256;
+        if (fdir[d])
+        {
+            t = cx - x1;
+            x1 = cx - x0;
+            x0 = t;
+        }
+        else
+        {
+            x0 += cx;
+            x1 += cx;
+        }
+        dbg_rect(x0, GROUND_Y - (base + hc_buf[o + 4]), x1, GROUND_Y - (base + hc_buf[o + 3]));
+    }
+    return 1;
+}
+
 // monta os retangulos do quadro: o mesmo calculo que a logica usa (hurt_x/hurt_y, atk_* e a bola de fogo)
 void dbg_build(void)
 {
@@ -3634,7 +3776,11 @@ void dbg_build(void)
     for (d = 0; d < 2; d++)
     {
         // hurtboxes (so aparecem quando o lutador pode ser acertado)
-        if (fstate[d] != ST_KNOCKDOWN && !finv[d])
+        if (fstate[d] != ST_KNOCKDOWN && !finv[d] && dbg_explicit(d))
+        {
+            // hurtboxes explicitas: um retangulo por caixa (cabeca, tronco, pernas, membro)
+        }
+        else if (fstate[d] != ST_KNOCKDOWN && !finv[d])
         {
             dbg_col = 0;
             hurt_x(d, &x0, &x1);
@@ -4546,6 +4692,9 @@ u8 fight_run(void)
         fjvx[i] = TR(i, TRK_JUMP_VX);
         fgup[i] = TR(i, TRK_GRAV_UP);
         fgdn[i] = TR(i, TRK_GRAV_DN);
+        fpush[i] = TR(i, TRK_PUSH_W);
+        fthr[i] = TR(i, TRK_THROW_RNG);
+        hc_rf[i] = 0xFFFF;
         fpal_a[i] = TR(i, TRK_PAL_ASSET);
         pk_asset(fpal_a[i], 0, 32);
         fsw_src[i << 1] = pk_src;

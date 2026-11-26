@@ -424,7 +424,9 @@
         "fb_dmg_sup": 38,
         "stage_bin": 0,
         "stage_map": 1,
-        "stage_pal": 2
+        "stage_pal": 2,
+        "push_w": 16,
+        "throw_rng": 4
       },
       "commands": [
         [
@@ -911,7 +913,9 @@
         "fb_dmg_sup": 38,
         "stage_bin": 0,
         "stage_map": 1,
-        "stage_pal": 2
+        "stage_pal": 2,
+        "push_w": 16,
+        "throw_rng": 4
       },
       "commands": [
         [
@@ -1398,7 +1402,9 @@
         "fb_dmg_sup": 38,
         "stage_bin": 0,
         "stage_map": 1,
-        "stage_pal": 2
+        "stage_pal": 2,
+        "push_w": 16,
+        "throw_rng": 4
       },
       "commands": [
         [
@@ -1501,7 +1507,8 @@
       32767,
       32588,
       14498
-    ]
+    ],
+    "hurt_membro": true
   },
   "flow": {
     "start": "vs",

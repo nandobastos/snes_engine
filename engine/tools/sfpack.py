@@ -77,6 +77,39 @@ def flow_block(fl):
     return bytes(out + b"\0" * (2 + 32 * 8 - len(out)))
 
 
+def s8(v):
+    return v - 256 if v > 127 else v
+
+
+def hurt_boxes(proj, fr):
+    """HURTBOXES ESTILO CAPCOM: quadro com lista explicita (arte do SF Pixel) ou, nos 3 lutadores originais com a opcao
+    game.hurt_membro, a hurtbox unica dividida em cabeca/tronco/pernas + o membro que ataca (2/3 de tras da hitbox).
+    Muda as tabelas: pf_hu = 2 e pf_hux0/pf_hux1 = indice na lista (21 bytes por entrada; iguais viram uma so)."""
+    A = {a["name"]: a["data"] for a in fr["arrays"]}
+    lst, idx = [], {}
+    art = {int(k): v for k, v in fr.get("hurts", {}).items()}
+    limb = proj.get("game", {}).get("hurt_membro", False)
+    for k in range(len(A["pf_hu"])):
+        if k in art:
+            boxes = art[k]
+        elif limb and k < fr.get("n_orig", 0) and A["pf_hu"][k] == 1 and A["pf_hb"][k]:
+            x0, x1, bot, top = s8(A["pf_hux0"][k]), s8(A["pf_hux1"][k]), A["pf_huy0"][k], A["pf_huy1"][k]
+            lg, hd = bot + (((top - bot) * 3) >> 3), top - 20
+            hx0, hx1 = s8(A["pf_hbx0"][k]), s8(A["pf_hbx1"][k])
+            boxes = [[0, x0, x1, hd, top], [1, x0, x1, lg, hd], [2, x0, x1, bot, lg],
+                     [3, hx0, hx0 + ((hx1 - hx0) * 2) // 3, A["pf_hby0"][k], A["pf_hby1"][k]]]
+        else:
+            continue
+        e = bytes([len(boxes)] + [v & 255 for b in boxes[:4] for v in b])
+        e += bytes(21 - len(e))
+        if e not in idx:
+            idx[e] = len(lst)
+            lst.append(e)
+        i = idx[e]
+        A["pf_hu"][k], A["pf_hux0"][k], A["pf_hux1"][k], A["pf_huy0"][k], A["pf_huy1"][k] = 2, i & 255, i >> 8, 0, 0
+    return b"".join(lst)
+
+
 def build(proj, fr, res_dir):   # traits do lutador (docs/FORMAT_SFPK.md): depois dos golpes
     atk = proj["atk_names"]
     n = len(atk)
@@ -101,7 +134,8 @@ def build(proj, fr, res_dir):   # traits do lutador (docs/FORMAT_SFPK.md): depoi
                  t["fb_alt_hi"], t["fb_alt_lo"], fr.get("art_pals", {}).get(f["name"], t["pal_asset"]), t["pal_alt_off"], t["dirswap"], t["fbpal_asset"], t["fbpal_off1"],
                  t["fbpal_off2"], t["fb_sfx"], t["hp_close_hk"], t["walk_pingpong"], t["face_pal"], t["face_pal_alt"], t["gameover_fp"], t["arcade_opp"], t["face_idx"], t["walk_fwd"], t["walk_back"], t["jump_vx"], t["grav_up"], t["grav_dn"],
                  t["fb_spd"], t["fb_dmg"], t["fb_spd_s"], t["fb_dmg_s"], t["fb_spd_ex"], t["fb_dmg_ex"], t["fb_spd_sup"], t["fb_dmg_sup"],
-                 t.get("stage_bin", 0), t.get("stage_map", 1), t.get("stage_pal", 2), n_as + fs.index(f)]
+                 t.get("stage_bin", 0), t.get("stage_map", 1), t.get("stage_pal", 2), n_as + fs.index(f),
+                 fr.get("art_push", {}).get(f["name"], t.get("push_w", 16)), t.get("throw_rng", 4)]
         if f["name"] in fr.get("art_stages", {}):   # estagio proprio (.sfstage.json): ids dos 3 assets
             words[36], words[37], words[38] = fr["art_stages"][f["name"]]
         if f["name"] in fr.get("art_bases", {}):    # arte do SF Pixel: troca de cores ao virar so se a arte pedir (mirror_swap)
@@ -124,6 +158,7 @@ def build(proj, fr, res_dir):   # traits do lutador (docs/FORMAT_SFPK.md): depoi
     # tabela de blocos de graficos (endereco, banco)
     chunks = [open(os.path.join(res_dir, c), "rb").read() for c in fr["chunks"]]
     # tabelas de quadros: nos bancos 1..T (cada tabela inteira num banco); o diretorio (endereco, banco) fica no banco 0
+    hurt_list = hurt_boxes(proj, fr)   # (muda as tabelas pf_hu* antes de gravar)
     arrays = fr["arrays"]
     tabs = []
     for a in arrays:
@@ -132,6 +167,7 @@ def build(proj, fr, res_dir):   # traits do lutador (docs/FORMAT_SFPK.md): depoi
         assert len(b) <= BANK, a["name"]
         tabs.append(b)
     tpos, tplace = BANK, []
+    tabs.append(hurt_list or bytes(21))   # tabela 26: hurtboxes explicitas (21 bytes por quadro; fica na ROM)
     for b in tabs:
         if (tpos % BANK) + len(b) > BANK:
             tpos = (tpos // BANK + 1) * BANK

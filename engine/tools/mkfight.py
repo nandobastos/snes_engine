@@ -739,6 +739,9 @@ def build_ryu():
     art_faces = {}
     art_swap = {}
     art_stages = {}
+    art_hurts = {}
+    art_push = {}
+    n_orig = len(table)
     import base64
     import json as _j
     _gj = os.path.join(os.path.dirname(ROOT), "project", "game.json")
@@ -805,7 +808,13 @@ def build_ryu():
                     if not b:
                         return None
                     return (b[0] - ax, b[2] - 1 - ax, max(0, h0 - b[3]), h0 - b[1])
-                fr = dict(chunk=len(chunks), off=len(st["cur"]), n=len(pcs), w=af["w"], h=h0 + dy, ax=ax,
+                if af.get("hurts"):   # hurtboxes explicitas (tipo 0 cabeca, 1 tronco, 2 pernas, 3 membro)
+                    hl = [[t_] + list(box(b_)) for t_, b_ in [(hh_[0], hh_[1:]) for hh_ in af["hurts"]][:4]]
+                else:
+                    hl = None
+                if anim == "idle" and k == 0 and af.get("pushbox"):
+                    art_push[_f["name"]] = (af["pushbox"][2] - af["pushbox"][0]) // 2
+                fr = dict(chunk=len(chunks), off=len(st["cur"]), n=len(pcs), w=af["w"], h=h0 + dy, ax=ax, hurts=hl,
                           pcs=[(x - ax + 64, y) for x, y, _p in pcs], box=-1, belt=255,
                           hb=box(af.get("hitbox")), hb2=box(af.get("hitbox2")), hu=box(af.get("hurtbox")))
                 st["cur"] += out
@@ -914,7 +923,7 @@ def build_ryu():
             ra.write("%s dsb %d\n" % (n_, (PP_MAX if n_.startswith("pp_") else PF_MAX) * sz_))
         ra.write("chunk_tab dsb %d\nsmap dsb 2048\n.ENDS\n.BASE $80\n" % (4 * NCHUNK_MAX))
     import json as _json
-    _json.dump(dict(layout=[[a_, first[a_], len(l_)] for a_, l_ in anims], chunk_sizes=[len(c_) for c_ in chunks], fighter_bases=[0, ryu_n, boxer_off], art_bases=art_bases, art_faces=art_faces, art_swap=art_swap, art_stages=art_stages, art_pals={n: PACK_ASSETS.index('art_%s.pal' % ''.join(ch if ch.isalnum() else '_' for ch in n.lower())) for n in art_bases}, nframes=len(table), npieces=len(dx), arrays=[dict(name=n, size=sz, data=d) for n, sz, d in arrays],
+    _json.dump(dict(layout=[[a_, first[a_], len(l_)] for a_, l_ in anims], chunk_sizes=[len(c_) for c_ in chunks], fighter_bases=[0, ryu_n, boxer_off], art_bases=art_bases, art_faces=art_faces, art_swap=art_swap, art_stages=art_stages, n_orig=n_orig, art_push=art_push, hurts={i_: fr_["hurts"] for i_, fr_ in enumerate(table) if fr_.get("hurts")}, art_pals={n: PACK_ASSETS.index('art_%s.pal' % ''.join(ch if ch.isalnum() else '_' for ch in n.lower())) for n in art_bases}, nframes=len(table), npieces=len(dx), arrays=[dict(name=n, size=sz, data=d) for n, sz, d in arrays],
                     chunks=["ryu_%d.bin" % i for i in range(len(chunks))]), open(os.path.join(RES, "frames.json"), "w"))
     maxp = max(fr["n"] for fr in table)
     if DUMP is not None:
